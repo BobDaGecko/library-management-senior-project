@@ -316,7 +316,15 @@ ul, ol {
 .mb-6 { margin-bottom: var(--space-6); }
 
 .ml-auto { margin-left: auto; }
+.ml-1{margin-top: var(--space-1);}
+.ml-2{margin-top: var(--space-2);}
+.ml-4{margin-top: var(--space-4);}
+
+.mr-auto { margin-right: auto; }
+.mr-1 { margin-right: var(--space-1); }
 .mr-2 { margin-right: var(--space-2); }
+.mr-4 { margin-right: var(--space-4); }
+
 
 /* Spacing - Padding */
 .p-1 { padding: var(--space-1); }
