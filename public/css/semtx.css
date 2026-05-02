@@ -49,6 +49,8 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
+  --space-80: 20rem;
+
   /* Borders */
   --radius-sm: 0.25rem;
   --radius: 0.5rem;
@@ -316,14 +318,19 @@ ul, ol {
 .mb-6 { margin-bottom: var(--space-6); }
 
 .ml-auto { margin-left: auto; }
-.ml-1{margin-top: var(--space-1);}
-.ml-2{margin-top: var(--space-2);}
-.ml-4{margin-top: var(--space-4);}
+.ml-1{margin-left: var(--space-1);}
+.ml-2{margin-left: var(--space-2);}
+.ml-4{margin-left: var(--space-4);}
+.ml-6{margin-left: var(--space-6);}
+.ml-16{margin-left: var(--space-16);}
+.ml-80{margin-left: var(--space-80);}
+
 
 .mr-auto { margin-right: auto; }
 .mr-1 { margin-right: var(--space-1); }
 .mr-2 { margin-right: var(--space-2); }
 .mr-4 { margin-right: var(--space-4); }
+.mr-6 { margin-right: var(--space-6); }
 
 
 /* Spacing - Padding */
