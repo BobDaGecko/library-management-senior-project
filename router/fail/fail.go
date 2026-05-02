@@ -29,6 +29,13 @@ func Form(p *RoutingParams) bool {
 // Returns 'true' if the user does NOT meet the minimum role requirements
 // Usage: `if fail.Auth(p, UserRoleLibrarian) { return }`
 func Auth(p *RoutingParams, minLevel db.UserRoleFlag) bool {
+	if p.User == nil {
+		p.W.Header().Set("X-Auth-Missing", minLevel.String())
+		p.W.Header().Set("X-Auth-Current", db.UserRoleNone.String())
+		http.Error(p.W, "Forbidden", http.StatusForbidden)
+		return true
+	}
+
 	if minLevel <= p.User.Roles {
 		return false
 	}
