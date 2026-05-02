@@ -5,14 +5,14 @@
    ============================================ */
 :root {
   /* Color - Light Theme (Latte) */
-  --primary: oklch(0.52 0.1 297.52);
+  --primary: oklch(42.41% 0.161 29.44deg);
   --primary-rgb: rgb(112 91 155);
   --on-primary: oklch(100% 0% 0deg);
   --text: oklch(44% 4% 279deg);
   --text-sub: oklch(49% 4% 279deg);
   --bg-base: oklch(96% 1% 265deg);
   --bg-mantle: oklch(93% 1% 265deg);
-  --bg-surface: oklch(89% 1% 268deg);
+  --bg-surface: oklch(70.87% 0.108 244.66deg);
   --bg-overlay: oklch(81% 2% 271deg);
   --border: oklch(86% 1% 268deg);
 
@@ -999,6 +999,7 @@ button.loading::after {
   padding: var(--space-8) 0;
   text-align: center;
   color: var(--text-sub);
+  background: var(--bg-surface);
 }
 
 .page-footer .container {
