@@ -6,8 +6,9 @@
     <title>Document</title>
     
 <link rel="stylesheet" href="../../public/css/semtx.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
-<main>
+<body>
     <!--<div class="container-lg">-->
 
         <!--Header-->
@@ -23,9 +24,10 @@
                  
         </nav>
 
-        <div class="two-col mt-8" >
-            <aside class="sidebar">
-                <ul class="sidebar-nav">
+        <!--Navigation sidebar-->
+            <aside class="sidebar mt-8 one-col" style="position: fixed;">
+                <ul class="sidebar-nav ">
+                    <!--Add icons-->
                     <li><a class="active" href="#">Catalog</a></li>
                     <li><a href="#">Add Books</a></li>
                     <li class="mb-6"><a href="#">Add Lists</a></li>
@@ -34,16 +36,59 @@
                     <li><a href="#">Holds</a></li>
                     <li><a href="#">Fines</a></li>
                     <li><a href="#">Repair Log</a></li>
-
                 </ul>
             </aside>
-        </div>
+
+
+        <!--Page body-->
+        <main class="ml-80 mt-8">
+          <div class=" container-lg"> <!--Maybe Change container to something else-->
+            <div class="text-center">
+                <h1>Catalog</h1>
+                <div class="demo-row justify center">
+                    <a href="#"><i class="material-icons">add_circle</i> Add Books</a>
+                    <a href="#"><i class="material-icons">filter_alt</i> Filter</a>
+
+                </div>
+                
+            </div>
+            <div class="card-flat">
+                <h3 class="mb-4">
+                    Recently Added
+                </h3>
+                <!--List of books from the database. Try Alphabetical Order later-->
+                <div class="main three-col"><!--Increase columns-->
+                    <div class="well">
+                    <article>
+                        <img src="../../public/images/placeholder.jpg" alt="">
+                         <p class="text">Books listed here</p>
+                    </article>
+                    </div>  
+                    <div class="well">
+                    <article>
+                        <img src="../../public/images/placeholder.jpg" alt="">
+                         <p class="text">Books listed here</p>
+                    </article>
+                    </div>  
+                    <div class="well">
+                    <article>
+                        <img src="../../public/images/placeholder.jpg" alt="">
+                         <p class="text">Books listed here</p>
+                    </article>
+                    </div>  
+                    <div class="well">
+                    <article>
+                        <img src="../../public/images/placeholder.jpg" alt="">
+                         <p class="text">Books listed here</p>
+                    </article>
+                    </div>  
+                </div>
+                
+                    
+
+                </div>              
+             </div>
         
-
-        <div class="book-list">
-
-        </div>
-
         <footer class="page-footer">
 
         </footer>
@@ -54,4 +99,5 @@
 
 
 </main>
+</body>
 </html>
