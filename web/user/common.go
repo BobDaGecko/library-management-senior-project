@@ -21,4 +21,9 @@ var (
 		EntrySecret,
 		EntrySecretAgain,
 	}
+
+	LoginFormEntries = []FormEntry{
+		EntryEmailAddr,
+		EntrySecret,
+	}
 )
