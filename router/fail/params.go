@@ -65,3 +65,7 @@ func (p RoutingParams) Form() map[string]string {
 	}
 	return ret
 }
+
+func (p RoutingParams) Param(name string) string {
+	return p.Req.URL.Query().Get(name)
+}

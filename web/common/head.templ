@@ -39,5 +39,22 @@ templ NavHead(subpage string, searchPrefill string) {
 	</nav>
 }
 
-templ NavAside() {
+templ NavAside(entries NavAsideEntryList, active string) {
+	<aside class="sidebar mt-8 one-col" style="position: fixed;">
+		<ul class="sidebar-nav">
+			for i, e := range entries {
+				if e.Name != "" {
+					<li class={ templ.KV("mt-6", entries.HasPrevBlank(i)), templ.KV("mb-6", entries.HasNextBlank(i)) }>
+						<a class={ templ.KV("active", e.Link == active) } href={ e.Link }>{ e.Name }</a>
+					</li>
+				}
+			}
+		</ul>
+	</aside>
+}
+
+templ Footer() {
+	<footer class="page-footer mt-8">
+		<p class="text-xs">&#169 2026 Town Library</p>
+	</footer>
 }
