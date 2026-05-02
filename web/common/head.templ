@@ -9,6 +9,35 @@ templ Head(title string, desc string) {
 		<meta name="description" content={ desc }/>
 		<title>{ title }</title>
 		<script type="text/javascript" src="/assets/js/htmx-2.0.8.js"></script>
+		<link rel="stylesheet" type="text/css" href="/assets/css/semtx.css"/>
+		<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
 	</head>
 }
 
+templ NavHead(subpage string, searchPrefill string) {
+	<nav class="navbar" style="justfiy-content: space-around">
+		<!-- TO-DO: Chance Image Placement -->
+		<a href="/" class="navbar-brand">
+			<img src="../../assets/img/placeholder.jpg"/>
+			Town Library
+			{ subpage }
+		</a>
+		<div class="input-search" style="width: 30%">
+			<!-- TO-DO: Button won't go next to searchbar for regular form input. -->
+			<!-- TO-DO: Either fix or edit form-input-sm to match shape -->
+			<input
+				class="form-input-lg"
+				type="search"
+				name="q"
+				id="q"
+				placeholder="Search..."
+				value={ searchPrefill }
+			/>
+			<!-- TO-DO: Add magnifying glass to button text -->
+			<button class="btn-small btn-primary input-icon">Search</button>
+		</div>
+	</nav>
+}
+
+templ NavAside() {
+}
