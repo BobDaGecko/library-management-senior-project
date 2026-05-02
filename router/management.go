@@ -18,7 +18,7 @@ func ManagementRouter(p *fail.RoutingParams) {
 	case "books":
 		ManagementBooksRouter(p)
 	default:
-		fail.Redirect(p)
+		fail.Render(p, pages.ManagementHome(p))
 	}
 }
 
