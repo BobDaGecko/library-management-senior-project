@@ -1133,7 +1133,7 @@ button:disabled,
 button.disabled,
 .btn:disabled,
 .btn.disabled {
-	opacity: 0.8;
+	opacity: 0.7;
 	cursor: not-allowed;
 	pointer-events: none;
 	
@@ -1174,17 +1174,17 @@ button:hover {
 
 .btn-ghost {
 	background: transparent;
-	color: var(--text);
+	/*color: var(--text);*/
 	border-color: transparent;
 }
 
-.btn-ghost:hover {
+/*.btn-ghost:hover {
 	background: var(--bg-surface);
-}
+}*/
 
 .btn-danger {
-	background: var(--red);
-	color: oklch(100% 0% 0deg);
+	background: #FFBB00;
+	color: var(--button-text);
 	border-color: var(--red);
 }
 
