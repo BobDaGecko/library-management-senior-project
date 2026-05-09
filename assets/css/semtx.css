@@ -88,6 +88,7 @@
 	--space-8: 2rem;
 	--space-12: 3rem;
 	--space-16: 4rem;
+    --space-20: 5rem;
 
 	--space-80: 20rem;
 
@@ -224,6 +225,14 @@ ol {
 
 .inline-flex {
 	display: inline-flex;
+}
+
+/*Demo-row from semtx site*/
+.demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
 }
 
 /* ============================================
@@ -1139,7 +1148,7 @@ button.disabled,
 }
 
 button:hover {
-	filter: brightness(1.1);
+	filter: brightness(1.3);
 }
 
 .btn-secondary {
@@ -1202,6 +1211,14 @@ button:hover {
 	padding: var(--space-3) var(--space-6);
 	font-size: var(--fs-base);
 	min-height: 52px;
+}
+
+.btn-long{
+    padding: var(--space-3) var(--space-20);
+	font-size: var(--fs-sm);
+	min-height: 42px;
+    min-width: 62px;
+    border-radius: var(--radius-sm);
 }
 
 /* Button with Icon */
