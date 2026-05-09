@@ -1136,15 +1136,15 @@ button.disabled,
 	opacity: 0.8;
 	cursor: not-allowed;
 	pointer-events: none;
-	color: var(--text);
-	background: var(--bg-surface);
+	
+    /*border: none; Might cause domino effect on the look of button*/ 
 }
 
 /* Button Variants */
 .btn-primary {
 	background: var(--primary);
 	color: var(--on-primary);
-	border-color: var(--primary);
+	border-color: var(--text-sub);
 }
 
 button:hover {
@@ -1152,13 +1152,13 @@ button:hover {
 }
 
 .btn-secondary {
-	background: var(--bg-surface);
-	color: var(--text);
-	border-color: var(--border);
+	color: var(--primary);
+	border-color: var(--primary);
+    border-width: 2px;
 }
 
 .btn-secondary:hover {
-	background: var(--bg-overlay);
+	background: white;
 }
 
 .btn-outline {
