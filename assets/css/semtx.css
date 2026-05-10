@@ -6,7 +6,7 @@
 :root {
 	/* Color - Light Theme (Latte) */
 	--light-primary: oklch(42.41% 0.161 29.44deg);
-	--light-primary-rgb: rgb(112 91 155);
+	--light-primary-rgb: oklch(44.88% 0.119 143.72deg);
 	--light-on-primary: oklch(100% 0% 0deg);
 	--light-text: oklch(44% 4% 279deg);
 	--light-text-sub: oklch(49% 4% 279deg);
@@ -1740,6 +1740,7 @@ button.loading::after {
 	min-height: 40px;
 	padding: var(--space-2);
 	color: var(--text-sub);
+	border: 2px solid;
 	border-radius: var(--radius);
 	transition: all var(--trans-fast);
 	text-decoration: none;
@@ -1747,12 +1748,13 @@ button.loading::after {
 
 .pagination a:hover,
 .pagination button:hover {
-	color: var(--text);
-	background: var(--bg-surface);
+	color: var(--button-text);
+	background: var(--bg-overlay);
+	border-style: hidden;
 }
 
 .pagination .active {
-	background: var(--primary);
+	background: var(--primary-rgb);
 	color: var(--on-primary);
 }
 
