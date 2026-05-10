@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -57,7 +56,6 @@ type JwtEntry struct {
 
 func (u *User) IssueJWT() JwtEntry {
 	db := Db()
-	fmt.Println("\x1b[94;1mPre-JWT\x1b[0m")
 	db.Save(&u)
 	header := ToJsonB64(map[string]string{
 		"alg": "HS256",
@@ -81,7 +79,6 @@ func (u *User) IssueJWT() JwtEntry {
 		ExpiresAt: issuedAt.Add(JWT_LIFETIME_MS),
 	}
 
-	fmt.Println("\x1b[94;1mPost-JWT\x1b[0m")
 	db.Save(&ret)
 	return ret
 }

@@ -1,0 +1,43 @@
+package pages
+
+import (
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/book"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+func getLatestBooks(limit int) []db.BookWork {
+	var books []db.BookWork
+	db.Db().Model(&db.BookWork{}).Order("created_at desc").Limit(limit).Find(&books)
+	return books
+}
+
+templ ManagementHome(p *fail.RoutingParams) {
+	@common.Head("Management Home", "Management Home")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<!-- TO-DO: Maybe change container to something else -->
+		<div class="container-lg">
+			<div class="text-center">
+				<h1>Catalog</h1>
+				<div class="demo-row justify center">
+					<a href="/management/books/add"><i class="material-icons">add_circle</i> Add Books</a>
+					<a href="#"><i class="material-icons">filter_alt</i> Filter</a>
+				</div>
+			</div>
+			<div class="card-flat">
+				<h3 class="mb-4">Recently Added</h3>
+				<!-- TO-DO: Increase columns -->
+				<div class="main three-col">
+					for _, b := range getLatestBooks(12) {
+						@book.BookCover(b)
+					}
+				</div>
+			</div>
+		</div>
+		<!-- TO-DO: Fix length after fixing nav bar -->
+		@common.Footer()
+	</main>
+}

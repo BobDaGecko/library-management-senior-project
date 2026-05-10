@@ -1,9 +1,9 @@
 package book
 
 import (
+	"fmt"
 	"voxelprismatic/library-management-senior-project/db"
 )
-
 
 css book_thumb_container() {
 	height: 256px;
@@ -43,9 +43,9 @@ templ BookThumb(b db.BookWork, variants ...db.BookWork) {
 				<div style="font-size: smaller;">
 					{ "by " }
 					for i, author := range b.Authors {
-						<a href={ templ.SafeURL("?q=author:" + author) }>{author}</a>{
-						}if i < len(b.Authors)-1 {
-							<span>{", "}</span>
+						<a href={ templ.SafeURL("?q=author:" + author) }>{ author }</a>{  }
+						if i < len(b.Authors)-1 {
+							<span>{ ", " }</span>
 						}
 					}
 				</div>
@@ -65,5 +65,29 @@ templ BookThumb(b db.BookWork, variants ...db.BookWork) {
 				}
 			</div>
 		</div>
+	</div>
+}
+
+templ BookCover(b db.BookWork) {
+	<div class="well">
+		<article>
+			<img src={ b.CoverThumb } alt={ fmt.Sprintf("%s by %s", b.Title, b.Authors) }/>
+			<p class="text">
+				{ b.Title }
+				<br/>
+				<span style="font-size: smaller;">
+					{ "by " }
+					for i, author := range b.Authors {
+						<span>{ author }</span>{  }
+						if i < len(b.Authors)-1 {
+							<span>{ ", " }</span>
+						}
+						if i == len(b.Authors)-2 {
+							<span>{ "and " }</span>
+						}
+					}
+				</span>
+			</p>
+		</article>
 	</div>
 }
