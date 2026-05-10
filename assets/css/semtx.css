@@ -1540,7 +1540,7 @@ button.loading::after {
 .page-footer {
 	padding: var(--space-8) 0;
 	text-align: center;
-	color: var(--text-sub);
+	color: var(--button-text);
 	background: var(--bg-surface);
 }
 
