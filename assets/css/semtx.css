@@ -1312,8 +1312,8 @@ button.loading::after {
 
 .form-input:focus {
 	outline: none;
-	border-color: var(--primary);
-	box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 30%, transparent);
+	border-color: var(--primary-rgb);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary-rgb) 30%, transparent);
 }
 
 .form-input:disabled,
