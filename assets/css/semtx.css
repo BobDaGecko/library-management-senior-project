@@ -6,15 +6,16 @@
 :root {
 	/* Color - Light Theme (Latte) */
 	--light-primary: oklch(42.41% 0.161 29.44deg); /*Our red*/
-	--light-tertiary: oklch(44.88% 0.119 143.72deg); 
+	--light-tertiary: oklch(44.88% 0.119 143.72deg); /*our green*/
 	--light-on-primary: oklch(100% 0% 0deg);
 	--light-text: oklch(44% 4% 279deg);
 	--light-text-sub: oklch(49% 4% 279deg);
 	--light-bg-base: oklch(96% 1% 265deg);
 	--light-bg-mantle: oklch(93% 1% 265deg);
-	--light-bg-surface: oklch(70.87% 0.108 244.66deg);
+	--light-bg-surface: oklch(70.87% 0.108 244.66deg); /*Our blue*/
 	--light-bg-overlay: oklch(81% 2% 271deg);
 	--light-border: oklch(86% 1% 268deg);
+	
 	--button-text: #000;
 
 	/*TODO: Create dark mode version of colors*/
@@ -44,7 +45,7 @@
 	/* Accent Colors */
 	--light-red: oklch(55% 28% 20deg);
 	--light-peach: oklch(69% 26% 42deg);
-	--light-yellow: oklch(71% 20% 68deg);
+	--light-yellow: oklch(83.28% 0.172 82.06deg);
 	--light-green: oklch(63% 24% 140deg);
 	--light-teal: oklch(60% 16% 201deg);
 	--light-sky: oklch(68% 18% 235deg);
@@ -52,7 +53,7 @@
 
 	--dark-red: oklch(0.54 0.12 5.88);
 	--dark-peach: oklch(82% 15% 53deg);
-	--dark-yellow: oklch(92% 12% 87deg);
+	--dark-yellow: oklch(91.92% 0.0871 88.69deg);
 	--dark-green: oklch(86% 16% 143deg);
 	--dark-teal: oklch(86% 14% 183deg);
 	--dark-sky: oklch(85% 14% 210deg);
@@ -1153,6 +1154,7 @@ button.disabled,
 	opacity: 0.7;
 	cursor: not-allowed;
 	pointer-events: none;
+	filter: grayscale(0.5);
 	
     /*border: none; Might cause domino effect on the look of button*/ 
 }
@@ -1161,7 +1163,7 @@ button.disabled,
 .btn-primary {
 	background: var(--primary);
 	color: var(--on-primary);
-	border-color: var(--text-sub);
+	border-color: var(--primary);
 }
 
 button:hover {
@@ -1169,13 +1171,14 @@ button:hover {
 }
 
 .btn-secondary {
+	background: var(--bg-base);
 	color: var(--primary);
 	border-color: var(--primary);
     border-width: 2px;
 }
 
 .btn-secondary:hover {
-	background: white;
+	background: var(--on-primary);
 }
 
 .btn-outline {
@@ -1200,7 +1203,7 @@ button:hover {
 }*/
 
 .btn-danger {
-	background: #FFBB00;
+	background: var(--yellow);
 	color: var(--button-text);
 	border-color: var(--red);
 }
