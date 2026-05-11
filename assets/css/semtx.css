@@ -2114,18 +2114,53 @@ dialog .modal-close:hover {
 .table td {
 	padding: var(--space-3) var(--space-4);
 	text-align: left;
-	border-bottom: var(--border-w) solid var(--border);
+	border: var(--border-w) solid var(--border);
 }
 
 .table th {
 	font-weight: 600;
-	background: var(--bg-mantle);
-	color: var(--text);
+	background: var(--tertiary);
+	color: var(--on-primary);
 }
 
 .table tr:last-child td {
 	border-bottom: none;
 }
+
+/*Row Actions*/
+.row-actions{
+	gap: var(--space-2);
+}
+
+.table td button{
+	all: unset;
+	cursor: pointer;
+	padding: 0px var(--space-2);
+	border-radius: var(--space-2);
+}
+
+.table td button:hover{
+	background: var(--on-primary);
+	
+}
+
+/*Sort*/
+
+.table-sort th button{
+	all:unset;
+	cursor:pointer;
+	color: inherit;
+	font: inherit;
+}
+
+.table-sort th button i.asc::after{
+	content: " ▲";
+}
+
+.table-sort th button i.desc::after{
+	content: " ▼";
+}
+
 
 /* Striped */
 .table-striped tbody tr:nth-child(odd) {
@@ -2134,7 +2169,7 @@ dialog .modal-close:hover {
 
 /* Hover */
 .table-hover tbody tr:hover {
-	background: color-mix(in oklch, var(--primary) 10%, transparent);
+	background: color-mix(in oklch, var(--bg-surface) 10%, transparent);
 	cursor: pointer;
 }
 
