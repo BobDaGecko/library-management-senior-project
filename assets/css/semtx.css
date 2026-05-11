@@ -5,8 +5,8 @@
    ============================================ */
 :root {
 	/* Color - Light Theme (Latte) */
-	--light-primary: oklch(42.41% 0.161 29.44deg);
-	--light-primary-rgb: oklch(44.88% 0.119 143.72deg);
+	--light-primary: oklch(42.41% 0.161 29.44deg); /*Our red*/
+	--light-tertiary: oklch(44.88% 0.119 143.72deg); 
 	--light-on-primary: oklch(100% 0% 0deg);
 	--light-text: oklch(44% 4% 279deg);
 	--light-text-sub: oklch(49% 4% 279deg);
@@ -17,8 +17,9 @@
 	--light-border: oklch(86% 1% 268deg);
 	--button-text: #000;
 
+	/*TODO: Create dark mode version of colors*/
 	--dark-primary: oklch(0.87 0.04 96.18);
-	--dark-primary-rgb: rgb(112 91 155);
+	--dark-tertiary: oklch(44.88% 0.119 143.72deg);
 	--dark-on-primary: oklch(21% 3% 284deg);
 	--dark-text: oklch(88% 4% 272deg);
 	--dark-text-sub: oklch(82% 4% 273deg);
@@ -30,7 +31,7 @@
 	--dark-button-text: oklch(0.33 0.01 0);
 
 	--primary: light-dark(var(--light-primary), var(--dark-primary));
-	--primary-rgb: light-dark(var(--light-primary-rgb), var(--dark-primary-rgb));
+	--tertiary: light-dark(var(--light-tertiary), var(--dark-tertiary));
 	--on-primary: light-dark(var(--light-on-primary), var(--dark-on-primary));
 	--text: light-dark(var(--light-text), var(--dark-text));
 	--text-sub: light-dark(var(--light-text-sub), var(--dark-text-sub));
@@ -982,8 +983,8 @@ ol {
 .primary{
     color: var(--primary);
 }
-.primary-rgb{
-    color: var(--primary-rgb);
+.tertiary{
+    color: var(--tertiary);
 }
 .on-primary{
     color: var(--on-primary);
@@ -1312,8 +1313,8 @@ button.loading::after {
 
 .form-input:focus {
 	outline: none;
-	border-color: var(--primary-rgb);
-	box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary-rgb) 30%, transparent);
+	border-color: var(--tertiary);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--tertiary) 30%, transparent);
 }
 
 .form-input:disabled,
@@ -1770,7 +1771,7 @@ button.loading::after {
 }
 
 .pagination .active {
-	background: var(--primary-rgb);
+	background: var(--tertiaryb);
 	color: var(--on-primary);
 }
 
