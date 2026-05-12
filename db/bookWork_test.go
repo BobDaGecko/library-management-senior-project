@@ -1,6 +1,7 @@
 package db
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -29,18 +30,18 @@ func TestAvailableCopiesTotal(t *testing.T) {
 
 	counts, err := book.AvailableCopies(true)
 	if err != nil {
-		t.Fatalf("available copies: unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	result, ok := counts[BookFmtPaperback]
 	if !ok {
-		t.Fatalf("available copies: expected BookFmtPaperback in results")
+		t.Fatalf("expected BookFmtPaperback in results")
 	}
 	if result.Total != 2 {
-		t.Fatalf("available copies: expected total 2, got %d", result.Total)
+		t.Fatalf("expected total 2, got %d", result.Total)
 	}
 	if result.Available != 2 {
-		t.Fatalf("available copies: expected available 2, got %d", result.Available)
+		t.Fatalf("expected available 2, got %d", result.Available)
 	}
 }
 
@@ -84,17 +85,58 @@ func TestAvailableCopiesWithLoan(t *testing.T) {
 
 	counts, err := book.AvailableCopies(true)
 	if err != nil {
-		t.Fatalf("available copies with loan: unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	result, ok := counts[BookFmtPaperback]
 	if !ok {
-		t.Fatalf("available copies with loan: expected BookFmtPaperback in results")
+		t.Fatalf("expected BookFmtPaperback in results")
 	}
 	if result.Total != 2 {
-		t.Fatalf("available copies with loan: expected total 2, got %d", result.Total)
+		t.Fatalf("expected total 2, got %d", result.Total)
 	}
 	if result.Available != 1 {
-		t.Fatalf("available copies with loan: expected available 1, got %d", result.Available)
+		t.Fatalf("expected available 1, got %d", result.Available)
+	}
+}
+
+func TestBookWorkTagParsing(t *testing.T) {
+	book := BookWork{
+		ID:    "test-book-id",
+		Title: "Test Book",
+		Categories: SqlStringList{
+			"Fiction / Mystery",
+			"Fiction / Detective / Amateur Sleuth",
+		},
+	}
+
+	tags := book.Tags()
+
+	expected := []string{"Fiction", "Mystery", "Detective", "Amateur Sleuth"}
+	for _, e := range expected {
+		if !slices.Contains(tags, e) {
+			t.Fatalf("expected tag %q to be present, got %v", e, tags)
+		}
+	}
+}
+
+func TestBookWorkTagParsingNoDuplicates(t *testing.T) {
+	book := BookWork{
+		ID:    "test-book-id",
+		Title: "Test Book",
+		Categories: SqlStringList{
+			"Fiction / Mystery",
+			"Fiction / Detective",
+		},
+	}
+
+	tags := book.Tags()
+
+	seen := map[string]bool{}
+	for _, tag := range tags {
+		if seen[tag] {
+			t.Fatalf("duplicate tag found: %q", tag)
+		}
+		seen[tag] = true
 	}
 }

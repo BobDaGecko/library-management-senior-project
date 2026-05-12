@@ -24,10 +24,10 @@ func TestBookCopyLoanStatusWithdrawn(t *testing.T) {
 
 	status, err := c.LoanStatus()
 	if err != nil {
-		t.Fatalf("book copy loan status withdrawn: unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if status != CopyLoanWithdrawn {
-		t.Fatalf("book copy loan status withdrawn: expected %s, got %s", CopyLoanWithdrawn, status)
+		t.Fatalf("expected %s, got %s", CopyLoanWithdrawn, status)
 	}
 }
 
@@ -50,10 +50,10 @@ func TestBookCopyLoanStatusAvailable(t *testing.T) {
 
 	status, err := c.LoanStatus()
 	if err != nil {
-		t.Fatalf("book copy loan status available: unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if status != CopyLoanAvailable {
-		t.Fatalf("book copy loan status available: expected %s, got %s", CopyLoanAvailable, status)
+		t.Fatalf("expected %s, got %s", CopyLoanAvailable, status)
 	}
 }
 
@@ -91,9 +91,9 @@ func TestBookCopyLoanStatusLatest(t *testing.T) {
 
 	status, err := c.LoanStatus()
 	if err != nil {
-		t.Fatalf("book copy loan status latest: unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if status != CopyLoanUnvailable {
-		t.Fatalf("book copy loan status latest: expected %s, got %s", CopyLoanUnvailable, status)
+		t.Fatalf("expected %s, got %s", CopyLoanUnvailable, status)
 	}
 }
