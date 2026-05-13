@@ -86,17 +86,17 @@ func (f CopyStatusFlag) String() string {
 type CopyLoanFlag int
 
 const (
-	CopyLoanAvailable  CopyLoanFlag = 1 << iota // Open to the public
-	CopyLoanUnvailable                          // Book is checked out
-	CopyLoanOverdue                             // Book is checked out and overdue
-	CopyLoanWithdrawn                           // Book is withdrawn from circulation until repairs are complete
+	CopyLoanAvailable   CopyLoanFlag = 1 << iota // Open to the public
+	CopyLoanUnavailable                          // Book is checked out
+	CopyLoanOverdue                              // Book is checked out and overdue
+	CopyLoanWithdrawn                            // Book is withdrawn from circulation until repairs are complete
 )
 
 func (f CopyLoanFlag) String() string {
 	switch f {
 	case CopyLoanAvailable:
 		return "CopyLoanAvailable"
-	case CopyLoanUnvailable:
+	case CopyLoanUnavailable:
 		return "CopyLoanUnvailable"
 	case CopyLoanOverdue:
 		return "CopyLoanOverdue"

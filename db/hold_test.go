@@ -3,6 +3,8 @@ package db
 import (
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestHoldStatusCompleted(t *testing.T) {
@@ -11,12 +13,8 @@ func TestHoldStatusCompleted(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != HoldCompleted {
-		t.Fatalf("expected %s, got %s", HoldCompleted, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldCompleted)
 }
 
 func TestHoldStatusCancelled(t *testing.T) {
@@ -25,12 +23,8 @@ func TestHoldStatusCancelled(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != HoldCancelled {
-		t.Fatalf("expected %s, got %s", HoldCancelled, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldCancelled)
 }
 
 func TestHoldStatusQueued(t *testing.T) {
@@ -57,12 +51,8 @@ func TestHoldStatusQueued(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != HoldQueued {
-		t.Fatalf("expected %s, got %s", HoldQueued, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldQueued)
 }
 
 func TestHoldStatusRevoked(t *testing.T) {
@@ -83,12 +73,8 @@ func TestHoldStatusRevoked(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != HoldRevoked {
-		t.Fatalf("expected %s, got %s", HoldRevoked, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldRevoked)
 }
 
 func TestHoldStatusPostponedOverdue(t *testing.T) {
@@ -130,12 +116,8 @@ func TestHoldStatusPostponedOverdue(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != HoldPostponed {
-		t.Fatalf("expected %s, got %s", HoldPostponed, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldPostponed)
 }
 
 func TestHoldStatusPostponedTooManyLoans(t *testing.T) {
@@ -179,10 +161,6 @@ func TestHoldStatusPostponedTooManyLoans(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != HoldPostponed {
-		t.Fatalf("expected %s, got %s", HoldPostponed, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldPostponed)
 }

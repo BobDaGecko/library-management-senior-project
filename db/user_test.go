@@ -3,6 +3,8 @@ package db
 import (
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestUserCheckedOut(t *testing.T) {
@@ -38,12 +40,8 @@ func TestUserCheckedOut(t *testing.T) {
 	tx.Save(&loan)
 
 	checkedOut, err := user.CheckedOut()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(checkedOut) != 1 {
-		t.Fatalf("expected 1 loan, got %d", len(checkedOut))
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, len(checkedOut), 1)
 }
 
 func TestUserCheckedOutNone(t *testing.T) {
@@ -58,12 +56,8 @@ func TestUserCheckedOutNone(t *testing.T) {
 	tx.Save(&user)
 
 	checkedOut, err := user.CheckedOut()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(checkedOut) != 0 {
-		t.Fatalf("expected 0 loans, got %d", len(checkedOut))
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, len(checkedOut), 0)
 }
 
 func TestUserHasOverdueBooks(t *testing.T) {
@@ -99,12 +93,8 @@ func TestUserHasOverdueBooks(t *testing.T) {
 	tx.Save(&loan)
 
 	hasOverdue, err := user.HasOverdueBooks()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !hasOverdue {
-		t.Fatalf("expected true, got false")
-	}
+	assert.NilError(t, err)
+	assert.Assert(t, hasOverdue)
 }
 
 func TestUserNoOverdueBooks(t *testing.T) {
@@ -140,10 +130,6 @@ func TestUserNoOverdueBooks(t *testing.T) {
 	tx.Save(&loan)
 
 	hasOverdue, err := user.HasOverdueBooks()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if hasOverdue {
-		t.Fatalf("expected false, got true")
-	}
+	assert.NilError(t, err)
+	assert.Assert(t, !hasOverdue)
 }

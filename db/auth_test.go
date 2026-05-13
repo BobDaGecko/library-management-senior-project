@@ -2,106 +2,87 @@ package db
 
 import (
 	"testing"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestSetFirstNameValid(t *testing.T) {
 	user := User{}
 	err := user.SetFirstName("John")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+
+	assert.NilError(t, err)
 }
 
 func TestSetFirstNameEmpty(t *testing.T) {
 	user := User{}
 	err := user.SetFirstName("")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+
+	assert.ErrorContains(t, err, "first name cannot be blank")
 }
 
 func TestSetFirstNameTooLong(t *testing.T) {
 	user := User{}
 	long := string(make([]byte, MAX_NAME_LEN+1))
 	err := user.SetFirstName(long)
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+
+	assert.ErrorContains(t, err, "first name cannot exceed")
 }
 
 func TestSetLastNameValid(t *testing.T) {
 	user := User{}
 	err := user.SetLastName("Doe")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+
+	assert.NilError(t, err)
 }
 
 func TestSetLastNameEmpty(t *testing.T) {
 	user := User{}
 	err := user.SetLastName("")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+
+	assert.ErrorContains(t, err, "last name cannot be blank")
 }
 
 func TestSetLastNameTooLong(t *testing.T) {
 	user := User{}
 	long := string(make([]byte, MAX_NAME_LEN+1))
 	err := user.SetLastName(long)
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+
+	assert.ErrorContains(t, err, "last name cannot exceed")
 }
 
 func TestSecretStrengthValid(t *testing.T) {
 	err := TestSecretStrength("Password1!")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	assert.NilError(t, err)
 }
 
 func TestSecretStrengthMissingUpper(t *testing.T) {
 	err := TestSecretStrength("password1!")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	assert.ErrorContains(t, err, "an uppercase letter")
 }
 
 func TestSecretStrengthMissingLower(t *testing.T) {
 	err := TestSecretStrength("PASSWORD1!")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	assert.ErrorContains(t, err, "a lowercase letter")
 }
 
 func TestSecretStrengthMissingDigit(t *testing.T) {
 	err := TestSecretStrength("Password!")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	assert.ErrorContains(t, err, "a number")
 }
 
 func TestSecretStrengthMissingSymbol(t *testing.T) {
 	err := TestSecretStrength("Password1")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	assert.ErrorContains(t, err, "a symbol")
 }
 
 func TestSecretStrengthTooShort(t *testing.T) {
 	err := TestSecretStrength("Pass1!")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	assert.ErrorContains(t, err, "secret too short")
 }
 
 func TestSecretStrengthTooLong(t *testing.T) {
-	long := "SomeReallyObscenelyLongPassword1!"
-	err := TestSecretStrength(long)
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	err := TestSecretStrength("SomeReallyObscenelyLongPassword1!")
+	assert.ErrorContains(t, err, "secret cannot exceed")
 }
 
 func TestValidateJWT(t *testing.T) {
@@ -118,17 +99,16 @@ func TestValidateJWT(t *testing.T) {
 	entry := user.IssueJWT()
 
 	partial, _, err := ValidateJWT(entry.Token)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if partial.ID != user.ID.String() {
-		t.Fatalf("expected user ID %s, got %s", user.ID.String(), partial.ID)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, partial.ID, user.ID.String())
 }
 
 func TestValidateJWTInvalid(t *testing.T) {
 	_, _, err := ValidateJWT("invalid.jwt.token")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
+	assert.ErrorContains(t, err, "signature mismatch")
+}
+
+func TestValidateJWTMalformed(t *testing.T) {
+	_, _, err := ValidateJWT("malformed.jwt-token")
+	assert.ErrorContains(t, err, "malformed jwt")
 }

@@ -33,7 +33,7 @@ func (s LoanStatusFlag) ToCopyStatus() CopyLoanFlag {
 	case LoanStatusReturned:
 		return CopyLoanAvailable
 	case LoanStatusCheckedOut:
-		return CopyLoanUnvailable
+		return CopyLoanUnavailable
 	case LoanStatusOverdue:
 		return CopyLoanOverdue
 	default:

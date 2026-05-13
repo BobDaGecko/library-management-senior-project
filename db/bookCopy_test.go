@@ -3,6 +3,8 @@ package db
 import (
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestBookCopyLoanStatusWithdrawn(t *testing.T) {
@@ -23,12 +25,8 @@ func TestBookCopyLoanStatusWithdrawn(t *testing.T) {
 	tx.Save(&c)
 
 	status, err := c.LoanStatus()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != CopyLoanWithdrawn {
-		t.Fatalf("expected %s, got %s", CopyLoanWithdrawn, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, CopyLoanWithdrawn)
 }
 
 func TestBookCopyLoanStatusAvailable(t *testing.T) {
@@ -49,12 +47,8 @@ func TestBookCopyLoanStatusAvailable(t *testing.T) {
 	tx.Save(&c)
 
 	status, err := c.LoanStatus()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != CopyLoanAvailable {
-		t.Fatalf("expected %s, got %s", CopyLoanAvailable, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, CopyLoanAvailable)
 }
 
 func TestBookCopyLoanStatusLatest(t *testing.T) {
@@ -90,10 +84,6 @@ func TestBookCopyLoanStatusLatest(t *testing.T) {
 	tx.Save(&loan)
 
 	status, err := c.LoanStatus()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if status != CopyLoanUnvailable {
-		t.Fatalf("expected %s, got %s", CopyLoanUnvailable, status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, CopyLoanUnavailable)
 }
