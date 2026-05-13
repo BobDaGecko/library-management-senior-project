@@ -3,6 +3,8 @@ package db
 import (
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestHoldStatusCompleted(t *testing.T) {
@@ -11,12 +13,8 @@ func TestHoldStatusCompleted(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("hold status: unexpected error: %v", err)
-	}
-	if status != HoldCompleted {
-		t.Fatalf("hold status: expected HoldCompleted, got %s", status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldCompleted)
 }
 
 func TestHoldStatusCancelled(t *testing.T) {
@@ -25,12 +23,8 @@ func TestHoldStatusCancelled(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("hold status: unexpected error: %v", err)
-	}
-	if status != HoldCancelled {
-		t.Fatalf("hold status: expected HoldCancelled, got %s", status)
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldCancelled)
 }
 
 func TestHoldStatusQueued(t *testing.T) {
@@ -57,10 +51,116 @@ func TestHoldStatusQueued(t *testing.T) {
 	}
 
 	status, err := hold.Status()
-	if err != nil {
-		t.Fatalf("hold status: unexpected error: %v", err)
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldQueued)
+}
+
+func TestHoldStatusRevoked(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
+		Status:    UserStatusDeleted,
 	}
-	if status != HoldQueued {
-		t.Fatalf("hold status: expected HoldQueued, got %s", status)
+	tx.Save(&user)
+
+	hold := Hold{
+		User:   user,
+		UserID: user.ID,
 	}
+
+	status, err := hold.Status()
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldRevoked)
+}
+
+func TestHoldStatusPostponedOverdue(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
+		Status:    UserStatusActive,
+	}
+	tx.Save(&user)
+
+	book := BookWork{
+		ID:    "test-book-id",
+		Title: "Test Book",
+	}
+	tx.Save(&book)
+
+	c := BookCopy{
+		BookWorkID: book.ID,
+		Format:     BookFmtPaperback,
+		Status:     CopyStatusPublic,
+	}
+	tx.Save(&c)
+
+	loan := Loan{
+		BookCopyID:   c.ID,
+		UserID:       user.ID,
+		DateCheckout: time.Now().Add(-LOAN_DURATION * 2),
+		DateReturned: NilTime,
+	}
+	tx.Save(&loan)
+
+	hold := Hold{
+		User:   user,
+		UserID: user.ID,
+	}
+
+	status, err := hold.Status()
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldPostponed)
+}
+
+func TestHoldStatusPostponedTooManyLoans(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
+		Status:    UserStatusActive,
+	}
+	tx.Save(&user)
+
+	book := BookWork{
+		ID:    "test-book-id",
+		Title: "Test Book",
+	}
+	tx.Save(&book)
+
+	for i := 0; i < LOAN_LIMIT; i++ {
+		c := BookCopy{
+			BookWorkID: book.ID,
+			Format:     BookFmtPaperback,
+			Status:     CopyStatusPublic,
+		}
+		tx.Save(&c)
+
+		loan := Loan{
+			BookCopyID:   c.ID,
+			UserID:       user.ID,
+			DateCheckout: time.Now().Add(-DAY),
+			DateReturned: NilTime,
+		}
+		tx.Save(&loan)
+	}
+
+	hold := Hold{
+		User:   user,
+		UserID: user.ID,
+	}
+
+	status, err := hold.Status()
+	assert.NilError(t, err)
+	assert.Equal(t, status, HoldPostponed)
 }
