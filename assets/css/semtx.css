@@ -1486,11 +1486,15 @@ fieldset{
 	box-shadow: 0 0 0 3px color-mix(in oklch, var(--red) 30%, transparent);
 }
 
-/*Nice to have
-fieldset:has(:user-invalid).form-error{
+/*Nice to have*/
+fieldset:has(input:user-invalid) .form-error{
 	display: block;
 }
-*/
+
+fieldset:has(input:user-valid) .form-error{
+	display: none;
+}
+
 
 /* ============================================
    CARDS
