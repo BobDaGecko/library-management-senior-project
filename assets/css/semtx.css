@@ -1398,7 +1398,7 @@ fieldset{
 .form-check input[type="radio"] {
 	width: 1.25rem;
 	height: 1.25rem;
-	accent-color: var(--primary);
+	accent-color: var(--tertiary);
 	cursor: pointer;
 }
 
