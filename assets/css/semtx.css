@@ -16,7 +16,7 @@
 	--light-bg-overlay: oklch(81% 2% 271deg);
 	--light-border: oklch(86% 1% 268deg);
 	
-	--button-text: #000;
+	--light-button-text: #000;
 
 	/*TODO: Create dark mode version of colors*/
 	--dark-primary: oklch(0.87 0.04 96.18);
@@ -1279,6 +1279,10 @@ button.loading::after {
 /* ============================================
    FORM INPUTS
    ============================================ */
+
+fieldset{
+	border: none;
+}
 .form-group {
 	display: flex;
 	flex-direction: column;
@@ -1299,7 +1303,7 @@ button.loading::after {
 	font-size: var(--fs-base);
 	color: var(--text);
 	background: var(--bg-base);
-	border: var(--border-w) solid var(--border);
+	border: var(--border-w) solid var(--text-sub);
 	border-radius: var(--radius);
 	transition: all var(--trans-fast);
 	min-height: 44px;
@@ -1311,7 +1315,8 @@ button.loading::after {
 }
 
 .form-input:hover {
-	border-color: var(--text-sub);
+	border-color: var(--button-text);
+	border-width: var(--border-w-2);
 }
 
 .form-input:focus {
@@ -1465,11 +1470,19 @@ button.loading::after {
 .form-error {
 	font-size: var(--fs-xs);
 	color: var(--red);
+	display: none;
 }
 
-.form-input:invalid:not(:placeholder-shown) {
+.form-input:user-invalid:not(:placeholder-shown) {
 	border-color: var(--red);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--red) 30%, transparent);
 }
+
+/*Nice to have
+fieldset:has(:user-invalid).form-error{
+	display: block;
+}
+*/
 
 /* ============================================
    CARDS
@@ -1774,7 +1787,7 @@ button.loading::after {
 }
 
 .pagination .active {
-	background: var(--tertiaryb);
+	background: var(--tertiary);
 	color: var(--on-primary);
 }
 
