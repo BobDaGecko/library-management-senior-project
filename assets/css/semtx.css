@@ -1337,7 +1337,7 @@ fieldset{
 .form-input.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
-	background: var(--bg-surface);
+	background: var(--bg-overlay);
 }
 
 .form-input-sm {
