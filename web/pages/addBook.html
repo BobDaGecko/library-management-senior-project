@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="../../assets/css/semtx.css">
+</head>
+<body>
+    <!--@common.Head("Management Home", "Management Home")-->
+    <nav class="navbar" style="justify-content: space-around">
+            <!--Change Image placement-->
+            <a href="/" class="navbar-brand"><img src="../../public/images/placeholder.png">Town Library Admin</a>
+            <div class="input-search" style="width: 30%;">
+                <!--Button wont go next to searchbar for regular form-input. Either fix or edit form-input-sm to match shape-->
+                <input class="form-input-lg" type="search" name="adminTop" id="" placeholder="Search">
+                <!--Add mag glass icon to bttn-->
+                <button class="btn-small btn-primary input-icon"><i class="material-icons on-primary">search</i></button>
+            </div>
+        </nav>
+
+    <!--@common.NavAside(managementAsideLinks, p.Req.URL.Path)-->
+        <aside class="sidebar mt-8 one-col" style="position: fixed;">
+                <ul class="sidebar-nav ">
+                    <!--Add icons-->
+                    <li><a class="active" href="#">Catalog</a></li>
+                    <li><a href="#">Add Books</a></li>
+                    <li class="mb-6"><a href="#">Add Lists</a></li>
+
+                    <li class="mt-6"><a href="#">Admin</a></li>
+                    <li><a href="#">Holds</a></li>
+                    <li><a href="#">Fines</a></li>
+                    <li><a href="#">Repair Log</a></li>
+                </ul>
+            </aside>
+
+
+
+            <!--Page body-->
+        <main class="ml-80 mt-8">
+          <div class=" container-lg">
+
+            <!--Header for Main Content-->
+            <div class="text-center">
+                <h1>Add Books</h1>
+            </div>
+            <article class=" card card-flat h-auto" style="min-height: 400px;">
+
+            <h2 class="text-secondary my-4">Search for Books</h2>
+               <form>
+                    <fieldset>
+                        <div class="form-group my-4">
+                            <input class="form-input" type="text" pattern="[A-Za-z]" id="name" style="width: 300px;">
+                            <span class="form-hint"> Search by ISBN, Title, or Author </span>
+                        </div>
+                    </fieldset>
+                    <!--TODO move to side-->
+                    <button class="btn-small btn-primary rounded-lg input-icon"><i class="material-icons on-primary">search</i></button> 
+                    
+                    <div class="results mt-4">
+                        <h2 class="text-secondary my-4">Results</h2>
+                        <!--TODO: add number of results-->
+
+                        <!--Books-->
+                        <div class="card three-col">
+
+                            <img src="" alt="" class="book-cover">
+
+                            <div class="book-info">
+                                <h3 class="text-secondary book-title">Book Title</h3>
+                                <span class="author">Author Name</span>
+
+                                <p class="meta">
+                                    <span class="date">Date</span>
+                                    <span class="pages">#</span> pages
+                                </p>
+                                <p>Genre(s): <span class="genre"> Genres/Subject</span></p>
+                                <p> <span class="format"> Paperback</span>  ISBN<span class="span">**********</span> </p>
+
+                                <p class="description">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut vitae, sunt natus a delectus architecto corporis repellendus, possimus earum reiciendis asperiores rerum quaerat voluptates libero tempore! Obcaecati quaerat non libero?</p>
+                            </div>
+
+                            <div class="actions">
+                                <button><i class="material-icons delete">delete</i></button>
+                                <button><i class="material-icons edit">edit</i></button>
+                            </div>
+
+                        </div>
+                    </div>
+                </form>
+            </article>   
+          </div>
+
+
+    <!--@common.Footer()-->
+    <footer class="page-footer  mt-8 flex justify-between" >
+            <span></span>
+            <p class="text-s">&#169 2026 Town Library
+            </p>
+            <!--Link to user Library home page.-->
+            <button class="btn-small btn-ghost"><i class="material-icons mb-2" style="font-size: 24px;">home</i></button>
+            </footer>
+</body>
+</html>
