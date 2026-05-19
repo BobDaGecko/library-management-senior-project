@@ -55,40 +55,75 @@
                             <span class="form-hint"> Search by ISBN, Title, or Author </span>
                         </div>
                     </fieldset>
+                </form>
                     <!--TODO move to side-->
-                    <button class="btn-small btn-primary rounded-lg input-icon"><i class="material-icons on-primary">search</i></button> 
-                    
-                    <div class="results mt-4">
-                        <h2 class="text-secondary my-4">Results</h2>
-                        <!--TODO: add number of results-->
+                    <button after class="btn-small btn-primary rounded-lg input-icon"><i class="material-icons on-primary">search</i></button> 
+
+
+                    <!--Shows up when after searching book-->
+                    <div class="results mt-4 hidden">
+                        
+                        <h2 class="text-secondary my-4 border-b">Results</h2>
+                        <!--TODO: add number of results. css after?-->
 
                         <!--Books-->
-                        <div class="card three-col">
+                        <div class="card my-4">
 
-                            <img src="" alt="" class="book-cover">
+                            <div class="book-container">
+                                <img src="../../assets/img/unavailable.png" alt="" class="book-cover mr-2">
 
-                            <div class="book-info">
-                                <h3 class="text-secondary book-title">Book Title</h3>
-                                <span class="author">Author Name</span>
+                                <div class="book-info flex flex-col gap-1">
+                                    <h3 class="book-title text-secondary mb-0">Book Title</h3>
+                                    <span class="author text-sm mb-2">Author Name</span>
 
-                                <p class="meta">
-                                    <span class="date">Date</span>
-                                    <span class="pages">#</span> pages
-                                </p>
-                                <p>Genre(s): <span class="genre"> Genres/Subject</span></p>
-                                <p> <span class="format"> Paperback</span>  ISBN<span class="span">**********</span> </p>
+                                    <p class="mb-0">
+                                        <span class="date">Date</span>
+                                        &nbsp;
+                                        <span class="pages">#</span> pages
+                                    </p>
+                                    <p class="mb-0">Genre(s): <span class="genre"> Genres/Subject</span></p>
+                                    <p class="mb-0"> <span class="format"> Paperback</span>     ISBN<span class="span">**********</span></p>
 
-                                <p class="description">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut vitae, sunt natus a delectus architecto corporis repellendus, possimus earum reiciendis asperiores rerum quaerat voluptates libero tempore! Obcaecati quaerat non libero?</p>
+                                    <p class="description mt-4 leading-base">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut vitae, sunt natus a delectus architecto corporis repellendus, possimus earum reiciendis asperiores rerum quaerat voluptates libero tempore! Obcaecati quaerat non libero?</p>
+                                </div>
+
+                                <div class="actions flex flex-col gap-2 items-end">
+                                    <button><i class="material-icons delete">delete</i></button>
+                                    <button><i class="material-icons edit">edit</i></button>
+                                </div>
                             </div>
 
-                            <div class="actions">
-                                <button><i class="material-icons delete">delete</i></button>
-                                <button><i class="material-icons edit">edit</i></button>
-                            </div>
 
+                            <div class="card my-4"></div>
+                              <div class="book-container">
+                                <img src="../../assets/img/unavailable.png" alt="" class="book-cover mr-2">
+
+                                <div class="book-info flex flex-col gap-1">
+                                    <h3 class="book-title text-secondary mb-0">Book Title</h3>
+                                    <span class="author text-sm mb-2">Author Name</span>
+
+                                    <p class="mb-0">
+                                        <span class="date">Date</span>
+                                        &nbsp;
+                                        <span class="pages">#</span> pages
+                                    </p>
+                                    <p class="mb-0">Genre(s): <span class="genre"> Genres/Subject</span></p>
+                                    <p class="mb-0"> <span class="format"> Paperback</span>     ISBN<span class="span">**********</span></p>
+
+                                    <p class="description mt-4 leading-base">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut vitae, sunt natus a delectus architecto corporis repellendus, possimus earum reiciendis asperiores rerum quaerat voluptates libero tempore! Obcaecati quaerat non libero?</p>
+                                </div>
+
+                                <div class="actions flex flex-col gap-2 items-end">
+                                    <button><i class="material-icons delete">delete</i></button>
+                                    <button><i class="material-icons edit">edit</i></button>
+                                </div>
+
+
+                            </div>
+                        </div>
                         </div>
                     </div>
-                </form>
+               
             </article>   
           </div>
 
