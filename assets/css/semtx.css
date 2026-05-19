@@ -14,6 +14,7 @@
 	--light-bg-mantle: oklch(93% 1% 265deg);
 	--light-bg-surface: oklch(70.87% 0.108 244.66deg); /*Our blue*/
 	--light-bg-overlay: oklch(81% 2% 271deg);
+	--light-bg-dark:oklch(89% 1% 268deg);
 	--light-border: oklch(86% 1% 268deg);
 	
 	--light-button-text: #000;
@@ -734,8 +735,14 @@ ol {
 
 .book-container{
   display: grid;
-  grid-template-columns: 120px 1fr auto;
+  grid-template-columns: 220px 1fr auto;
   margin-top: var(--space-4);
+}
+
+.book-cover {
+  width: 180px;
+  height: 240px;
+  object-fit: cover;
 }
 
 /* Text */
@@ -1536,7 +1543,7 @@ fieldset:has(input:user-valid) .form-error{
    CARDS
    ============================================ */
 .card {
-	background: var(--bg-surface);
+	background: var(--light-bg-dark);
 	border: var(--border-w) solid var(--border);
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow);
