@@ -714,6 +714,12 @@ ol {
 	max-width: var(--container-lg);
 }
 
+.book-container{
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  margin-top: var(--space-4);
+}
+
 /* Text */
 .text-xs {
 	font-size: var(--fs-xs);
