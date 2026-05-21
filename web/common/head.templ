@@ -10,6 +10,7 @@ templ Head(title string, desc string) {
 		<title>{ title }</title>
 		<script type="text/javascript" src="/assets/js/htmx-2.0.8.js"></script>
 		<link rel="stylesheet" type="text/css" href="/assets/css/semtx.css"/>
+		<link rel="stylesheet" type="text/css" href="/assets/css/custom.css"/>
 		<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
 	</head>
 }
@@ -54,10 +55,10 @@ templ NavAside(entries NavAsideEntryList, active string) {
 }
 
 templ Footer() {
-	<footer class="page-footer  mt-8 flex justify-between" >
-        <span></span>
-        <p class="text-s">&#169 2026 Town Library</p>
-            <!--Link to user Library home page.-->
-        <button class="btn-small btn-ghost"><i class="material-icons mb-2" style="font-size: 24px;">home</i></button>
-    </footer>
+	<footer class="page-footer  mt-8 flex justify-between">
+		<span></span>
+		<p class="text-s">&#169 2026 Town Library</p>
+		<!--Link to user Library home page.-->
+		<button class="btn-small btn-ghost"><i class="material-icons mb-2" style="font-size: 24px;">home</i></button>
+	</footer>
 }
