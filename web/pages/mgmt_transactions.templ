@@ -72,7 +72,7 @@ templ MgmtTransactionsTable(page int) {
 				}
 			</tbody>
 		</table>
-		@transactionsPagination(page)
+		@common.Pagination(page, getTotalPages(), "/management/transactions", "#transactions-container")
 	</div>
 }
 
@@ -80,26 +80,4 @@ templ transactionsTableHeader(page int) {
 	<div class="card-flat mb-4">
 		<h3>Transactions — Page {page} of {getTotalPages()} (Total: {getTransactionTotal()})</h3>
 	</div>
-}
-
-templ transactionsPagination(page int) {
-	<div class="demo-row justify center mt-4">
-		if page > 1 {
-			@pageLink(page-1, "Previous")
-		}
-		<span class="px-4">Page {page} / {getTotalPages()}</span>
-		if page < getTotalPages() {
-			@pageLink(page+1, "Next")
-		}
-	</div>
-}
-
-templ pageLink(targetPage int, label string) {
-	<a 
-		href={ fmt.Sprintf("/management/transactions?page=%d", targetPage) }
-		hx-get={ fmt.Sprintf("/management/transactions?page=%d", targetPage) }
-		hx-target="#transactions-container"
-		hx-swap="innerHTML"
-		hx-push-url="true"
-	>{ label }</a>
 }
