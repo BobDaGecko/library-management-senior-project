@@ -2,25 +2,12 @@ package pages
 
 import (
 	"fmt"
-	"strconv"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
 const transactionsPerPage = 100
-
-func parsePageParam(p *fail.RoutingParams) int {
-	pageStr := p.Param("page")
-	if pageStr == "" {
-		return 1
-	}
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		return 1
-	}
-	return page
-}
 
 func getTransactions(page int) []db.Transaction {
 	if page < 1 {
@@ -47,7 +34,7 @@ func getTotalPages() int {
 }
 
 // MgmtTransactions renders the full management transactions page
- templ MgmtTransactions(p *fail.RoutingParams, page int) {
+templ MgmtTransactions(p *fail.RoutingParams, page int) {
 	@common.Head("Transactions - Management", "Transaction History")
 	@common.NavHead("Management", p.Param("q"))
 	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
