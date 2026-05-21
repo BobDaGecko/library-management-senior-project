@@ -1,0 +1,83 @@
+package pages
+
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+const transactionsPerPage = 100
+
+func getTransactions(page int) []db.Transaction {
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * transactionsPerPage
+	var txs []db.Transaction
+	db.Db().Model(&db.Transaction{}).Order("date desc").Offset(offset).Limit(transactionsPerPage).Find(&txs)
+	return txs
+}
+
+func getTransactionTotal() int64 {
+	var count int64
+	db.Db().Model(&db.Transaction{}).Count(&count)
+	return count
+}
+
+func getTotalPages() int {
+	total := getTransactionTotal()
+	if total == 0 {
+		return 1
+	}
+	return int((total + int64(transactionsPerPage) - 1) / int64(transactionsPerPage))
+}
+
+// MgmtTransactions renders the full management transactions page
+templ MgmtTransactions(p *fail.RoutingParams, page int) {
+	@common.Head("Transactions - Management", "Transaction History")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<h1>Transaction History</h1>
+			<p class="mb-4">Listing all payment transactions. 100 items per page. Use pagination below to navigate (table updates dynamically via HTMX).</p>
+			<div id="transactions-container">
+				@MgmtTransactionsTable(page)
+			</div>
+		</div>
+		@common.Footer()
+	</main>
+}
+
+// MgmtTransactionsTable renders the table and pagination controls (for HTMX partial updates)
+templ MgmtTransactionsTable(page int) {
+	<div id="transactions-table">
+		@transactionsTableHeader(page)
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Date</th>
+					<th>Amount Paid</th>
+					<th>User ID</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, t := range getTransactions(page) {
+					<tr>
+						<td>{ t.Date.Format("2006-01-02 15:04") }</td>
+						<td>{ fmt.Sprintf("$%.2f", t.AmountPaid) }</td>
+						<td>{ t.UserID.String() }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+		@common.Pagination("transactions-pager", page, getTotalPages(), "transactions-container", "/management/transactions")
+	</div>
+}
+
+templ transactionsTableHeader(page int) {
+	<div class="card-flat mb-4">
+		<h3>Transactions — Page {page} of {getTotalPages()} (Total: {getTransactionTotal()})</h3>
+	</div>
+}

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"></script>
+    <link rel="stylesheet" href="../../assets/css/semtx.css" />
+  </head>
+  <body>
+    <div class="demo-row m-4">
+      <!--For presentation-->
+
+      <!--pagination-->
+      <div class="pagination-cont">
+        <ul class="pagination">
+          <li>
+            <a
+              id="prev"
+              href="#"
+              _="on click send Set(page:#pager.value-1) to #pager"
+              >&lt;</a
+            >
+          </li>
+          <li>
+            <form
+              hx-swap="outerHTML"
+              hx-target="#content"
+              hx-post="file:///hello/world!"
+              hx-trigger="submit delay:1s"
+              id="form"
+            >
+              <input
+                id="pager"
+                class="form-input hide-spinner"
+                type="number"
+                min="1"
+                max="50"
+                value="25"
+                _="on Set(page)
+					if page as Int <= my.min as Int
+						set page to my.min as Int
+						add .disabled to #prev
+					else
+						remove .disabled from #prev
+					end
+
+					if page as Int >= my.max as Int
+						set page to my.max as Int
+						add .disabled to #next
+					else
+						remove .disabled from #next
+					end
+
+					if page as Int != my.value as Int
+						set my.value to page
+						trigger change on me
+						trigger submit on #form
+					end
+				end
+
+
+				on change
+					send Set(page:my.value) to me
+				end
+
+				on wheel
+					if event.wheelDeltaY < 0
+						send Set(page:my.value-1) to me
+					else
+						send Set(page:my.value--1) to me
+					end
+				end"
+              />
+            </form>
+          </li>
+          <li>/ 50</li>
+          <li>
+            <a
+              href="#"
+              id="next"
+              _="on click send Set(page:#pager.value--1) to #pager"
+              >&gt;</a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="container">
+      <div id="content"></div>
+    </div>
+  </body>
+</html>

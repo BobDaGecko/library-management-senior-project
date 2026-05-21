@@ -3,6 +3,8 @@ package db
 import (
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestUserCheckedOut(t *testing.T) {
@@ -38,12 +40,24 @@ func TestUserCheckedOut(t *testing.T) {
 	tx.Save(&loan)
 
 	checkedOut, err := user.CheckedOut()
-	if err != nil {
-		t.Fatalf("user checked out: unexpected error: %v", err)
+	assert.NilError(t, err)
+	assert.Equal(t, len(checkedOut), 1)
+}
+
+func TestUserCheckedOutNone(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
 	}
-	if len(checkedOut) != 1 {
-		t.Fatalf("user checked out: expected 1 loan, got %d", len(checkedOut))
-	}
+	tx.Save(&user)
+
+	checkedOut, err := user.CheckedOut()
+	assert.NilError(t, err)
+	assert.Equal(t, len(checkedOut), 0)
 }
 
 func TestUserHasOverdueBooks(t *testing.T) {
@@ -79,10 +93,43 @@ func TestUserHasOverdueBooks(t *testing.T) {
 	tx.Save(&loan)
 
 	hasOverdue, err := user.HasOverdueBooks()
-	if err != nil {
-		t.Fatalf("user overdue books: unexpected error: %v", err)
+	assert.NilError(t, err)
+	assert.Assert(t, hasOverdue)
+}
+
+func TestUserNoOverdueBooks(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
 	}
-	if !hasOverdue {
-		t.Fatalf("user overdue books: expected true, got false")
+	tx.Save(&user)
+
+	book := BookWork{
+		ID:    "test-book-id",
+		Title: "Test Book",
 	}
+	tx.Save(&book)
+
+	c := BookCopy{
+		BookWorkID: book.ID,
+		Format:     BookFmtPaperback,
+		Status:     CopyStatusPublic,
+	}
+	tx.Save(&c)
+
+	loan := Loan{
+		BookCopyID:   c.ID,
+		UserID:       user.ID,
+		DateCheckout: time.Now().Add(-DAY),
+		DateReturned: NilTime,
+	}
+	tx.Save(&loan)
+
+	hasOverdue, err := user.HasOverdueBooks()
+	assert.NilError(t, err)
+	assert.Assert(t, !hasOverdue)
 }

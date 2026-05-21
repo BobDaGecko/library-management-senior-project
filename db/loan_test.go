@@ -3,18 +3,14 @@ package db
 import (
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestLoanFlags(t *testing.T) {
-	if val := LoanStatusReturned.ToCopyStatus(); val != CopyLoanAvailable {
-		t.Fatalf("loan flags: LoanStatusReturned: expected %d, got %d", CopyLoanAvailable, val)
-	}
-	if val := LoanStatusCheckedOut.ToCopyStatus(); val != CopyLoanUnvailable {
-		t.Fatalf("loan flags: LoanStatusCheckedOut: expected %d, got %d", CopyLoanUnvailable, val)
-	}
-	if val := LoanStatusOverdue.ToCopyStatus(); val != CopyLoanOverdue {
-		t.Fatalf("loan flags: LoanStatusOverdue: expected %d, got %d", CopyLoanOverdue, val)
-	}
+	assert.Equal(t, LoanStatusReturned.ToCopyStatus(), CopyLoanAvailable)
+	assert.Equal(t, LoanStatusCheckedOut.ToCopyStatus(), CopyLoanUnavailable)
+	assert.Equal(t, LoanStatusOverdue.ToCopyStatus(), CopyLoanOverdue)
 }
 
 func TestLoanStatusCheckedOut(t *testing.T) {
@@ -23,9 +19,7 @@ func TestLoanStatusCheckedOut(t *testing.T) {
 		DateReturned: NilTime,
 	}
 
-	if loan.Status() != LoanStatusCheckedOut {
-		t.Fatalf("loan status: expected LoanStatusCheckedOut, got %s", loan.Status())
-	}
+	assert.Equal(t, loan.Status(), LoanStatusCheckedOut)
 }
 
 func TestLoanStatusOverdue(t *testing.T) {
@@ -34,9 +28,7 @@ func TestLoanStatusOverdue(t *testing.T) {
 		DateReturned: NilTime,
 	}
 
-	if loan.Status() != LoanStatusOverdue {
-		t.Fatalf("loan status: expected LoanStatusOverdue, got %s", loan.Status())
-	}
+	assert.Equal(t, loan.Status(), LoanStatusOverdue)
 }
 
 func TestLoanStatusReturned(t *testing.T) {
@@ -45,9 +37,7 @@ func TestLoanStatusReturned(t *testing.T) {
 		DateReturned: time.Now(),
 	}
 
-	if loan.Status() != LoanStatusReturned {
-		t.Fatalf("loan status: expected LoanStatusReturned, got %s", loan.Status())
-	}
+	assert.Equal(t, loan.Status(), LoanStatusReturned)
 }
 
 func TestLoanReturn(t *testing.T) {
@@ -83,11 +73,10 @@ func TestLoanReturn(t *testing.T) {
 	tx.Save(&loan)
 
 	err := loan.Return()
+	assert.NilError(t, err)
 	if err != nil {
 		t.Fatalf("loan return: unexpected error: %v", err)
 	}
 
-	if loan.DateReturned.IsZero() {
-		t.Fatalf("loan return: DateReturned should not be zero after return")
-	}
+	assert.Assert(t, !loan.DateReturned.IsZero())
 }

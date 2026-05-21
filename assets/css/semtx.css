@@ -3228,3 +3228,20 @@ aside {
 	/* Aside - sidebar content */
 	padding: var(--space-4);
 }
+
+
+/* ===========================================
+   EXTENSIONS
+   =========================================== */
+
+input.hide-spinner[type="number"] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+	text-align: center;
+
+	&::-webkit-inner-spin-button,
+	&::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+}
