@@ -79,16 +79,17 @@ templ MgmtUsersTable(page int) {
 
 // UserRoleSelect renders an auto-updating role dropdown. Used in table and re-rendered after HTMX update.
 templ UserRoleSelect(userID string, current db.UserRoleFlag) {
-	<select 
+	<select
 		name="role"
 		hx-post="/management/users"
 		hx-target="this"
 		hx-swap="outerHTML"
 		hx-trigger="change"
 		hx-vals={ fmt.Sprintf(`{"user_id": "%s", "action": "update_role"}`, userID) }
+		value={ current }
 	>
-		<option value="1" {{ if current == db.UserRolePublic }}selected{{ end }}>Public</option>
-		<option value="2" {{ if current == db.UserRoleLibrarian }}selected{{ end }}>Librarian</option>
-		<option value="4" {{ if current == db.UserRoleAdmin }}selected{{ end }}>Admin</option>
+		<option value="1">Public</option>
+		<option value="2">Librarian</option>
+		<option value="4">Admin</option>
 	</select>
 }
