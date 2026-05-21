@@ -13,6 +13,7 @@ type Hold struct {
 	BookWorkID    SqlUUID `gorm:"type:text"`
 	User          User
 	UserID        SqlUUID `gorm:"type:text"`
+	Format        BookFmtFlag
 	RequestedDate time.Time
 	FulfilledDate time.Time
 	CancelledDate time.Time

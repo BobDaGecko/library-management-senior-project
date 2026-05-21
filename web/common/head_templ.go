@@ -55,7 +55,7 @@ func Head(title string, desc string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</title><script src=\"https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js\"></script><script type=\"text/javascript\" src=\"/assets/js/htmx-2.0.8.js\"></script><link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/semtx.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/custom.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"https://fonts.googleapis.com/icon?family=Material+Icons\"></head>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</title><script type=\"text/javascript\" src=\"/assets/js/htmx-2.0.8.js\"></script><script src=\"https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js\" integrity=\"sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr\" crossorigin=\"anonymous\"></script><link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/semtx.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/custom.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"https://fonts.googleapis.com/icon?family=Material+Icons\"></head>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -246,7 +246,7 @@ func Footer() templ.Component {
 			templ_7745c5c3_Var14 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<footer class=\"page-footer mt-8 flex justify-between\"><span></span><p class=\"text-s\">&#169; 2026 Town Library</p><!--Link to user Library home page.--><button class=\"btn-small btn-ghost\"><i class=\"material-icons mb-2\" style=\"font-size: 24px;\">home</i></button></footer>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<footer class=\"page-footer mt-8 flex justify-between\"><p class=\"text-s\">&#169; 2026 Town Library</p><!-- TO-DO: Link to user Library home page. --><button class=\"btn-small btn-ghost\"><i class=\"material-icons mb-2\" style=\"font-size: 24px;\">home</i></button></footer>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
