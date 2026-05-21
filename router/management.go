@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
@@ -17,6 +18,8 @@ func ManagementRouter(p *fail.RoutingParams) {
 	switch p.Pop() {
 	case "books":
 		ManagementBooksRouter(p)
+	case "transactions":
+		HandleManagementTransactions(p)
 	default:
 		fail.Render(p, pages.ManagementHome(p))
 	}
@@ -33,6 +36,31 @@ func ManagementBooksRouter(p *fail.RoutingParams) {
 	default:
 		fail.Redirect(p)
 	}
+}
+
+func HandleManagementTransactions(p *fail.RoutingParams) {
+	if fail.Done(p) {
+		return
+	}
+
+	page := parsePageParam(p)
+	if p.Req.Header.Get("HX-Request") == "true" {
+		fail.Render(p, pages.MgmtTransactionsTable(page))
+		return
+	}
+	fail.Render(p, pages.MgmtTransactions(p, page))
+}
+
+func parsePageParam(p *fail.RoutingParams) int {
+	pageStr := p.Param("page")
+	if pageStr == "" {
+		return 1
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
 }
 
 func HandleManagementBooksAdd(p *fail.RoutingParams) {
