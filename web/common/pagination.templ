@@ -1,0 +1,39 @@
+package common
+
+import (
+	"fmt"
+)
+
+templ Pagination(id string, current int, total int, target string, endpoint string) {
+	<div class="pagination-cont">
+		<ul class="pagination">
+			<li>
+				<a id={id+"-prev"} href="#" _={pagePrev(id)}>&lt;</a>
+			</li>
+			<li>
+				<form id={id + "-form"}
+					hx-swap="outerHTML"
+					hx-target={"#"+target}
+					hx-post={endpoint}
+					hx-trigger="submit delay:1s">
+					<input id={id}
+						name="page"
+						type="number"
+						class="form-input hide-spinner"
+						min="1"
+						max={total}
+						value={current}
+						_={pageInput(id)}
+					/>
+				</form>
+			</li>
+			<li>
+				/
+				{total}
+			</li>
+			<li>
+				<a id={id+"-next"} href="#" _={pageNext(id)}>&gt;</a>
+			</li>
+		</ul>
+	</div>
+}

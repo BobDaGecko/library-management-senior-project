@@ -6,19 +6,24 @@
 :root {
 	/* Color - Light Theme (Latte) */
 	--light-primary: oklch(42.41% 0.161 29.44deg);
-	--light-primary-rgb: rgb(112 91 155);
+	/*Our red*/
+	--light-tertiary: oklch(44.88% 0.119 143.72deg);
+	/*our green*/
 	--light-on-primary: oklch(100% 0% 0deg);
 	--light-text: oklch(44% 4% 279deg);
 	--light-text-sub: oklch(49% 4% 279deg);
 	--light-bg-base: oklch(96% 1% 265deg);
 	--light-bg-mantle: oklch(93% 1% 265deg);
 	--light-bg-surface: oklch(70.87% 0.108 244.66deg);
+	/*Our blue*/
 	--light-bg-overlay: oklch(81% 2% 271deg);
 	--light-border: oklch(86% 1% 268deg);
-	--button-text: #000;
 
+	--light-button-text: #000;
+
+	/*TODO: Create dark mode version of colors*/
 	--dark-primary: oklch(0.87 0.04 96.18);
-	--dark-primary-rgb: rgb(112 91 155);
+	--dark-tertiary: oklch(44.88% 0.119 143.72deg);
 	--dark-on-primary: oklch(21% 3% 284deg);
 	--dark-text: oklch(88% 4% 272deg);
 	--dark-text-sub: oklch(82% 4% 273deg);
@@ -30,7 +35,7 @@
 	--dark-button-text: oklch(0.33 0.01 0);
 
 	--primary: light-dark(var(--light-primary), var(--dark-primary));
-	--primary-rgb: light-dark(var(--light-primary-rgb), var(--dark-primary-rgb));
+	--tertiary: light-dark(var(--light-tertiary), var(--dark-tertiary));
 	--on-primary: light-dark(var(--light-on-primary), var(--dark-on-primary));
 	--text: light-dark(var(--light-text), var(--dark-text));
 	--text-sub: light-dark(var(--light-text-sub), var(--dark-text-sub));
@@ -43,7 +48,7 @@
 	/* Accent Colors */
 	--light-red: oklch(55% 28% 20deg);
 	--light-peach: oklch(69% 26% 42deg);
-	--light-yellow: oklch(71% 20% 68deg);
+	--light-yellow: oklch(83.28% 0.172 82.06deg);
 	--light-green: oklch(63% 24% 140deg);
 	--light-teal: oklch(60% 16% 201deg);
 	--light-sky: oklch(68% 18% 235deg);
@@ -51,7 +56,7 @@
 
 	--dark-red: oklch(0.54 0.12 5.88);
 	--dark-peach: oklch(82% 15% 53deg);
-	--dark-yellow: oklch(92% 12% 87deg);
+	--dark-yellow: oklch(91.92% 0.0871 88.69deg);
 	--dark-green: oklch(86% 16% 143deg);
 	--dark-teal: oklch(86% 14% 183deg);
 	--dark-sky: oklch(85% 14% 210deg);
@@ -88,6 +93,7 @@
 	--space-8: 2rem;
 	--space-12: 3rem;
 	--space-16: 4rem;
+	--space-20: 5rem;
 
 	--space-80: 20rem;
 
@@ -224,6 +230,14 @@ ol {
 
 .inline-flex {
 	display: inline-flex;
+}
+
+/*Demo-row from semtx site*/
+.demo-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	align-items: center;
 }
 
 /* ============================================
@@ -409,6 +423,16 @@ ol {
 	margin: var(--space-4);
 }
 
+.my-1 {
+	margin-top: var(--space-1);
+	margin-bottom: var(--space-1);
+}
+
+.my-2 {
+	margin-top: var(--space-2);
+	margin-bottom: var(--space-2);
+}
+
 .my-4 {
 	margin-top: var(--space-4);
 	margin-bottom: var(--space-4);
@@ -575,16 +599,32 @@ ol {
 	padding-bottom: var(--space-8);
 }
 
+.pt-2 {
+	padding-top: var(--space-2);
+}
+
 .pt-4 {
 	padding-top: var(--space-4);
+}
+
+.pb-2 {
+	padding-bottom: var(--space-2);
 }
 
 .pb-4 {
 	padding-bottom: var(--space-4);
 }
 
+.pl-2 {
+	padding-left: var(--space-2);
+}
+
 .pl-4 {
 	padding-left: var(--space-4);
+}
+
+.pr-2 {
+	padding-right: var(--space-2);
 }
 
 .pr-4 {
@@ -602,6 +642,14 @@ ol {
 
 .h-full {
 	height: 100%;
+}
+
+.h-auto {
+	height: auto;
+}
+
+.h-fit {
+	height: fit-content;
 }
 
 .min-h-screen {
@@ -952,6 +1000,21 @@ ol {
 	background: var(--sky);
 }
 
+/*Color*/
+
+.primary {
+	color: var(--primary);
+}
+
+.tertiary {
+	color: var(--tertiary);
+}
+
+.on-primary {
+	color: var(--on-primary);
+}
+
+
 /* Shadows */
 .shadow {
 	box-shadow: var(--shadow);
@@ -1111,11 +1174,12 @@ button:disabled,
 button.disabled,
 .btn:disabled,
 .btn.disabled {
-	opacity: 0.8;
+	opacity: 0.7;
 	cursor: not-allowed;
 	pointer-events: none;
-	color: var(--text);
-	background: var(--bg-surface);
+	filter: grayscale(0.5);
+
+	/*border: none; Might cause domino effect on the look of button*/
 }
 
 /* Button Variants */
@@ -1126,17 +1190,18 @@ button.disabled,
 }
 
 button:hover {
-	filter: brightness(1.1);
+	filter: brightness(1.3);
 }
 
 .btn-secondary {
-	background: var(--bg-surface);
-	color: var(--text);
-	border-color: var(--border);
+	background: var(--bg-base);
+	color: var(--primary);
+	border-color: var(--primary);
+	border-width: 2px;
 }
 
 .btn-secondary:hover {
-	background: var(--bg-overlay);
+	background: var(--on-primary);
 }
 
 .btn-outline {
@@ -1152,17 +1217,17 @@ button:hover {
 
 .btn-ghost {
 	background: transparent;
-	color: var(--text);
+	/*color: var(--text);*/
 	border-color: transparent;
 }
 
-.btn-ghost:hover {
+/*.btn-ghost:hover {
 	background: var(--bg-surface);
-}
+}*/
 
 .btn-danger {
-	background: var(--red);
-	color: oklch(100% 0% 0deg);
+	background: var(--yellow);
+	color: var(--button-text);
 	border-color: var(--red);
 }
 
@@ -1189,6 +1254,14 @@ button:hover {
 	padding: var(--space-3) var(--space-6);
 	font-size: var(--fs-base);
 	min-height: 52px;
+}
+
+.btn-long {
+	padding: var(--space-3) var(--space-20);
+	font-size: var(--fs-sm);
+	min-height: 42px;
+	min-width: 62px;
+	border-radius: var(--radius-sm);
 }
 
 /* Button with Icon */
@@ -1229,6 +1302,11 @@ button.loading::after {
 /* ============================================
    FORM INPUTS
    ============================================ */
+
+fieldset {
+	border: none;
+}
+
 .form-group {
 	display: flex;
 	flex-direction: column;
@@ -1249,7 +1327,7 @@ button.loading::after {
 	font-size: var(--fs-base);
 	color: var(--text);
 	background: var(--bg-base);
-	border: var(--border-w) solid var(--border);
+	border: var(--border-w) solid var(--text-sub);
 	border-radius: var(--radius);
 	transition: all var(--trans-fast);
 	min-height: 44px;
@@ -1261,20 +1339,21 @@ button.loading::after {
 }
 
 .form-input:hover {
-	border-color: var(--text-sub);
+	border-color: var(--button-text);
+	border-width: var(--border-w-2);
 }
 
 .form-input:focus {
 	outline: none;
-	border-color: var(--primary);
-	box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 30%, transparent);
+	border-color: var(--tertiary);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--tertiary) 30%, transparent);
 }
 
 .form-input:disabled,
 .form-input.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
-	background: var(--bg-surface);
+	background: var(--bg-overlay);
 }
 
 .form-input-sm {
@@ -1335,7 +1414,7 @@ button.loading::after {
 .form-check input[type="radio"] {
 	width: 1.25rem;
 	height: 1.25rem;
-	accent-color: var(--primary);
+	accent-color: var(--tertiary);
 	cursor: pointer;
 }
 
@@ -1415,11 +1494,23 @@ button.loading::after {
 .form-error {
 	font-size: var(--fs-xs);
 	color: var(--red);
+	display: none;
 }
 
-.form-input:invalid:not(:placeholder-shown) {
+.form-input:user-invalid:not(:placeholder-shown) {
 	border-color: var(--red);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--red) 30%, transparent);
 }
+
+/*Nice to have*/
+fieldset:has(input:user-invalid) .form-error {
+	display: block;
+}
+
+fieldset:has(input:user-valid) .form-error {
+	display: none;
+}
+
 
 /* ============================================
    CARDS
@@ -1510,7 +1601,7 @@ button.loading::after {
 .page-footer {
 	padding: var(--space-8) 0;
 	text-align: center;
-	color: var(--text-sub);
+	color: var(--button-text);
 	background: var(--bg-surface);
 }
 
@@ -1710,6 +1801,7 @@ button.loading::after {
 	min-height: 40px;
 	padding: var(--space-2);
 	color: var(--text-sub);
+	border: 2px solid;
 	border-radius: var(--radius);
 	transition: all var(--trans-fast);
 	text-decoration: none;
@@ -1717,12 +1809,13 @@ button.loading::after {
 
 .pagination a:hover,
 .pagination button:hover {
-	color: var(--text);
-	background: var(--bg-surface);
+	color: var(--button-text);
+	background: var(--bg-overlay);
+	border-style: hidden;
 }
 
 .pagination .active {
-	background: var(--primary);
+	background: var(--tertiary);
 	color: var(--on-primary);
 }
 
@@ -1736,7 +1829,7 @@ button.loading::after {
 .sidebar {
 	width: 280px;
 	height: 100%;
-	background: var(--bg-surface);
+	background: var(--bg-mantle);
 	border-right: var(--border-w) solid var(--border);
 	padding: var(--space-4);
 	overflow-y: auto;
@@ -1767,8 +1860,8 @@ button.loading::after {
 }
 
 .sidebar-nav a.active {
-	color: var(--primary);
-	background: color-mix(in oklch, var(--primary) 15%, transparent);
+	color: var(--tertiary);
+	background: color-mix(in oklch, var(--tertiary) 15%, transparent);
 }
 
 /* ============================================
@@ -2066,18 +2159,53 @@ dialog .modal-close:hover {
 .table td {
 	padding: var(--space-3) var(--space-4);
 	text-align: left;
-	border-bottom: var(--border-w) solid var(--border);
+	border: var(--border-w) solid var(--border);
 }
 
 .table th {
 	font-weight: 600;
-	background: var(--bg-mantle);
-	color: var(--text);
+	background: var(--tertiary);
+	color: var(--on-primary);
 }
 
 .table tr:last-child td {
 	border-bottom: none;
 }
+
+/*Row Actions*/
+.row-actions {
+	gap: var(--space-2);
+}
+
+.table td button {
+	all: unset;
+	cursor: pointer;
+	padding: 0px var(--space-2);
+	border-radius: var(--space-2);
+}
+
+.table td button:hover {
+	background: var(--on-primary);
+
+}
+
+/*Sort*/
+
+.table-sort th button {
+	all: unset;
+	cursor: pointer;
+	color: inherit;
+	font: inherit;
+}
+
+.table-sort th button i.asc::after {
+	content: " ▲";
+}
+
+.table-sort th button i.desc::after {
+	content: " ▼";
+}
+
 
 /* Striped */
 .table-striped tbody tr:nth-child(odd) {
@@ -2086,7 +2214,7 @@ dialog .modal-close:hover {
 
 /* Hover */
 .table-hover tbody tr:hover {
-	background: color-mix(in oklch, var(--primary) 10%, transparent);
+	background: color-mix(in oklch, var(--bg-surface) 10%, transparent);
 	cursor: pointer;
 }
 
@@ -3075,4 +3203,21 @@ article {
 aside {
 	/* Aside - sidebar content */
 	padding: var(--space-4);
+}
+
+
+/* ===========================================
+   EXTENSIONS
+   =========================================== */
+
+input.hide-spinner[type="number"] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+	text-align: center;
+
+	&::-webkit-inner-spin-button,
+	&::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
 }

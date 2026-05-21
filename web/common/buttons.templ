@@ -1,0 +1,15 @@
+package common
+
+templ (b Button) render() {
+	<button id={ b.Id } class={ b.Classes() }
+		disabled?={ b.Disabled }>{b.Content}</button>
+}
+
+templ Icon(name string, primary bool) {
+	<i class={"material-icons", templ.KV("on-primary", primary)}>{name}</i>
+}
+
+templ (b ButtonIcon) render() {
+	<button id={ b.Id } class={ b.Button().Classes() }
+		disabled?={ b.Disabled }>@Icon(b.Icon, b.Selected)</button>
+}
