@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
+
+	"github.com/google/uuid"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
@@ -22,6 +25,8 @@ func ManagementRouter(p *fail.RoutingParams) {
 		HandleManagementUsers(p)
 	case "transactions":
 		HandleManagementTransactions(p)
+	case "overdue":
+		HandleManagementOverdue(p)
 	default:
 		fail.Render(p, pages.ManagementHome(p))
 	}
@@ -38,6 +43,60 @@ func ManagementBooksRouter(p *fail.RoutingParams) {
 	default:
 		fail.Redirect(p)
 	}
+}
+
+func HandleManagementOverdue(p *fail.RoutingParams) {
+	if fail.Done(p) {
+		return
+	}
+
+	if p.Req.Method == http.MethodPost {
+		action := p.Req.FormValue("action")
+		if action == "waive" {
+			loanIDStr := p.Req.FormValue("loan_id")
+			if loanIDStr == "" {
+				http.Error(p.W, "missing loan_id", http.StatusBadRequest)
+				return
+			}
+
+			// Find existing fine for this loan (latest)
+			var fine db.Fine
+			db.Db().Where("loan_id = ?", loanIDStr).Order("created_at desc").First(&fine)
+
+			if fine.ID.IsEmpty() {
+				// Create a minimal fine for this overdue loan if none exists
+				fine = db.Fine{
+					IssueReason:  db.FineReasonLate,
+					IssueDate:    time.Now(),
+					AmountIssued: 5.0,
+					AmountRemaining: 5.0,
+				}
+				// set LoanID
+				if u, err := uuid.Parse(loanIDStr); err == nil {
+					fine.LoanID = db.SqlUUID{UUID: u}
+				}
+				db.Db().Create(&fine)
+			}
+
+			if fine.AmountWaived == 0 {
+				fine.AmountWaived = fine.AmountIssued
+				fine.WaivedReason = "Waived by librarian via overdue page"
+				if p.User != nil {
+					if u, err := uuid.Parse(p.User.ID); err == nil {
+						fine.WaivedBy = db.SqlUUID{UUID: u}
+					}
+				}
+				db.Db().Save(&fine)
+			}
+
+			// Return disabled button to replace the active one
+			fail.Render(p, pages.WaiveButtonDisabled())
+			return
+		}
+	}
+
+	// GET: show the overdue list
+	fail.Render(p, pages.MgmtOverdue(p))
 }
 
 func HandleManagementUsers(p *fail.RoutingParams) {
