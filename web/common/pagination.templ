@@ -8,7 +8,7 @@ templ Pagination(id string, current int, total int, target string, endpoint stri
 	<div class="pagination-cont">
 		<ul class="pagination">
 			<li>
-				<a id={id+"-prev"} href="#" _={pagePrev(id)}><</a>
+				<a id={id+"-prev"} href="#" _={pagePrev(id)}>&lt;</a>
 			</li>
 			<li>
 				<form id={id + "-form"}
@@ -32,7 +32,7 @@ templ Pagination(id string, current int, total int, target string, endpoint stri
 				{total}
 			</li>
 			<li>
-				<a id={id+"-next"} href="#" _={pageNext(id)}>></a>
+				<a id={id+"-next"} href="#" _={pageNext(id)}>&gt;</a>
 			</li>
 		</ul>
 	</div>
