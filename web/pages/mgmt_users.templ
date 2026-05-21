@@ -73,7 +73,7 @@ templ MgmtUsersTable(page int) {
 				}
 			</tbody>
 		</table>
-		@common.Pagination(page, getUserTotalPages(), "/management/users", "#users-container")
+		@common.Pagination("users-pager", page, getUserTotalPages(), "users-container", "/management/users")
 	</div>
 }
 
