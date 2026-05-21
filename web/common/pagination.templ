@@ -1,30 +1,39 @@
 package common
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// Pagination renders a reusable prev/next pagination bar with HTMX support.
-// current: current page number (1-based)
-// total: total number of pages
-// basePath: e.g. "/management/transactions" (will append ?page=N)
-// targetSelector: CSS selector for HTMX target, e.g. "#transactions-container"
-templ Pagination(current, total int, basePath, targetSelector string) {
-	<div class="demo-row justify center mt-4">
-		if current > 1 {
-			@pageButton(current-1, "Previous", basePath, targetSelector)
-		}
-		<span class="px-4">Page {current} / {total}</span>
-		if current < total {
-			@pageButton(current+1, "Next", basePath, targetSelector)
-		}
+templ Pagination(id string, current int, total int, target string, endpoint string) {
+	<div class="pagination-cont">
+		<ul class="pagination">
+			<li>
+				<a id={id+"-prev"} href="#" _={pagePrev(id)}><</a>
+			</li>
+			<li>
+				<form id={id + "-form"}
+					hx-swap="outerHTML"
+					hx-target={"#"+target}
+					hx-post={endpoint}
+					hx-trigger="submit delay:1s">
+					<input id={id}
+						name="page"
+						type="number"
+						class="form-input hide-spinner"
+						min="1"
+						max={total}
+						value={current}
+						_={pageInput(id)}
+					/>
+				</form>
+			</li>
+			<li>
+				/
+				{total}
+			</li>
+			<li>
+				<a id={id+"-next"} href="#" _={pageNext(id)}>></a>
+			</li>
+		</ul>
 	</div>
-}
-
-templ pageButton(targetPage int, label, basePath, targetSelector string) {
-	<a
-		href={ fmt.Sprintf("%s?page=%d", basePath, targetPage) }
-		hx-get={ fmt.Sprintf("%s?page=%d", basePath, targetPage) }
-		hx-target={ targetSelector }
-		hx-swap="innerHTML"
-		hx-push-url="true"
-	>{ label }</a>
 }
