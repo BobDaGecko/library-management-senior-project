@@ -1,0 +1,28 @@
+package common
+
+func colors(fg, bg string) map[string]string {
+	return map[string]string{
+		"background-color": bg,
+		"color":            fg,
+	}
+}
+
+templ Shield(icon string, label string, bg string, fg string) {
+	<div class="shield">
+		<div>
+			@Icon(icon, false)
+		</div>
+		<div style={ colors(fg, bg) }>{ label }</div>
+	</div>
+}
+
+templ ShieldText(lhs string, rhs string, bg string, fg string) {
+	<div class="shield">
+		<div>{ lhs }</div>
+		<div style={ colors(fg, bg) }>{ rhs }</div>
+	</div>
+}
+
+templ Icon(name string, primary bool) {
+	<i class={ "material-icons", templ.KV("on-primary", primary) }>{ name }</i>
+}

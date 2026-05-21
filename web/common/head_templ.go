@@ -246,7 +246,7 @@ func Footer() templ.Component {
 			templ_7745c5c3_Var14 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<footer class=\"page-footer mt-8\"><p class=\"text-xs\">&#169 2026 Town Library</p></footer>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<footer class=\"page-footer mt-8 flex justify-between\"><span></span><p class=\"text-s\">&#169 2026 Town Library</p><!--Link to user Library home page.--><button class=\"btn-small btn-ghost\"><i class=\"material-icons mb-2\" style=\"font-size: 24px;\">home</i></button></footer>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

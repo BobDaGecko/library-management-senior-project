@@ -5,18 +5,21 @@
    ============================================ */
 :root {
 	/* Color - Light Theme (Latte) */
-	--light-primary: oklch(42.41% 0.161 29.44deg); /*Our red*/
-	--light-tertiary: oklch(44.88% 0.119 143.72deg); /*our green*/
+	--light-primary: oklch(42.41% 0.161 29.44deg);
+	/*Our red*/
+	--light-tertiary: oklch(44.88% 0.119 143.72deg);
+	/*our green*/
 	--light-on-primary: oklch(100% 0% 0deg);
 	--light-text: oklch(44% 4% 279deg);
 	--light-text-sub: oklch(49% 4% 279deg);
 	--light-bg-base: oklch(96% 1% 265deg);
 	--light-bg-mantle: oklch(93% 1% 265deg);
-	--light-bg-surface: oklch(70.87% 0.108 244.66deg); /*Our blue*/
+	--light-bg-surface: oklch(70.87% 0.108 244.66deg);
+	/*Our blue*/
 	--light-bg-overlay: oklch(81% 2% 271deg);
-	--light-bg-dark:oklch(89% 1% 268deg);
+	--light-bg-dark: oklch(89% 1% 268deg);
 	--light-border: oklch(86% 1% 268deg);
-	
+
 	--light-button-text: #000;
 
 	/*TODO: Create dark mode version of colors*/
@@ -91,7 +94,7 @@
 	--space-8: 2rem;
 	--space-12: 3rem;
 	--space-16: 4rem;
-    --space-20: 5rem;
+	--space-20: 5rem;
 
 	--space-80: 20rem;
 
@@ -232,10 +235,10 @@ ol {
 
 /*Demo-row from semtx site*/
 .demo-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	align-items: center;
 }
 
 /* ============================================
@@ -410,7 +413,7 @@ ol {
 
 /* Spacing - Margin */
 
-.m-0{
+.m-0 {
 	margin: 0;
 }
 
@@ -426,7 +429,7 @@ ol {
 	margin: var(--space-4);
 }
 
-.my-0{
+.my-0 {
 	margin-top: 0;
 	margin-bottom: 0;
 }
@@ -435,10 +438,12 @@ ol {
 	margin-top: var(--space-1);
 	margin-bottom: var(--space-1);
 }
+
 .my-2 {
 	margin-top: var(--space-2);
 	margin-bottom: var(--space-2);
 }
+
 .my-4 {
 	margin-top: var(--space-4);
 	margin-bottom: var(--space-4);
@@ -449,7 +454,7 @@ ol {
 	margin-right: auto;
 }
 
-.mt-0{
+.mt-0 {
 	margin-top: 0;
 }
 
@@ -473,7 +478,7 @@ ol {
 	margin-top: var(--space-8);
 }
 
-.mb-0{
+.mb-0 {
 	margin-bottom: 0;
 }
 
@@ -613,7 +618,7 @@ ol {
 	padding-bottom: var(--space-8);
 }
 
-.pt-2{
+.pt-2 {
 	padding-top: var(--space-2);
 }
 
@@ -621,7 +626,7 @@ ol {
 	padding-top: var(--space-4);
 }
 
-.pb-2{
+.pb-2 {
 	padding-bottom: var(--space-2);
 }
 
@@ -629,7 +634,7 @@ ol {
 	padding-bottom: var(--space-4);
 }
 
-.pl-2{
+.pl-2 {
 	padding-left: var(--space-2);
 }
 
@@ -658,11 +663,11 @@ ol {
 	height: 100%;
 }
 
-.h-auto{
+.h-auto {
 	height: auto;
 }
 
-.h-fit{
+.h-fit {
 	height: fit-content;
 }
 
@@ -733,17 +738,6 @@ ol {
 	max-width: var(--container-lg);
 }
 
-.book-container{
-  display: grid;
-  grid-template-columns: 220px 1fr auto;
-  margin-top: var(--space-4);
-}
-
-.book-cover {
-  width: 180px;
-  height: 240px;
-  object-fit: cover;
-}
 
 /* Text */
 .text-xs {
@@ -1032,14 +1026,16 @@ ol {
 
 /*Color*/
 
-.primary{
-    color: var(--primary);
+.primary {
+	color: var(--primary);
 }
-.tertiary{
-    color: var(--tertiary);
+
+.tertiary {
+	color: var(--tertiary);
 }
-.on-primary{
-    color: var(--on-primary);
+
+.on-primary {
+	color: var(--on-primary);
 }
 
 
@@ -1206,8 +1202,8 @@ button.disabled,
 	cursor: not-allowed;
 	pointer-events: none;
 	filter: grayscale(0.5);
-	
-    /*border: none; Might cause domino effect on the look of button*/ 
+
+	/*border: none; Might cause domino effect on the look of button*/
 }
 
 /* Button Variants */
@@ -1225,7 +1221,7 @@ button:hover {
 	background: var(--bg-base);
 	color: var(--primary);
 	border-color: var(--primary);
-    border-width: 2px;
+	border-width: 2px;
 }
 
 .btn-secondary:hover {
@@ -1284,12 +1280,12 @@ button:hover {
 	min-height: 52px;
 }
 
-.btn-long{
-    padding: var(--space-3) var(--space-20);
+.btn-long {
+	padding: var(--space-3) var(--space-20);
 	font-size: var(--fs-sm);
 	min-height: 42px;
-    min-width: 62px;
-    border-radius: var(--radius-sm);
+	min-width: 62px;
+	border-radius: var(--radius-sm);
 }
 
 /* Button with Icon */
@@ -1331,9 +1327,10 @@ button.loading::after {
    FORM INPUTS
    ============================================ */
 
-fieldset{
+fieldset {
 	border: none;
 }
+
 .form-group {
 	display: flex;
 	flex-direction: column;
@@ -1530,11 +1527,11 @@ fieldset{
 }
 
 /*Nice to have*/
-fieldset:has(input:user-invalid) .form-error{
+fieldset:has(input:user-invalid) .form-error {
 	display: block;
 }
 
-fieldset:has(input:user-valid) .form-error{
+fieldset:has(input:user-valid) .form-error {
 	display: none;
 }
 
@@ -2200,36 +2197,36 @@ dialog .modal-close:hover {
 }
 
 /*Row Actions*/
-.row-actions{
+.row-actions {
 	gap: var(--space-2);
 }
 
-.table td button{
+.table td button {
 	all: unset;
 	cursor: pointer;
 	padding: 0px var(--space-2);
 	border-radius: var(--space-2);
 }
 
-.table td button:hover{
+.table td button:hover {
 	background: var(--on-primary);
-	
+
 }
 
-/*Sort*/
+/* Sort */
 
-.table-sort th button{
-	all:unset;
-	cursor:pointer;
+.table-sort th button {
+	all: unset;
+	cursor: pointer;
 	color: inherit;
 	font: inherit;
 }
 
-.table-sort th button i.asc::after{
+.table-sort th button i.asc::after {
 	content: " ▲";
 }
 
-.table-sort th button i.desc::after{
+.table-sort th button i.desc::after {
 	content: " ▼";
 }
 
