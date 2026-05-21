@@ -1,0 +1,29 @@
+.book-container {
+	display: grid;
+	grid-template-columns: 220px 1fr auto;
+	margin-top: var(--space-4);
+}
+
+.book-cover {
+	width: 180px;
+	height: 240px;
+	object-fit: cover;
+}
+
+.shield {
+	display: flex;
+	border: var(--border-w) var(--border) solid;
+	border-radius: var(--radius-sm);
+	font-size: small;
+	width: min-content;
+	overflow: clip;
+
+	div:first-child {
+		padding: 2px;
+	}
+
+	div:last-child {
+		margin-left: 2px;
+		padding: 2px 4px;
+	}
+}

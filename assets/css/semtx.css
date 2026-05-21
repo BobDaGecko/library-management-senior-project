@@ -17,6 +17,7 @@
 	--light-bg-surface: oklch(70.87% 0.108 244.66deg);
 	/*Our blue*/
 	--light-bg-overlay: oklch(81% 2% 271deg);
+	--light-bg-dark: oklch(89% 1% 268deg);
 	--light-border: oklch(86% 1% 268deg);
 
 	--light-button-text: #000;
@@ -411,6 +412,11 @@ ol {
 }
 
 /* Spacing - Margin */
+
+.m-0 {
+	margin: 0;
+}
+
 .m-1 {
 	margin: var(--space-1);
 }
@@ -421,6 +427,11 @@ ol {
 
 .m-4 {
 	margin: var(--space-4);
+}
+
+.my-0 {
+	margin-top: 0;
+	margin-bottom: 0;
 }
 
 .my-1 {
@@ -443,6 +454,10 @@ ol {
 	margin-right: auto;
 }
 
+.mt-0 {
+	margin-top: 0;
+}
+
 .mt-1 {
 	margin-top: var(--space-1);
 }
@@ -461,6 +476,10 @@ ol {
 
 .mt-8 {
 	margin-top: var(--space-8);
+}
+
+.mb-0 {
+	margin-bottom: 0;
 }
 
 .mb-1 {
@@ -719,6 +738,7 @@ ol {
 	max-width: var(--container-lg);
 }
 
+
 /* Text */
 .text-xs {
 	font-size: var(--fs-xs);
@@ -900,6 +920,10 @@ ol {
 
 .leading-tight {
 	line-height: var(--lh-tight);
+}
+
+.leading-base {
+	line-height: var(--lh-base);
 }
 
 /* Container */
@@ -1516,7 +1540,7 @@ fieldset:has(input:user-valid) .form-error {
    CARDS
    ============================================ */
 .card {
-	background: var(--bg-surface);
+	background: var(--light-bg-dark);
 	border: var(--border-w) solid var(--border);
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow);
@@ -2189,7 +2213,7 @@ dialog .modal-close:hover {
 
 }
 
-/*Sort*/
+/* Sort */
 
 .table-sort th button {
 	all: unset;

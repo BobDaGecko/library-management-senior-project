@@ -3,6 +3,7 @@ package book
 import (
 	"fmt"
 	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/web/common"
 )
 
 css book_thumb_container() {
@@ -43,8 +44,8 @@ templ BookThumb(b db.BookWork, variants ...db.BookWork) {
 				<div style="font-size: smaller;">
 					{ "by " }
 					for i, author := range b.Authors {
-						<a href={ templ.SafeURL("?q=author:" + author) }>{ author }</a>{  }
-						if i < len(b.Authors)-1 {
+						<a href={ templ.SafeURL("?q=author:" + author) }>{ author }</a>{
+						}if i < len(b.Authors)-1 {
 							<span>{ ", " }</span>
 						}
 					}
@@ -67,6 +68,85 @@ templ BookThumb(b db.BookWork, variants ...db.BookWork) {
 		</div>
 	</div>
 }
+
+templ BookTrunk(b db.BookWork) {
+	<div class="card my-4">
+		<div class="book-container">
+			@bookTrunkContainer(b)
+		</div>
+	</div>
+}
+
+templ BookTrunkAdmin(b db.BookWork) {
+	<div class="card my-4" id={ "book-" + b.ID }>
+		<div class="book-container">
+			@bookTrunkContainer(b)
+
+			<div class="actions flex flex-col gap-2 items-end">
+				<!-- TO-DO: Database lookup, this isn't reliable -->
+				if !b.CreatedAt.IsZero() {
+					<button disabled>@common.Icon("check", false)</button>
+				} else {
+					<form hx-put="/management/books/add"
+						hx-target={ "book-" + b.ID}>
+						<input name="id" class="hidden" value={ b.ID }/>
+						<button type="submit">@common.Icon("add", false)</button>
+					</form>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ bookTrunkContainer(b db.BookWork) {
+	<img src={ b.CoverThumb } alt="[book cover]" class="book-cover mr-2"/>
+
+	<div class="book-info flex flex-col gap-1">
+		<h3 class="book-title text-secondary mb-0">{ b.Title }</h3>
+		<span class="author text-sm mb-2">
+			{ "by " }
+			for i, author := range b.Authors {
+				<a href="#" data-search={ fmt.Sprintf("author:%s", author) }
+					_="on click
+						put my.dataset.search into #main-search-bar.value
+						trigger submit on #search-form
+					end">
+					{ author }
+				</a>{
+				}if i < len(b.Authors)-1 {
+					<span>{ ", " }</span>
+				}
+			}
+		</span>
+		<div>
+			if counts, err := b.AvailableCopies(false); err != nil {
+				<span>{ err.Error() }</span>
+			} else {
+				for f, count := range counts {
+					switch f {
+						case db.BookFmtPaperback:
+							@common.ShieldText("Paperback", fmt.Sprintf("%d", count), "var(--peach)", "var(--text)")
+						case db.BookFmtHardCover:
+							@common.ShieldText("Hard Cover", fmt.Sprintf("%d", count), "var(--peach)", "var(--text)")
+						case db.BookFmtPhysicalAudio:
+							@common.ShieldText("Audio Player", fmt.Sprintf("%d", count), "var(--teal)", "var(--text)")
+						case db.BookFmtDigitalBook:
+							@common.ShieldText("Kindle", fmt.Sprintf("%d", count), "var(--green)", "var(--text)")
+						case db.BookFmtDigitalAudio:
+							@common.ShieldText("Audible", fmt.Sprintf("%d", count), "var(--sky)", "var(--text)")
+						default:
+							@common.ShieldText("Unknown Format", fmt.Sprintf("%d", count), "var(--red)", "white")
+					}
+				}
+			}
+			<!-- TO-DO: Tags -->
+		</div>
+		<div style="overflow: scroll" class="description mt-4 leading-base">
+			{ b.Description }
+		</div>
+	</div>
+}
+
 
 templ BookCover(b db.BookWork) {
 	<div class="well">
