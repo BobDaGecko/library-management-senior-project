@@ -1,0 +1,94 @@
+package pages
+
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+const usersPerPage = 50
+
+func getUsers(page int) []db.User {
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * usersPerPage
+	var users []db.User
+	db.Db().Model(&db.User{}).Order("last_name asc, first_name asc").Offset(offset).Limit(usersPerPage).Find(&users)
+	return users
+}
+
+func getUserTotal() int64 {
+	var count int64
+	db.Db().Model(&db.User{}).Count(&count)
+	return count
+}
+
+func getUserTotalPages() int {
+	total := getUserTotal()
+	if total == 0 {
+		return 1
+	}
+	return int((total + int64(usersPerPage) - 1) / int64(usersPerPage))
+}
+
+// MgmtUsers full page
+templ MgmtUsers(p *fail.RoutingParams, page int) {
+	@common.Head("Users - Management", "User Management")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<h1>Users</h1>
+			<p class="mb-4">Manage library users and their roles. Changing a role via the dropdown applies immediately via HTMX.</p>
+			<div id="users-container">
+				@MgmtUsersTable(page)
+			</div>
+		</div>
+		@common.Footer()
+	</main>
+}
+
+// MgmtUsersTable for list + pagination (supports HTMX partial)
+templ MgmtUsersTable(page int) {
+	<div id="users-table">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Email</th>
+					<th>Role</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, u := range getUsers(page) {
+					<tr>
+						<td>{ u.FirstName } { u.LastName }</td>
+						<td>{ u.Email }</td>
+						<td>@UserRoleSelect(u.ID.String(), u.Roles)</td>
+						<td>{ u.Status.String() }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+		@common.Pagination(page, getUserTotalPages(), "/management/users", "#users-container")
+	</div>
+}
+
+// UserRoleSelect renders an auto-updating role dropdown. Used in table and re-rendered after HTMX update.
+templ UserRoleSelect(userID string, current db.UserRoleFlag) {
+	<select 
+		name="role"
+		hx-post="/management/users"
+		hx-target="this"
+		hx-swap="outerHTML"
+		hx-trigger="change"
+		hx-vals={ fmt.Sprintf(`{"user_id": "%s", "action": "update_role"}`, userID) }
+	>
+		<option value="1" {{ if current == db.UserRolePublic }}selected{{ end }}>Public</option>
+		<option value="2" {{ if current == db.UserRoleLibrarian }}selected{{ end }}>Librarian</option>
+		<option value="4" {{ if current == db.UserRoleAdmin }}selected{{ end }}>Admin</option>
+	</select>
+}
