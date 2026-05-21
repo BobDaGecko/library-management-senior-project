@@ -138,11 +138,12 @@ func (b *BookWork) AvailableCopies(strict bool) (FormatsMap[CopyCount], error) {
 	db := Db()
 	ids := []string{b.ID}
 	if !strict {
-		err := db.Where(&BookWork{
-			Title:    b.Title,
-			Subtitle: b.Subtitle,
-			Authors:  b.Authors,
-		}).Pluck("id", &ids).Error
+		err := db.Model(&BookWork{}).
+			Where(&BookWork{
+				Title:    b.Title,
+				Subtitle: b.Subtitle,
+				Authors:  b.Authors,
+			}).Pluck("id", &ids).Error
 		if err != nil {
 			return nil, err
 		}

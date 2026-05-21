@@ -2,8 +2,9 @@ package pages
 
 import (
 	"fmt"
-	"voxelprismatic/library-management-senior-project/fetch"
 	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/fetch"
+	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/book"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
@@ -30,24 +31,47 @@ css center_width() {
 	right: 0px;
 }
 
-templ BookMgmtSearchFull(q string) {
-	@common.Head("search - "+q, "google books search")
-	<form hx-post="/management/books/add"
-		hx-target="#search-grid"
-		hx-swap="outerHTML">
-		<input name="q" type="text" value={ q }/>
-		<button type="submit">search</button>
-	</form>
-	@BookMgmtSearchGrid(q)
+templ BookMgmtSearchFull(q string, p *fail.RoutingParams) {
+	@common.Head("Add Books", "Add books to the library")
+	@common.NavHead("Administration", "")
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<div class="text-center"><h1>Add Books</h1></div>
+			<article class="card card-flat h-auto" style="min-height: 400px;">
+				<h2 class="text-secondary my-4">Search for Books</h2>
+				<form id="search-form"
+					hx-post="/management/books/add"
+					hx-target="#search-grid"
+					hx-swap="outerHTML">
+					<fieldset>
+						<div class="form-group my-4">
+							<div class="flex">
+								<input name="q" class="form-input" type="text"
+									value={ q } style="width: 300px;" id="main-search-bar"/>
+								<button after class="btn-small btn-primary rounded-lg input-icon ml-4">
+									@common.Icon("search", true)
+								</button>
+							</div>
+							<span class="form-hint">Search by Title, Author, or ISBN</span>
+						</div>
+					</fieldset>
+				</form>
+
+				@BookMgmtSearchGrid(q)
+			</article>
+		</div>
+	</main>
 }
 
 templ BookMgmtSearchGrid(q string) {
-	<div id="search-grid">
+	<div id="search-grid" class="results">
 		for _, variants := range gbooksMustSearch(q) {
 			if len(variants) > 1 {
-				@book.BookThumb(variants[0], variants[1:]...)
+				panic("not implemented")
 			} else {
-				@book.BookThumb(variants[0])
+				@book.BookTrunkAdmin(variants[0])
 			}
 		}
 	</div>

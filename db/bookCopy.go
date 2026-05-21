@@ -11,10 +11,10 @@ type BookCopy struct {
 	BaseModel
 	BookWork   BookWork
 	BookWorkID string
-	Barcode    string        // TO-DO: Replace with deterministic function
-	Condition  ConditionFlag // TO-DO: Replace with function to derive this based on last return and repair dates
-	Format     BookFmtFlag   // Hard-cover, paperback, etc.
-	Status     CopyStatusFlag
+	Barcode    string         // TO-DO: Replace with deterministic function
+	Condition  ConditionFlag  `gorm:"type:int"` // TO-DO: Replace with function to derive this based on last return and repair dates
+	Format     BookFmtFlag    `gorm:"type:int"` // Hard-cover, paperback, etc.
+	Status     CopyStatusFlag `gorm:"type:int"`
 }
 
 // Repair log for individual copies of a book for audit purposes
@@ -22,8 +22,8 @@ type RepairLog struct {
 	BaseModel
 	BookCopyID     SqlUUID `gorm:"type:text"`
 	Date           time.Time
-	IncomingStatus CopyStatusFlag
-	OutgoingStatus CopyStatusFlag
+	IncomingStatus CopyStatusFlag `gorm:"type:int"`
+	OutgoingStatus CopyStatusFlag `gorm:"type:int"`
 	TechnicianName string
 }
 

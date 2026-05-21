@@ -78,27 +78,41 @@ templ BookTrunk(b db.BookWork) {
 }
 
 templ BookTrunkAdmin(b db.BookWork) {
-	<div class="card my-4">
+	<div class="card my-4" id={ "book-" + b.ID }>
 		<div class="book-container">
 			@bookTrunkContainer(b)
 
 			<div class="actions flex flex-col gap-2 items-end">
-				<button>@common.Icon("add")</button>
-				<button>@common.Icon("edit")</button>
+				<!-- TO-DO: Database lookup, this isn't reliable -->
+				if !b.CreatedAt.IsZero() {
+					<button disabled>@common.Icon("check", false)</button>
+				} else {
+					<form hx-put="/management/books/add"
+						hx-target={ "book-" + b.ID}>
+						<input name="id" class="hidden" value={ b.ID }/>
+						<button type="submit">@common.Icon("add", false)</button>
+					</form>
+				}
 			</div>
 		</div>
 	</div>
 }
 
 templ bookTrunkContainer(b db.BookWork) {
-	<img src="/assets/img/unavailable.png" alt="[book cover]" class="book-cover mr-2"/>
+	<img src={ b.CoverThumb } alt="[book cover]" class="book-cover mr-2"/>
 
 	<div class="book-info flex flex-col gap-1">
 		<h3 class="book-title text-secondary mb-0">{ b.Title }</h3>
 		<span class="author text-sm mb-2">
 			{ "by " }
 			for i, author := range b.Authors {
-				<a href={ templ.SafeURL("?q=author:" + author) }>{ author }</a>{
+				<a href="#" data-search={ fmt.Sprintf("author:%s", author) }
+					_="on click
+						put my.dataset.search into #main-search-bar.value
+						trigger submit on #search-form
+					end">
+					{ author }
+				</a>{
 				}if i < len(b.Authors)-1 {
 					<span>{ ", " }</span>
 				}
@@ -108,8 +122,8 @@ templ bookTrunkContainer(b db.BookWork) {
 			if counts, err := b.AvailableCopies(false); err != nil {
 				<span>{ err.Error() }</span>
 			} else {
-				for fmt, count := range counts {
-					switch fmt {
+				for f, count := range counts {
+					switch f {
 						case db.BookFmtPaperback:
 							@common.ShieldText("Paperback", fmt.Sprintf("%d", count), "var(--peach)", "var(--text)")
 						case db.BookFmtHardCover:

@@ -43,7 +43,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 	switch p.Req.Method {
 	case http.MethodGet:
 		query := p.Req.URL.Query().Get("q")
-		fail.Render(p, pages.BookMgmtSearchFull(query))
+		fail.Render(p, pages.BookMgmtSearchFull(query, p))
 	case http.MethodPost:
 		if fail.Form(p) {
 			return
@@ -54,6 +54,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 			fmt.Sprintf("%s?q=%s", p.Req.URL.String(), url.QueryEscape(query)),
 		)
 		fail.Render(p, pages.BookMgmtSearchGrid(query))
-
+	default:
+		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
