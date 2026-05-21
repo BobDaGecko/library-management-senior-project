@@ -45,6 +45,63 @@ func ManagementBooksRouter(p *fail.RoutingParams) {
 	}
 }
 
+func HandleManagementUsers(p *fail.RoutingParams) {
+	if fail.Auth(p, db.UserRoleLibrarian) {
+		return
+	}
+
+	// Support for user detail subpage: /management/users/{id}
+	if p.SubPtr < len(p.FullPath) {
+		userIDStr := p.Pop()
+		HandleManagementUserDetail(p, userIDStr)
+		return
+	}
+
+	if fail.Done(p) {
+		return
+	}
+
+	if p.Req.Method == http.MethodPost {
+		action := p.Req.FormValue("action")
+		if action == "update_role" {
+			userID := p.Req.FormValue("user_id")
+			roleStr := p.Req.FormValue("role")
+			roleVal, err := strconv.Atoi(roleStr)
+			if err != nil {
+				http.Error(p.W, "invalid role", http.StatusBadRequest)
+				return
+			}
+			newRole := db.UserRoleFlag(roleVal)
+			if newRole != db.UserRolePublic && newRole != db.UserRoleLibrarian && newRole != db.UserRoleAdmin {
+				http.Error(p.W, "invalid role value", http.StatusBadRequest)
+				return
+			}
+			res := db.Db().Model(&db.User{}).Where("id = ?", userID).Update("roles", newRole)
+			if res.Error != nil {
+				http.Error(p.W, res.Error.Error(), http.StatusInternalServerError)
+				return
+			}
+			fail.Render(p, pages.UserRoleSelect(userID, newRole))
+			return
+		}
+	}
+
+	page := parsePageParam(p)
+	if p.Req.Header.Get("HX-Request") == "true" {
+		fail.Render(p, pages.MgmtUsersTable(page))
+		return
+	}
+	fail.Render(p, pages.MgmtUsers(p, page))
+}
+
+func HandleManagementUserDetail(p *fail.RoutingParams, userID string) {
+	tab := p.Param("tab")
+	if tab == "" {
+		tab = "loans"
+	}
+	fail.Render(p, pages.UserDetail(p, userID, tab))
+}
+
 func HandleManagementOverdue(p *fail.RoutingParams) {
 	if fail.Done(p) {
 		return
@@ -59,19 +116,16 @@ func HandleManagementOverdue(p *fail.RoutingParams) {
 				return
 			}
 
-			// Find existing fine for this loan (latest)
 			var fine db.Fine
 			db.Db().Where("loan_id = ?", loanIDStr).Order("created_at desc").First(&fine)
 
 			if fine.ID.IsEmpty() {
-				// Create a minimal fine for this overdue loan if none exists
 				fine = db.Fine{
-					IssueReason:  db.FineReasonLate,
-					IssueDate:    time.Now(),
-					AmountIssued: 5.0,
+					IssueReason:     db.FineReasonLate,
+					IssueDate:       time.Now(),
+					AmountIssued:    5.0,
 					AmountRemaining: 5.0,
 				}
-				// set LoanID
 				if u, err := uuid.Parse(loanIDStr); err == nil {
 					fine.LoanID = db.SqlUUID{UUID: u}
 				}
@@ -89,56 +143,12 @@ func HandleManagementOverdue(p *fail.RoutingParams) {
 				db.Db().Save(&fine)
 			}
 
-			// Return disabled button to replace the active one
 			fail.Render(p, pages.WaiveButtonDisabled())
 			return
 		}
 	}
 
-	// GET: show the overdue list
 	fail.Render(p, pages.MgmtOverdue(p))
-}
-
-func HandleManagementUsers(p *fail.RoutingParams) {
-	if fail.Done(p) {
-		return
-	}
-
-	if p.Req.Method == http.MethodPost {
-		action := p.Req.FormValue("action")
-		if action == "update_role" {
-			userID := p.Req.FormValue("user_id")
-			roleStr := p.Req.FormValue("role")
-			roleVal, err := strconv.Atoi(roleStr)
-			if err != nil {
-				http.Error(p.W, "invalid role", http.StatusBadRequest)
-				return
-			}
-			newRole := db.UserRoleFlag(roleVal)
-			// allow only standard assignable roles
-			if newRole != db.UserRolePublic && newRole != db.UserRoleLibrarian && newRole != db.UserRoleAdmin {
-				http.Error(p.W, "invalid role value", http.StatusBadRequest)
-				return
-			}
-			res := db.Db().Model(&db.User{}).Where("id = ?", userID).Update("roles", newRole)
-			if res.Error != nil {
-				http.Error(p.W, res.Error.Error(), http.StatusInternalServerError)
-				return
-			}
-			// return updated select (swaps in place via HTMX)
-			fail.Render(p, pages.UserRoleSelect(userID, newRole))
-			return
-		}
-		// unknown post - fallthrough or error
-	}
-
-	// GET list (or default)
-	page := parsePageParam(p)
-	if p.Req.Header.Get("HX-Request") == "true" {
-		fail.Render(p, pages.MgmtUsersTable(page))
-		return
-	}
-	fail.Render(p, pages.MgmtUsers(p, page))
 }
 
 func HandleManagementTransactions(p *fail.RoutingParams) {
