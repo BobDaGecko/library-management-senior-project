@@ -13,7 +13,7 @@ func pagePrev(id string) string {
 	if _pagePrev == nil {
 		var err error
 		_pagePrev, err = template.New("pagePrev").Parse(
-			`on click send Set(page:#{{ .Pager }}.value-1 to #{{ .Pager }}`,
+			`on click send Set(page:#{{ .Pager }}.value-1) to #{{ .Pager }}`,
 		)
 
 		if err != nil {
