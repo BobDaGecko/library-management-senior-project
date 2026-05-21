@@ -12,6 +12,7 @@ var managementAsideLinks = common.NavAsideEntryList{
 	{Name: "Users", Link: "/management/users"},
 	{Name: "Reports", Link: "/management/reports"},
 	{Name: "Transactions", Link: "/management/transactions"},
+	{Name: "Overdue Books", Link: "/management/overdue"},
 	{},
 	{Name: "View Holds", Link: "/management/holds"},
 	{Name: "View Fines", Link: "/management/fines"},
