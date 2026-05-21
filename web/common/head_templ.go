@@ -55,7 +55,7 @@ func Head(title string, desc string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</title><script type=\"text/javascript\" src=\"/assets/js/htmx-2.0.8.js\"></script><link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/semtx.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"https://fonts.googleapis.com/icon?family=Material+Icons\"></head>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</title><script type=\"text/javascript\" src=\"/assets/js/htmx-2.0.8.js\"></script><script src=\"https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js\" integrity=\"sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr\" crossorigin=\"anonymous\"></script><link rel=\"stylesheet\" type=\"text/css\" href=\"/assets/css/semtx.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"https://fonts.googleapis.com/icon?family=Material+Icons\"></head>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -91,7 +91,7 @@ func NavHead(subpage string, searchPrefill string) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(subpage)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 23, Col: 12}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 24, Col: 12}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -104,7 +104,7 @@ func NavHead(subpage string, searchPrefill string) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(searchPrefill)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 34, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 35, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -192,7 +192,7 @@ func NavAside(entries NavAsideEntryList, active string) templ.Component {
 				var templ_7745c5c3_Var12 templ.SafeURL
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(e.Link)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 48, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 49, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -205,7 +205,7 @@ func NavAside(entries NavAsideEntryList, active string) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(e.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 48, Col: 80}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/common/head.templ`, Line: 49, Col: 80}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
