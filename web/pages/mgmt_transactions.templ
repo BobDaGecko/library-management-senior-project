@@ -72,7 +72,7 @@ templ MgmtTransactionsTable(page int) {
 				}
 			</tbody>
 		</table>
-		@common.Pagination(page, getTotalPages(), "/management/transactions", "#transactions-container")
+		@common.Pagination("transactions-pager", page, getTotalPages(), "transactions-container", "/management/transactions")
 	</div>
 }
 
