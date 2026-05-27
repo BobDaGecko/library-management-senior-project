@@ -78,7 +78,7 @@ func (f ConditionFlag) String() string {
 func (f ConditionFlag) DisplayName() string {
 	switch f {
 	case ConditionMint:
-		return "great"
+		return "mint"
 	case ConditionGood:
 		return "good"
 	case ConditionFair:
