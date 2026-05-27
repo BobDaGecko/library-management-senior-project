@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/web/common"
 )
 
 // BookMgmtNotInLibraryWarning is the extracted component for the warning banner
@@ -11,9 +12,7 @@ import (
 // yet added to the local library. Includes the Add to Library HTMX action.
 templ BookMgmtNotInLibraryWarning(book db.BookWork, id string) {
 	<div class="container">
-		<div class="alert alert-warning mb-4">
-			<strong>Warning:</strong> This book is not yet in your library.
-		</div>
+		@common.WarningBanner("This book is not yet in your library.")
 
 		<div class="card">
 			<div class="card-body">
