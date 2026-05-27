@@ -8,8 +8,10 @@ import (
 	"github.com/a-h/templ"
 )
 
-// Attempt to render the element, or return the error if it failed
+// Render renders a templ.Component and sets Content-Type to text/html.
+// Use this for both full pages and partial HTMX fragments.
 func Render(p *RoutingParams, elem templ.Component) {
+	p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := elem.Render(p.Req.Context(), p.W)
 	if err != nil {
 		http.Error(p.W, err.Error(), http.StatusInternalServerError)
@@ -66,13 +68,4 @@ func Done(p *RoutingParams) bool {
 
 	_, _ = p.W.Write([]byte("404: too far"))
 	return true
-}
-
-// RenderPartial renders a templ.Component as a self-contained HTML response.
-// Sets Content-Type. Use this instead of raw fmt.Fprintf when rendering components.
-func RenderPartial(p *RoutingParams, elem templ.Component) {
-	p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := elem.Render(p.Req.Context(), p.W); err != nil {
-		http.Error(p.W, err.Error(), http.StatusInternalServerError)
-	}
 }
