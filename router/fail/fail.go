@@ -2,6 +2,7 @@ package fail
 
 import (
 	"net/http"
+
 	"voxelprismatic/library-management-senior-project/db"
 
 	"github.com/a-h/templ"
@@ -42,8 +43,8 @@ func Auth(p *RoutingParams, minLevel db.UserRoleFlag) bool {
 
 	p.W.Header().Set("X-Auth-Missing", minLevel.String())
 	p.W.Header().Set("X-Auth-Current", p.User.Roles.String())
-	http.Error(p.W, "Forbidden", http.StatusForbidden)
-	return true
+		http.Error(p.W, "Forbidden", http.StatusForbidden)
+		return true
 }
 
 func Redirect(p *RoutingParams) {
@@ -65,4 +66,13 @@ func Done(p *RoutingParams) bool {
 
 	_, _ = p.W.Write([]byte("404: too far"))
 	return true
+}
+
+// RenderPartial renders a templ.Component as a self-contained HTML response.
+// Sets Content-Type. Use this instead of raw fmt.Fprintf when rendering components.
+func RenderPartial(p *RoutingParams, elem templ.Component) {
+	p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := elem.Render(p.Req.Context(), p.W); err != nil {
+		http.Error(p.W, err.Error(), http.StatusInternalServerError)
+	}
 }
