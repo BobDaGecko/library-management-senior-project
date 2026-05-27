@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-
-	"github.com/google/uuid"
 )
 
 var _ = Migrate(User{})
@@ -50,7 +48,7 @@ func (u User) HasOverdueBooks() (bool, error) {
 
 func (u User) Partial() UserPartial {
 	return UserPartial{
-		ID:        u.ID.String(),
+		ID:        u.ID.Short(),
 		Roles:     u.Roles,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
@@ -68,12 +66,12 @@ type UserPartial struct {
 
 func (p UserPartial) Fetch() (User, error) {
 	db := Db()
-	id, err := uuid.Parse(p.ID)
+	id, err := FromString(p.ID)
 	if err != nil {
 		return User{}, err
 	}
 
-	ret := User{BaseModel: BaseModel{ID: SqlUUID{id}}}
+	ret := User{BaseModel: BaseModel{ID: id}}
 	err = db.Where(&ret).First(&ret).Error
 	return ret, err
 }

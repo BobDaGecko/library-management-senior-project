@@ -93,3 +93,22 @@ templ UserRoleSelect(userID string, current db.UserRoleFlag) {
 		<option value="4">Admin</option>
 	</select>
 }
+
+// UserDetail is a stub for the user detail subpage (/management/users/:id?tab=...)
+// TODO: implement full loans/fines/holds detail view for a user.
+templ UserDetail(p *fail.RoutingParams, userID string, tab string) {
+	@common.Head("User Detail - Management", "User details")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<h1>User Detail</h1>
+			<p class="text-secondary">User ID: { userID } (tab: { tab })</p>
+			<div class="card card-flat mt-4">
+				<p>This page is not yet implemented.</p>
+				<p><a href="/management/users">← Back to users list</a></p>
+			</div>
+		</div>
+		@common.Footer()
+	</main>
+}

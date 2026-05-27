@@ -1,0 +1,116 @@
+package pages
+
+import (
+	"fmt"
+	"strings"
+
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+var allBookFormats = []db.BookFmtFlag{
+	db.BookFmtPaperback,
+	db.BookFmtHardCover,
+	db.BookFmtPhysicalAudio,
+	db.BookFmtDigitalBook,
+	db.BookFmtDigitalAudio,
+}
+
+// copyCheckoutName safely computes the current loan/checkout status display name.
+func copyCheckoutName(c db.BookCopy) string {
+	s, err := c.LoanStatus()
+	if err != nil {
+		return "error"
+	}
+	return s.DisplayName()
+}
+
+// MgmtBookCopies is the full page for /management/books/:book-id/copies
+templ MgmtBookCopies(bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList], p *fail.RoutingParams) {
+	@common.Head("Copies - Management", "Manage book copies")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<div class="flex items-center justify-between mb-4">
+				<div>
+					<h1 class="mb-1">Copies</h1>
+					if book.Title != "" {
+						<p class="text-secondary mb-0">
+							{ book.Title }
+							if len(book.Authors) > 0 {
+								<span>by { strings.Join(book.Authors, ", ") }</span>
+							}
+						</p>
+					} else {
+						<p class="text-secondary">Book ID: { bookID }</p>
+					}
+				</div>
+				<a href="/management" class="btn btn-sm btn-ghost">← Catalog</a>
+			</div>
+			@MgmtBookCopiesList(bookID, copies)
+		</div>
+		@common.Footer()
+	</main>
+}
+
+// MgmtBookCopiesList is the HTMX-updatable section listing all format sections + cards.
+// Used both in full page and after POST add (replaces #copies-list).
+templ MgmtBookCopiesList(bookID string, copies db.FormatsMap[db.CopyList]) {
+	<div id="copies-list">
+		for _, f := range allBookFormats {
+			<section class="copy-section">
+				<div class="copy-section-header">
+					<h3>{ f.DisplayName() }</h3>
+					<button
+						class="btn btn-sm"
+						hx-post={ "/management/books/" + bookID + "/copies" }
+						hx-vals={ fmt.Sprintf(`{"format":%d}`, int(f)) }
+						hx-target="#copies-list"
+						hx-swap="outerHTML"
+						title={ "Add another " + f.DisplayName() + " copy instantly" }
+					>
+						<i class="material-icons" style="font-size: 15px; vertical-align: -2px;">add</i>
+						Add
+					</button>
+				</div>
+				<div class="copy-cards">
+					if cl, ok := copies[f]; ok && len(cl) > 0 {
+						for _, c := range cl {
+							@copyCard(c)
+						}
+					} else {
+						<span><i>No copies yet</i></span>
+					}
+				</div>
+			</section>
+		}
+	</div>
+}
+
+// copyCard renders one copy entry as a compact horizontal card.
+// Left: linked "thumbnail" (last-6 split) going to /.../copies/:22char-short-uuid
+// Right: three status rows (condition / circulation / checkout)
+templ copyCard(c db.BookCopy) {
+	<div class="copy-card">
+		@copyShortThumb(c)
+		<div class="copy-info">
+			<div class="row"><span class="label">cond</span><span class="value">{ c.Condition.DisplayName() }</span></div>
+			<div class="row"><span class="label">circ</span><span class="value">{ c.Status.DisplayName() }</span></div>
+			<div class="row"><span class="label">loan</span><span class="value">{ copyCheckoutName(c) }</span></div>
+		</div>
+	</div>
+}
+
+templ copyShortThumb(c db.BookCopy) {
+	<a
+		class="copy-thumb"
+		href={ templ.SafeURL("/management/books/" + c.BookWorkID + "/copies/" + c.ID.Short()) }
+		title={ "Open copy " + c.ID.Short() }
+	>
+		for _, part := range c.ID.Thumb() {
+			<span class="id-row">{ part }</span>
+		}
+	</a>
+}

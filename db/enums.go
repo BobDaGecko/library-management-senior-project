@@ -29,6 +29,24 @@ func (f BookFmtFlag) String() string {
 	}
 }
 
+// DisplayName returns a human-friendly lowercase label for use in UI sections/headers.
+func (f BookFmtFlag) DisplayName() string {
+	switch f {
+	case BookFmtPaperback:
+		return "paperback"
+	case BookFmtHardCover:
+		return "hardcover"
+	case BookFmtPhysicalAudio:
+		return "physical audio"
+	case BookFmtDigitalBook:
+		return "digital book"
+	case BookFmtDigitalAudio:
+		return "audiobook"
+	default:
+		return "unknown format"
+	}
+}
+
 type ConditionFlag int
 
 const (
@@ -37,6 +55,7 @@ const (
 	ConditionFair                      // Light wear on corners, crease marks, but no torn pages
 	ConditionPoor                      // Some tears, annotations, etc
 	ConditionDead                      // Missing pages
+	ConditionLost
 )
 
 func (f ConditionFlag) String() string {
@@ -51,8 +70,30 @@ func (f ConditionFlag) String() string {
 		return "ConditionPoor"
 	case ConditionDead:
 		return "ConditionDead"
+	case ConditionLost:
+		return "ConditionLost"
 	default:
 		return fmt.Sprintf("ConditionFlag(%d)", f)
+	}
+}
+
+// DisplayName returns human-friendly condition for copy cards.
+func (f ConditionFlag) DisplayName() string {
+	switch f {
+	case ConditionMint:
+		return "mint"
+	case ConditionGood:
+		return "good"
+	case ConditionFair:
+		return "fair"
+	case ConditionPoor:
+		return "poor"
+	case ConditionDead:
+		return "damaged"
+	case ConditionLost:
+		return "lost"
+	default:
+		return "unknown"
 	}
 }
 
@@ -83,6 +124,24 @@ func (f CopyStatusFlag) String() string {
 	}
 }
 
+// DisplayName returns human-friendly circulation status.
+func (f CopyStatusFlag) DisplayName() string {
+	switch f {
+	case CopyStatusPublic:
+		return "in circulation"
+	case CopyStatusPendingReturn:
+		return "pending return"
+	case CopyStatusPendingAction:
+		return "pending action"
+	case CopyStatusRepairing:
+		return "out for repair"
+	case CopyStatusDiscarded:
+		return "discarded"
+	default:
+		return "unknown"
+	}
+}
+
 type CopyLoanFlag int
 
 const (
@@ -104,6 +163,22 @@ func (f CopyLoanFlag) String() string {
 		return "CopyLoanWithdrawn"
 	default:
 		return fmt.Sprintf("CopyLoanFlag(%d)", f)
+	}
+}
+
+// DisplayName returns human-friendly checkout/loan status matching UI spec (ready, checked out, etc).
+func (f CopyLoanFlag) DisplayName() string {
+	switch f {
+	case CopyLoanAvailable:
+		return "ready"
+	case CopyLoanUnavailable:
+		return "checked out"
+	case CopyLoanOverdue:
+		return "overdue"
+	case CopyLoanWithdrawn:
+		return "withheld"
+	default:
+		return "unknown"
 	}
 }
 

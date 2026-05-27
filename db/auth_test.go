@@ -100,7 +100,7 @@ func TestValidateJWT(t *testing.T) {
 
 	partial, _, err := ValidateJWT(entry.Token)
 	assert.NilError(t, err)
-	assert.Equal(t, partial.ID, user.ID.String())
+	assert.Equal(t, partial.ID, user.ID.Short())
 }
 
 func TestValidateJWTInvalid(t *testing.T) {

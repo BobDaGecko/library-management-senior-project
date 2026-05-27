@@ -27,3 +27,112 @@
 		padding: 2px 4px;
 	}
 }
+
+/* ============================================
+   COPY CARDS for /management/books/:id/copies
+   ============================================ */
+
+.copy-section {
+	margin-bottom: var(--space-6);
+}
+
+.copy-section-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	margin-bottom: var(--space-2);
+}
+
+.copy-section-header h3 {
+	margin: 0;
+	font-size: var(--fs-lg);
+	color: var(--text);
+	text-transform: capitalize;
+}
+
+.copy-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+.copy-card {
+	display: flex;
+	border: var(--border-w) solid var(--border);
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+	background: var(--bg-mantle);
+	min-width: 210px;
+	max-width: 240px;
+	font-size: 0.75rem;
+	line-height: 1.2;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.copy-thumb {
+	width: 54px;
+	flex-shrink: 0;
+	background: #1a1a1a;
+	color: #22c55e;
+	font-family: ui-monospace, monospace;
+	font-weight: 700;
+	font-size: 13px;
+	letter-spacing: 0.5px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	text-decoration: none;
+	border-right: 1px solid var(--border);
+	transition: background-color 0.1s ease;
+}
+
+.copy-thumb:hover {
+	background: #111;
+	color: #4ade80;
+}
+
+.copy-thumb .id-row {
+	display: block;
+	line-height: 1.05;
+}
+
+.copy-info {
+	padding: 4px 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-width: 0;
+}
+
+.copy-info .row {
+	display: flex;
+	align-items: baseline;
+	gap: 4px;
+}
+
+.copy-info .label {
+	font-size: 8px;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+	letter-spacing: 0.3px;
+	width: 3.2em;
+	flex-shrink: 0;
+}
+
+.copy-info .value {
+	color: var(--text);
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-transform: capitalize;
+}
+
+.copy-empty {
+	color: var(--text-secondary);
+	font-style: italic;
+	padding: var(--space-2) 0;
+}
