@@ -104,30 +104,7 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			book = details.ToLocalStruct()
 
 			p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprintf(p.W, `
-<div class="container">
-	<div class="alert alert-warning mb-4">
-		<strong>Warning:</strong> This book is not yet in your library.
-	</div>
-
-	<div class="card">
-		<div class="card-body">
-			<h2>%s</h2>
-			<p class="text-secondary">by %s</p>
-			%s
-			<div class="mt-4">
-				<button 
-					hx-put="/management/books/%s" 
-					hx-target="closest .card" 
-					hx-swap="outerHTML"
-					class="btn btn-primary">
-					Add to Library
-				</button>
-			</div>
-		</div>
-	</div>
-</div>
-`, book.Title, strings.Join(book.Authors, ", "), book.Description, id)
+			fail.Render(p, pages.BookMgmtNotInLibraryWarning(book, id))
 			return
 		}
 
