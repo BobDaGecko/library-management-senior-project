@@ -2,13 +2,16 @@ package fail
 
 import (
 	"net/http"
+
 	"voxelprismatic/library-management-senior-project/db"
 
 	"github.com/a-h/templ"
 )
 
-// Attempt to render the element, or return the error if it failed
+// Render renders a templ.Component and sets Content-Type to text/html.
+// Use this for both full pages and partial HTMX fragments.
 func Render(p *RoutingParams, elem templ.Component) {
+	p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := elem.Render(p.Req.Context(), p.W)
 	if err != nil {
 		http.Error(p.W, err.Error(), http.StatusInternalServerError)
@@ -42,8 +45,8 @@ func Auth(p *RoutingParams, minLevel db.UserRoleFlag) bool {
 
 	p.W.Header().Set("X-Auth-Missing", minLevel.String())
 	p.W.Header().Set("X-Auth-Current", p.User.Roles.String())
-	http.Error(p.W, "Forbidden", http.StatusForbidden)
-	return true
+		http.Error(p.W, "Forbidden", http.StatusForbidden)
+		return true
 }
 
 func Redirect(p *RoutingParams) {

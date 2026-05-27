@@ -103,7 +103,6 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			}
 			book = details.ToLocalStruct()
 
-			p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fail.Render(p, pages.BookMgmtNotInLibraryWarning(book, id))
 			return
 		}
@@ -128,7 +127,7 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 		referrer := p.Req.Referer()
 		if strings.Contains(referrer, "/management/books/add") {
 			p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprint(p.W, `<button disabled class="btn btn-success" title="Added to library">✓</button>`)
+			fmt.Fprint(p.W, `<button disabled class="btn btn-success" title="Added to library">Added to library</button>`)
 			return
 		} else if strings.Contains(referrer, "/management/books/"+id) {
 			p.W.Header().Set("HX-Refresh", "true")
