@@ -278,8 +278,8 @@ func (f UserRoleFlag) String() string {
 type UserStatusFlag int
 
 const (
-	UserStatusActive  UserStatusFlag = 1 << iota // No outstanding issues
-	UserStatusLimited                            // User has hit loan limit
+	UserStatusActive  UserStatusFlag = 0         // No outstanding issues
+	UserStatusLimited UserStatusFlag = 1 << iota // User has hit loan limit
 	UserStatusLocked                             // TO-DO: Check if user has outstanding fees and remove this redundant lock
 	UserStatusDeleted                            // For audit purposes; we may choose to anonymize any data
 )
