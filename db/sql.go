@@ -117,6 +117,16 @@ func FromString(s string) (SqlUUID, error) {
 	return ParseShort(s)
 }
 
+func (buuid SqlUUID) Thumb() []string {
+	hex := strings.ReplaceAll(buuid.String(), "-", "")
+	if len(hex) < 6 {
+		hex = "000000"
+	} else {
+		hex = hex[len(hex)-6:]
+	}
+	return []string{hex[:3], hex[3:]}
+}
+
 var NilTime = time.Time{}
 
 type BaseModel struct {

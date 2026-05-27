@@ -1,0 +1,247 @@
+package pages
+
+import (
+	"strings"
+
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+// currentHolder returns the latest open loan (if any) for display purposes.
+func currentHolder(c db.BookCopy) *db.Loan {
+	hist, err := c.LoanHistory()
+	if err != nil || len(hist) == 0 {
+		return nil
+	}
+	if hist[0].DateReturned.IsZero() {
+		return &hist[0]
+	}
+	return nil
+}
+
+// MgmtBookCopyDetail is the full detail + history page for one physical copy.
+templ MgmtBookCopyDetail(bookID string, c db.BookCopy, entries []db.HistoryEntry, page, totalPages int, total int64, p *fail.RoutingParams) {
+	@common.Head("Copy History - Management", "Physical copy detail and history")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<div class="flex items-center justify-between mb-2">
+				<h1 class="mb-0">Copy Detail</h1>
+				<a href={ templ.SafeURL("/management/books/" + bookID + "/copies") } class="btn btn-sm btn-ghost">← Back to copies list</a>
+			</div>
+			<!-- Copy header / identity -->
+			<div class="card card-flat mb-6">
+				<div class="flex gap-4 items-start">
+					<a
+						class="copy-thumb"
+						style="width:72px;height:72px;font-size:18px;"
+						href={ templ.SafeURL("/management/books/" + c.BookWorkID + "/copies/" + c.ID.Short()) }
+					>
+						for _, part := range c.ID.Thumb() {
+							<span class="id-row">{ part }</span>
+						}
+					</a>
+					<div class="flex-1">
+						<div class="text-sm text-secondary">Short ID</div>
+						<div class="font-mono text-lg font-semibold tracking-wider mb-1">{ c.ID.Short() }</div>
+						<div class="text-xs text-secondary break-all mb-3">{ c.ID.String() }</div>
+						if c.BookWork.Title != "" {
+							<div>
+								<span class="text-secondary">Book:</span>
+								<a href={ templ.SafeURL("/management/books/" + bookID) } class="font-medium">
+									{ c.BookWork.Title }
+								</a>
+								if len(c.BookWork.Authors) > 0 {
+									<span class="text-secondary">by { strings.Join(c.BookWork.Authors, ", ") }</span>
+								}
+							</div>
+						}
+						<div class="mt-3 flex flex-wrap gap-2">
+							@common.ShieldText("Format", c.Format.DisplayName(), "var(--peach)", "var(--text)")
+							@common.ShieldText("Condition", c.Condition.DisplayName(), "var(--sky)", "var(--text)")
+							@common.ShieldText("Circulation", c.Status.DisplayName(), "var(--teal)", "var(--text)")
+							{{ loanStatus, _ := c.LoanStatus() }}
+							@common.ShieldText("Checkout", loanStatus.DisplayName(), "var(--green)", "var(--text)")
+						</div>
+						<!-- Current holder if checked out (isolated to avoid parser issues) -->
+						@currentHolderBlock(c)
+					</div>
+				</div>
+			</div>
+			<!-- History section -->
+			<div id="history-container">
+				@MgmtBookCopyHistory(bookID, c, entries, page, totalPages, total)
+			</div>
+			<!-- Danger zone: only when completely no history -->
+			if total == 0 {
+				<div class="card card-outline mt-8 border-red-500/60">
+					<div class="flex items-center justify-between">
+						<div>
+							<strong class="text-red-500">No history</strong>
+							<p class="text-sm text-secondary mb-0">This copy has never been checked out or repaired. It may have been added by accident.</p>
+						</div>
+						<button
+							class="btn btn-danger"
+							hx-post={ "/management/books/" + bookID + "/copies/" + c.ID.Short() }
+							hx-vals='{"action":"delete"}'
+							hx-confirm="Permanently delete this copy? This cannot be undone."
+							hx-swap="none"
+						>
+							Delete Copy
+						</button>
+					</div>
+				</div>
+			}
+		</div>
+		@common.Footer()
+	</main>
+}
+
+// MgmtBookCopyHistory is the card containing the history table + header + pager.
+// The pager targets the outer #history-container.
+templ MgmtBookCopyHistory(bookID string, c db.BookCopy, entries []db.HistoryEntry, page, totalPages int, total int64) {
+	<div id="history-table" class="card card-flat">
+		<div class="flex items-baseline justify-between mb-3">
+			<h3 class="mb-0">Return &amp; Repair History</h3>
+			<span class="text-sm text-secondary">
+				Page { page } of { totalPages } — { total } event(s)
+			</span>
+		</div>
+		if len(entries) == 0 {
+			<p class="copy-empty">No returns or repairs recorded for this copy yet.</p>
+		} else {
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Date Returned</th>
+						<th>Event</th>
+						<th>By</th>
+						<th>Condition</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, e := range entries {
+						<tr>
+							<td class="whitespace-nowrap">{ e.Date.Format("2006-01-02 15:04") }</td>
+							<td>
+								if e.Technician != "" {
+									<span class="badge bg-teal-700 text-white px-2 py-0.5 rounded text-xs">Repair</span>
+								} else {
+									<span class="badge bg-blue-700 text-white px-2 py-0.5 rounded text-xs">User Return</span>
+								}
+							</td>
+							<td>
+								if e.Technician != "" {
+									{ e.Technician }
+								} else {
+									<a href={ templ.SafeURL("/management/users/" + e.UserID.String()) }>
+										{ e.User.FirstName } { e.User.LastName }
+									</a>
+									if e.User.Email != "" {
+										<span class="text-xs text-secondary">({ e.User.Email })</span>
+									}
+								}
+							</td>
+							<td>
+								{ e.Condition.DisplayName() }
+								if e.Technician != "" {
+									<span class="text-xs text-secondary">(reset to good)</span>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		@common.Pagination(
+			"copy-history-pager",
+			page,
+			totalPages,
+			"history-container",
+			"/management/books/"+bookID+"/copies/"+c.ID.Short(),
+		)
+	</div>
+}
+
+// MgmtBookCopyHistoryTable is the fragment returned for HTMX pagination updates.
+// It must produce the same inner structure that goes inside #history-container.
+templ MgmtBookCopyHistoryTable(bookID string, c db.BookCopy, entries []db.HistoryEntry, page, totalPages int, total int64) {
+	<div id="history-table" class="card card-flat">
+		<div class="flex items-baseline justify-between mb-3">
+			<h3 class="mb-0">Return &amp; Repair History</h3>
+			<span class="text-sm text-secondary">
+				Page { page } of { totalPages } — { total } event(s)
+			</span>
+		</div>
+		if len(entries) == 0 {
+			<p class="copy-empty">No returns or repairs recorded for this copy yet.</p>
+		} else {
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Date Returned</th>
+						<th>Event</th>
+						<th>By</th>
+						<th>Condition</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, e := range entries {
+						<tr>
+							<td class="whitespace-nowrap">{ e.Date.Format("2006-01-02 15:04") }</td>
+							<td>
+								if e.Technician != "" {
+									<span class="badge bg-teal-700 text-white px-2 py-0.5 rounded text-xs">Repair</span>
+								} else {
+									<span class="badge bg-blue-700 text-white px-2 py-0.5 rounded text-xs">User Return</span>
+								}
+							</td>
+							<td>
+								if e.Technician != "" {
+									{ e.Technician }
+								} else {
+									<a href={ templ.SafeURL("/management/users/" + e.UserID.String()) }>
+										{ e.User.FirstName } { e.User.LastName }
+									</a>
+									if e.User.Email != "" {
+										<span class="text-xs text-secondary">({ e.User.Email })</span>
+									}
+								}
+							</td>
+							<td>
+								{ e.Condition.DisplayName() }
+								if e.Technician != "" {
+									<span class="text-xs text-secondary">(reset to good)</span>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		@common.Pagination(
+			"copy-history-pager",
+			page,
+			totalPages,
+			"history-container",
+			"/management/books/"+bookID+"/copies/"+c.ID.Short(),
+		)
+	</div>
+}
+
+// currentHolderBlock renders current checkout info (if the copy is out).
+// Written with direct Go control flow (templ style) to satisfy the parser.
+templ currentHolderBlock(c db.BookCopy) {
+	if h := currentHolder(c); h != nil {
+		<div class="mt-3 text-sm">
+			Currently <strong>checked out</strong> to
+			<a href={ templ.SafeURL("/management/users/" + h.User.ID.String()) } class="font-medium">
+				{ h.User.FirstName } { h.User.LastName }
+			</a>
+			since { h.DateCheckout.Format("2006-01-02 15:04") }
+			<span class="text-secondary">(outgoing condition: { h.OutgoingCondition.DisplayName() })</span>
+		</div>
+	}
+}

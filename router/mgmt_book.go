@@ -210,8 +210,87 @@ func HandleManagementBookCopies(p *fail.RoutingParams, bookID string) {
 }
 
 func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string) {
-	// TODO: Show checkout and repair history for this specific copy
-	http.Error(p.W, "Copy checkout/repair history not yet implemented", http.StatusNotImplemented)
+	if fail.Done(p) {
+		return
+	}
+
+	// copyID in URL may be the 22-char Short() base64 or a full hex UUID
+	copyUUID, err := db.FromString(copyID)
+	if err != nil || copyUUID.IsEmpty() {
+		http.Error(p.W, "Invalid copy identifier", http.StatusBadRequest)
+		return
+	}
+
+	var copy db.BookCopy
+	if err := db.Db().Preload("BookWork").Where("id = ?", copyUUID).First(&copy).Error; err != nil {
+		http.Error(p.W, "Copy not found", http.StatusNotFound)
+		return
+	}
+	if copy.BookWorkID != bookID {
+		http.Error(p.W, "Copy does not belong to the specified book", http.StatusBadRequest)
+		return
+	}
+
+	// Support delete (only offered in UI when history total == 0)
+	if p.Req.Method == http.MethodPost {
+		if fail.Form(p) {
+			return
+		}
+		if p.Req.FormValue("action") == "delete" {
+			// Re-check safety: must still have zero history
+			_, histTotal, _ := copy.History(1, 1)
+			if histTotal > 0 {
+				http.Error(p.W, "Cannot delete a copy that has checkout or repair history", http.StatusConflict)
+				return
+			}
+
+			// Clean related records then hard-delete the copy itself
+			tx := db.Db().Begin()
+			tx.Where("book_copy_id = ?", copy.ID).Delete(&db.Loan{})
+			tx.Where("book_copy_id = ?", copy.ID).Delete(&db.RepairLog{})
+			tx.Unscoped().Delete(&copy)
+			if tx.Error != nil {
+				tx.Rollback()
+				http.Error(p.W, "Failed to delete copy: "+tx.Error.Error(), http.StatusInternalServerError)
+				return
+			}
+			tx.Commit()
+
+			p.W.Header().Set("HX-Redirect", fmt.Sprintf("/management/books/%s/copies", bookID))
+			return
+		}
+		// fallthrough: POST without delete action = pagination request for history table
+	}
+
+	// Pagination (supports both ?page= on GET and form page= from the common Pagination component POST)
+	page := 1
+	pageStr := p.Param("page")
+	if pageStr == "" && p.Req.Method == http.MethodPost {
+		pageStr = p.Req.FormValue("page")
+	}
+	if pNum, err := strconv.Atoi(pageStr); err == nil && pNum > 0 {
+		page = pNum
+	}
+
+	const perPage = 25
+	entries, total, err := copy.History(page, perPage)
+	if err != nil {
+		http.Error(p.W, "Failed to load copy history: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	totalPages := 1
+	if total > 0 {
+		totalPages = int((total + int64(perPage) - 1) / int64(perPage))
+	}
+
+	// HTMX pagination requests (the common.Pagination component does hx-post) -> render only the history table fragment
+	if p.Req.Header.Get("HX-Request") == "true" {
+		fail.Render(p, pages.MgmtBookCopyHistoryTable(bookID, copy, entries, page, totalPages, total))
+		return
+	}
+
+	fail.Render(p, pages.MgmtBookCopyDetail(bookID, copy, entries, page, totalPages, total, p))
 }
 
 // getBookAndCopies loads the BookWork and its copies grouped by Format using the existing MapFormats helper.

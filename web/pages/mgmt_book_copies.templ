@@ -17,17 +17,6 @@ var allBookFormats = []db.BookFmtFlag{
 	db.BookFmtDigitalAudio,
 }
 
-// last6Split returns the last 6 hex chars of the UUID (no dashes) split into two 3-char rows
-// for the copy "thumbnail" visual. Used only for display; links use the full 22-char Short() base64.
-func splitId(id db.SqlUUID) []string {
-	hex := strings.ReplaceAll(id.String(), "-", "")
-	if len(hex) < 6 {
-		hex = "000000"
-	}
-	last := hex[len(hex)-6:]
-	return []string{last[:3], last[3:]}
-}
-
 // copyCheckoutName safely computes the current loan/checkout status display name.
 func copyCheckoutName(c db.BookCopy) string {
 	s, err := c.LoanStatus()
@@ -89,7 +78,7 @@ templ MgmtBookCopiesList(bookID string, copies db.FormatsMap[db.CopyList]) {
 				<div class="copy-cards">
 					if cl, ok := copies[f]; ok && len(cl) > 0 {
 						for _, c := range cl {
-							@copyCard(bookID, c)
+							@copyCard(c)
 						}
 					} else {
 						<span><i>No copies yet</i></span>
@@ -103,21 +92,25 @@ templ MgmtBookCopiesList(bookID string, copies db.FormatsMap[db.CopyList]) {
 // copyCard renders one copy entry as a compact horizontal card.
 // Left: linked "thumbnail" (last-6 split) going to /.../copies/:22char-short-uuid
 // Right: three status rows (condition / circulation / checkout)
-templ copyCard(bookID string, c db.BookCopy) {
+templ copyCard(c db.BookCopy) {
 	<div class="copy-card">
-		<a
-			class="copy-thumb"
-			href={ templ.SafeURL("/management/books/" + bookID + "/copies/" + c.ID.Short()) }
-			title={ "Open copy " + c.ID.Short() }
-		>
-			for _, part := range splitId(c.ID) {
-				<span class="id-row">{ part }</span>
-			}
-		</a>
+		@copyShortThumb(c)
 		<div class="copy-info">
 			<div class="row"><span class="label">cond</span><span class="value">{ c.Condition.DisplayName() }</span></div>
 			<div class="row"><span class="label">circ</span><span class="value">{ c.Status.DisplayName() }</span></div>
 			<div class="row"><span class="label">loan</span><span class="value">{ copyCheckoutName(c) }</span></div>
 		</div>
 	</div>
+}
+
+templ copyShortThumb(c db.BookCopy) {
+	<a
+		class="copy-thumb"
+		href={ templ.SafeURL("/management/books/" + c.BookWorkID + "/copies/" + c.ID.Short()) }
+		title={ "Open copy " + c.ID.Short() }
+	>
+		for _, part := range c.ID.Thumb() {
+			<span class="id-row">{ part }</span>
+		}
+	</a>
 }
