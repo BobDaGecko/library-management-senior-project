@@ -55,6 +55,7 @@ const (
 	ConditionFair                      // Light wear on corners, crease marks, but no torn pages
 	ConditionPoor                      // Some tears, annotations, etc
 	ConditionDead                      // Missing pages
+	ConditionLost
 )
 
 func (f ConditionFlag) String() string {
@@ -69,6 +70,8 @@ func (f ConditionFlag) String() string {
 		return "ConditionPoor"
 	case ConditionDead:
 		return "ConditionDead"
+	case ConditionLost:
+		return "ConditionLost"
 	default:
 		return fmt.Sprintf("ConditionFlag(%d)", f)
 	}
@@ -87,6 +90,8 @@ func (f ConditionFlag) DisplayName() string {
 		return "poor"
 	case ConditionDead:
 		return "damaged"
+	case ConditionLost:
+		return "lost"
 	default:
 		return "unknown"
 	}
