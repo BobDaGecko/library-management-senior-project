@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql/driver"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -49,11 +50,11 @@ func (buuid *SqlUUID) Scan(value any) error {
 		return fmt.Errorf("unable to convert %v of %T to string", value, value)
 	}
 
-	obj, err := uuid.Parse(str)
+	parsed, err := FromString(str)
 	if err != nil {
 		return err
 	}
-	*buuid = SqlUUID{obj}
+	*buuid = parsed
 
 	return nil
 }
@@ -69,6 +70,51 @@ func (buuid SqlUUID) IsEmpty() bool {
 		}
 	}
 	return true
+}
+
+// Short returns the UUID encoded as a 22-character URL-safe base64 string
+// using the alphabet A-Za-z0-9-_ (raw, no padding). This is the "compressed"
+// form, much shorter than the 36-character hexadecimal String().
+//
+// This is the compressor for producing YouTube-style short IDs from SqlUUID.
+func (buuid SqlUUID) Short() string {
+	if buuid.IsEmpty() {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(buuid.UUID[:])
+}
+
+// ParseShort decodes a string produced by Short() back into a SqlUUID.
+// This is the "decompressor".
+//
+// It does NOT accept standard hex UUID strings (use uuid.Parse or FromString for those).
+// Invalid length or characters result in error.
+func ParseShort(s string) (SqlUUID, error) {
+	if s == "" {
+		return SqlUUID{}, nil
+	}
+	b, err := base64.RawURLEncoding.DecodeString(s)
+	if err != nil {
+		return SqlUUID{}, fmt.Errorf("base64 decode failed for short uuid: %w", err)
+	}
+	if len(b) != 16 {
+		return SqlUUID{}, fmt.Errorf("short uuid decodes to %d bytes (expected 16)", len(b))
+	}
+	var u uuid.UUID
+	copy(u[:], b)
+	return SqlUUID{UUID: u}, nil
+}
+
+// FromString parses a UUID string that may be either:
+//   - the standard 36-char (or 32-char) hexadecimal form (with/without hyphens), or
+//   - our Short() compressed 22-char base64 form (with - and _).
+//
+// This provides a single entrypoint for parsing IDs from URLs, forms, etc.
+func FromString(s string) (SqlUUID, error) {
+	if u, err := uuid.Parse(s); err == nil {
+		return SqlUUID{u}, nil
+	}
+	return ParseShort(s)
 }
 
 var NilTime = time.Time{}
