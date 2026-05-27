@@ -60,10 +60,33 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 
 // HandleManagementBook handles GET (edit page placeholder), PUT (fetch from Google & overwrite), PATCH (form update with reflect)
 // for /management/books/:id where :id is Google Books volume ID.
-// GET now gracefully handles books not yet in the local library.
+// It also supports nested routes:
+//   /management/books/:id/copies
+//   /management/books/:id/copies/:copy-id
 func HandleManagementBook(p *fail.RoutingParams, id string) {
+	// Ensure context map exists and store the book ID
+	if p.Context == nil {
+		p.Context = make(map[string]string)
+	}
+	p.Context["book-id"] = id
+
 	if fail.Done(p) {
 		return
+	}
+
+	// Check for sub-paths under this book (copies, etc.)
+	if p.SubPtr < len(p.FullPath) {
+		sub := p.Pop()
+		if sub == "copies" {
+			if p.SubPtr < len(p.FullPath) {
+				copyID := p.Pop()
+				HandleManagementBookCopyDetail(p, id, copyID)
+			} else {
+				HandleManagementBookCopies(p, id)
+			}
+			return
+		}
+		// If unknown subpath, fall through or could error
 	}
 
 	switch p.Req.Method {
@@ -81,7 +104,6 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			book = details.ToLocalStruct()
 
 			p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
-			// Simple but functional warning + add UI (we can replace with a proper Templ component later)
 			fmt.Fprintf(p.W, `
 <div class="container">
 	<div class="alert alert-warning mb-4">
@@ -105,11 +127,7 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 		</div>
 	</div>
 </div>
-`, 
-				book.Title, 
-				strings.Join(book.Authors, ", "), 
-				book.Description, 
-				id)
+`, book.Title, strings.Join(book.Authors, ", "), book.Description, id)
 			return
 		}
 
@@ -129,25 +147,21 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			return
 		}
 
-		// Response based on referrer (for HTMX flows from add page or edit page)
+		// Response based on referrer
 		referrer := p.Req.Referer()
 		if strings.Contains(referrer, "/management/books/add") {
-			// From add/search page: return a checkmark button (success indicator)
 			p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprint(p.W, `<button disabled class="btn btn-success" title="Added to library">✓</button>`)
 			return
 		} else if strings.Contains(referrer, "/management/books/"+id) {
-			// Already on the detail/edit page: trigger HTMX page refresh
 			p.W.Header().Set("HX-Refresh", "true")
 			return
 		} else {
-			// Otherwise: HTMX redirect to the detail page
 			p.W.Header().Set("HX-Redirect", fmt.Sprintf("/management/books/%s", id))
 			return
 		}
 
 	case http.MethodPatch:
-		// Update DB from form fields using reflection (flexible for new fields)
 		if fail.Form(p) {
 			return
 		}
@@ -166,7 +180,6 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			return
 		}
 
-		// PATCH redirects to public book view
 		p.W.Header().Set("HX-Redirect", fmt.Sprintf("/books/%s", id))
 
 	default:
@@ -174,8 +187,17 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 	}
 }
 
-// updateBookFromForm uses reflection to update struct fields from form values by matching key names.
-// Supports string, int, bool, time.Time. Extend as needed for slices (e.g. SqlStringList).
+func HandleManagementBookCopies(p *fail.RoutingParams, bookID string) {
+	// TODO: List all copies for this book
+	http.Error(p.W, "Copies listing for book not yet implemented", http.StatusNotImplemented)
+}
+
+func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string) {
+	// TODO: Show checkout and repair history for this specific copy
+	http.Error(p.W, "Copy checkout/repair history not yet implemented", http.StatusNotImplemented)
+}
+
+// updateBookFromForm ...
 func updateBookFromForm(target interface{}, form map[string][]string) {
 	v := reflect.ValueOf(target).Elem()
 	t := v.Type()
@@ -208,7 +230,6 @@ func updateBookFromForm(target interface{}, form map[string][]string) {
 							fv.Set(reflect.ValueOf(tVal))
 						}
 					}
-				// Note: For SqlStringList, you can extend this to split comma-separated values if needed.
 				}
 				break
 			}
