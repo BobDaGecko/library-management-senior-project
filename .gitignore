@@ -1,2 +1,4 @@
 .env
 ./*/*.db
+*_templ.go
+./library-management-senior-project
