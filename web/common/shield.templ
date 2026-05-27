@@ -22,7 +22,3 @@ templ ShieldText(lhs string, rhs string, bg string, fg string) {
 		<div style={ colors(fg, bg) }>{ rhs }</div>
 	</div>
 }
-
-templ Icon(name string, primary bool) {
-	<i class={ "material-icons", templ.KV("on-primary", primary) }>{ name }</i>
-}

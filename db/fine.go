@@ -17,6 +17,6 @@ type Fine struct {
 	AmountRemaining float32 // How much is remaining, recalculated after every transaction
 
 	AmountWaived  float32 // Any discounts provided by a librarian
-	WaivedReasion string
+	WaivedReason  string
 	WaivedBy      SqlUUID `gorm:"type:text"`
 }

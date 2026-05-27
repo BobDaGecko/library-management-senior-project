@@ -12,6 +12,7 @@ type RoutingParams struct {
 	SubPtr   int
 	FullPath []string
 	User     *db.UserPartial
+	Context  map[string]string // arbitrary per-request context for sub-handlers (e.g. book-id)
 }
 
 func (p *RoutingParams) Pop() string {

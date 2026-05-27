@@ -45,8 +45,8 @@ func Auth(p *RoutingParams, minLevel db.UserRoleFlag) bool {
 
 	p.W.Header().Set("X-Auth-Missing", minLevel.String())
 	p.W.Header().Set("X-Auth-Current", p.User.Roles.String())
-		http.Error(p.W, "Forbidden", http.StatusForbidden)
-		return true
+	http.Error(p.W, "Forbidden", http.StatusForbidden)
+	return true
 }
 
 func Redirect(p *RoutingParams) {
@@ -67,5 +67,13 @@ func Done(p *RoutingParams) bool {
 	}
 
 	_, _ = p.W.Write([]byte("404: too far"))
+	return true
+}
+
+// Inverse of Done(), but it does NOT issue http warnings
+func Remainder(p *RoutingParams) bool {
+	if p.SubPtr >= len(p.FullPath) {
+		return false
+	}
 	return true
 }
