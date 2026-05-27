@@ -60,6 +60,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 
 // HandleManagementBook handles GET (edit page placeholder), PUT (fetch from Google & overwrite), PATCH (form update with reflect)
 // for /management/books/:id where :id is Google Books volume ID.
+// GET now gracefully handles books not yet in the local library.
 func HandleManagementBook(p *fail.RoutingParams, id string) {
 	if fail.Done(p) {
 		return
@@ -67,7 +68,52 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 
 	switch p.Req.Method {
 	case http.MethodGet:
-		// Placeholder for edit page - will be implemented later with Templ component
+		var book db.BookWork
+		err := db.Db().Where("id = ?", id).First(&book).Error
+
+		if err != nil {
+			// Book not in local library → fetch from Google and show warning banner + Add button
+			details, gErr := fetch.GBooksVolume(id)
+			if gErr != nil {
+				http.Error(p.W, "Book not found in library and could not be fetched from Google Books", http.StatusNotFound)
+				return
+			}
+			book = details.ToLocalStruct()
+
+			p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
+			// Simple but functional warning + add UI (we can replace with a proper Templ component later)
+			fmt.Fprintf(p.W, `
+<div class="container">
+	<div class="alert alert-warning mb-4">
+		<strong>Warning:</strong> This book is not yet in your library.
+	</div>
+
+	<div class="card">
+		<div class="card-body">
+			<h2>%s</h2>
+			<p class="text-secondary">by %s</p>
+			%s
+			<div class="mt-4">
+				<button 
+					hx-put="/management/books/%s" 
+					hx-target="closest .card" 
+					hx-swap="outerHTML"
+					class="btn btn-primary">
+					Add to Library
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+`, 
+				book.Title, 
+				strings.Join(book.Authors, ", "), 
+				book.Description, 
+				id)
+			return
+		}
+
+		// Book exists locally → placeholder for full edit page
 		http.Error(p.W, "Edit page for book not yet implemented (501)", http.StatusNotImplemented)
 
 	case http.MethodPut:
@@ -91,11 +137,11 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			fmt.Fprint(p.W, `<button disabled class="btn btn-success" title="Added to library">✓</button>`)
 			return
 		} else if strings.Contains(referrer, "/management/books/"+id) {
-			// Already on the edit page: trigger HTMX page refresh
+			// Already on the detail/edit page: trigger HTMX page refresh
 			p.W.Header().Set("HX-Refresh", "true")
 			return
 		} else {
-			// Otherwise: HTMX redirect to the edit page
+			// Otherwise: HTMX redirect to the detail page
 			p.W.Header().Set("HX-Redirect", fmt.Sprintf("/management/books/%s", id))
 			return
 		}
