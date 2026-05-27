@@ -54,7 +54,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 		)
 		fail.Render(p, pages.BookMgmtSearchGrid(query))
 	default:
-			http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
+		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -103,7 +103,7 @@ func HandleManagementBook(p *fail.RoutingParams, id string) {
 			}
 			book = details.ToLocalStruct()
 
-			fail.RenderPartial(p, pages.BookMgmtNotInLibraryWarning(book, id))
+			fail.Render(p, pages.BookMgmtNotInLibraryWarning(book, id))
 			return
 		}
 
