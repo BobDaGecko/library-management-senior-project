@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Town Library</title>
+
+  <!-- Material Icons -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+  />
+
+  <!-- semtx design system -->
+  <link rel="stylesheet" href="semtx.css" />
+</head>
+
+<body class="bg-base">
+
+  <!-- ========================= -->
+  <!-- Header (from userHeadFoot.html) -->
+  <!-- ========================= -->
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <img src="../../assets/img/placeholder.png" />
+      Town Library Admin
+    </a>
+
+    <div class="input-search" style="width: 30%;">
+      <input
+        class="form-input-lg"
+        type="search"
+        name="adminTop"
+        placeholder="Search"
+      />
+      <button class="btn-small btn-secondary input-icon">
+        search
+      </button>
+    </div>
+  </nav>
+
+  <!-- Sub nav -->
+  <nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+    <div class="navbar-collapse justify-between">
+
+      <ul class="navbar-nav">
+        <li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+        <li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+        <li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+        <li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+      </ul>
+
+      <ul class="navbar-nav">
+        <li>
+          <a href="#">
+            <i class="material-icons mb-2">account_circle</i>
+            My Account
+          </a>
+        </li>
+        <li>
+          <a href="#">
+            <i class="material-icons mb-2">help</i>
+            Help
+          </a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+
+  <!-- ========================= -->
+  <!-- Hero / Search Focus (unchanged) -->
+  <!-- ========================= -->
+  <section class="section-flat">
+    <div class="container-lg text-center">
+      <h1>Discover Your Next Great Read</h1>
+      <p class="lead mx-auto max-w-md">
+        Search thousands of books, audiobooks, and digital resources from your
+        community library.
+      </p>
+
+      <form
+        action="/search"
+        method="get"
+        class="mx-auto max-w-lg mt-6"
+        role="search"
+      >
+        <div class="input-search">
+          <span class="material-icons input-search-icon">search</span>
+          <input
+            type="search"
+            name="q"
+            class="form-input-lg"
+            placeholder="Start typing a title, author, or keyword…"
+            aria-label="Search the library catalog"
+          />
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ========================= -->
+  <!-- Quick Links (unchanged) -->
+  <!-- ========================= -->
+  <section class="section-flat bg-mantle">
+    <div class="container-lg">
+      <div class="three-col text-center">
+        <a href="/login" class="card-flat hover shadow-sm transition">
+          <span class="material-icons text-3xl mb-2">account_circle</span>
+          <h4>My Account</h4>
+          <p class="text-sm text-muted">
+            View loans, holds, and fines.
+          </p>
+        </a>
+
+        <a href="/register" class="card-flat hover shadow-sm transition">
+          <span class="material-icons text-3xl mb-2">person_add</span>
+          <h4>Get a Library Card</h4>
+          <p class="text-sm text-muted">
+            Register online in minutes.
+          </p>
+        </a>
+
+        <a href="/help" class="card-flat hover shadow-sm transition">
+          <span class="material-icons text-3xl mb-2">help_outline</span>
+          <h4>Help & Services</h4>
+          <p class="text-sm text-muted">
+            Learn how to use library resources.
+          </p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= -->
+  <!-- Staff Picks (unchanged) -->
+  <!-- ========================= -->
+  <section class="section">
+    <div class="container-lg">
+      <header class="between mb-4">
+        <h2>Staff Picks</h2>
+        <a href="/collections/staff-picks" class="btn btn-link">
+          View all
+        </a>
+      </header>
+
+      <div class="three-col">
+        <article class="card">
+          <img src="./assets/img/placeholder.jpg" alt="Book cover placeholder" />
+          <div class="card-body">
+            <h5>The Great Adventure</h5>
+            <p class="text-sm text-muted">
+              A staff favorite full of mystery and discovery.
+            </p>
+          </div>
+        </article>
+
+        <article class="card">
+          <img src="./assets/img/placeholder.jpg" alt="Book cover placeholder" />
+          <div class="card-body">
+            <h5>Modern History</h5>
+            <p class="text-sm text-muted">
+              Insightful, accessible, and highly recommended.
+            </p>
+          </div>
+        </article>
+
+        <article class="card">
+          <img src="./assets/img/placeholder.jpg" alt="Book cover placeholder" />
+          <div class="card-body">
+            <h5>Stories for Everyone</h5>
+            <p class="text-sm text-muted">
+              A collection loved by readers of all ages.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= -->
+  <!-- Footer (unchanged) -->
+  <!-- ========================= -->
+  <footer class="page-footer  mt-8 flex justify-between" >
+    <span></span>
+    <p class="text-s">&#169 2026 Town Library
+    </p>
+    <!--Link to user Library home page.-->
+    <button class="btn-small btn-ghost"><i class="material-icons mb-2" style="font-size: 24px;">settings</i></button>
+</footer>
+
+</body>
+</html>
