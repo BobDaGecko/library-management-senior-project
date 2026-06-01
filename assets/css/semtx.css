@@ -750,6 +750,10 @@ ol {
 	max-width: var(--container-lg);
 }
 
+.container-xl{
+	max-width: var(--container-xl);
+}
+
 
 /* Text */
 .text-xs {
