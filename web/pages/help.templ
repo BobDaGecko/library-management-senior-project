@@ -1,0 +1,103 @@
+package pages
+
+import "github.com/VoxelPrismatic/library-management-senior-project/web/common"
+
+templ HelpPage() {
+	@common.Head("Help & Policies · Town Library", "Find answers to common questions about borrowing, holds, fines, and using the Town Library.")
+	<body class="bg-base">
+		@common.NavHead("Help", "")
+
+		<!-- Sub nav matching public pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+			<article class="prose">
+
+				<h1>Help & Library Policies</h1>
+
+				<p>
+					This page answers common questions about using the library, managing
+					your account, and understanding our borrowing policies.
+				</p>
+
+				<!-- FAQ Section -->
+				<section>
+					<h2>Frequently Asked Questions</h2>
+
+					<h3>How do I place a hold on a book?</h3>
+					<p>
+						You can place a hold by selecting a book and clicking the
+						<strong>Place Hold</strong> button on the book details page.
+						You must be logged in to complete this action.
+					</p>
+
+					<h3>How many items can I check out?</h3>
+					<p>
+						Patrons may check out up to 10 physical items and 5 digital items
+						at a time. Limits may vary for special collections.
+					</p>
+
+					<h3>What happens if an item is overdue?</h3>
+					<p>
+						Overdue items may result in fines or temporary borrowing restrictions.
+						Returning items on time helps keep materials available for everyone.
+					</p>
+
+					<h3>How do fines work?</h3>
+					<p>
+						Fines are calculated per day for overdue physical items.
+						Digital items are automatically returned and do not accrue fines.
+					</p>
+
+					<h3>How do I renew an item?</h3>
+					<p>
+						Eligible items can be renewed through your account page,
+						unless another patron has placed a hold.
+					</p>
+
+					<h3>Do I need an account to browse?</h3>
+					<p>
+						No. Guests may search, browse, and view details for all materials.
+						An account is only required for holds, bookmarks, and account actions.
+					</p>
+				</section>
+
+				<!-- Contact / Help Links -->
+				<section class="mt-8">
+					<h2>Need More Help?</h2>
+
+					<ul>
+						<li>
+							Visit your local branch for in‑person assistance
+						</li>
+						<li>
+							Call the library help desk during business hours
+						</li>
+						<li>
+							Email us at <a href="mailto:help@townlibrary.org">help@townlibrary.org</a>
+						</li>
+						<li>
+							Return to the <a href="/">home page</a> to continue browsing
+						</li>
+					</ul>
+				</section>
+
+			</article>
+		</main>
+
+		@common.Footer()
+	</body>
+}
