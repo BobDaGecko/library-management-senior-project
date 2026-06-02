@@ -1,0 +1,110 @@
+package pages
+
+import "github.com/VoxelPrismatic/library-management-senior-project/web/common"
+
+templ AddBookPage() {
+	@common.Head("Add Books · Town Library", "Search and add new books to the library catalog.")
+	<body class="bg-base">
+		@common.NavHead("Add Books", "")
+
+		<!-- Sub nav (simplified for management context) -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="/management">Catalog</a></li>
+					<li><a href="#" class="active">Add Books</a></li>
+					<li><a href="#">Add Lists</a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8 ml-80">
+			<div class="text-center">
+				<h1>Add Books</h1>
+			</div>
+
+			<article class="card card-flat h-auto" style="min-height: 400px;">
+
+				<h2 class="text-secondary my-4">Search for Books</h2>
+
+				<form>
+					<fieldset>
+						<div class="form-group my-4">
+							<input class="form-input" type="text" pattern="[A-Za-z]" id="name" style="width: 300px;" />
+							<span class="form-hint">Search by ISBN, Title, or Author</span>
+						</div>
+					</fieldset>
+				</form>
+
+				<button class="btn-small btn-primary rounded-lg input-icon">
+					<i class="material-icons on-primary">search</i>
+				</button>
+
+				<!-- Results section (shown after search) -->
+				<div class="results mt-4 hidden">
+					<h2 class="text-secondary my-4 border-b">Results</h2>
+
+					<div class="card my-4">
+						<div class="book-container">
+							<img src="/assets/img/unavailable.png" alt="" class="book-cover mr-2" />
+
+							<div class="book-info flex flex-col gap-1">
+								<h3 class="book-title text-secondary mb-0">Book Title</h3>
+								<span class="author text-sm mb-2">Author Name</span>
+
+								<p class="mb-0">
+									<span class="date">Date</span>
+									&nbsp;
+									<span class="pages">#</span> pages
+								</p>
+								<p class="mb-0">Genre(s): <span class="genre">Genres/Subject</span></p>
+								<p class="mb-0"><span class="format">Paperback</span> ISBN <span class="span">**********</span></p>
+
+								<p class="description mt-4 leading-base">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut vitae, sunt natus a delectus architecto corporis repellendus, possimus earum reiciendis asperiores rerum quaerat voluptates libero tempore! Obcaecati quaerat non libero?</p>
+							</div>
+
+							<div class="actions flex flex-col gap-2 items-end">
+								<button><i class="material-icons add">add</i></button>
+								<button><i class="material-icons edit">edit</i></button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Duplicate example result -->
+					<div class="card my-4">
+						<div class="book-container">
+							<img src="/assets/img/unavailable.png" alt="" class="book-cover mr-2" />
+
+							<div class="book-info flex flex-col gap-1">
+								<h3 class="book-title text-secondary mb-0">Book Title</h3>
+								<span class="author text-sm mb-2">Author Name</span>
+
+								<p class="mb-0">
+									<span class="date">Date</span>
+									&nbsp;
+									<span class="pages">#</span> pages
+								</p>
+								<p class="mb-0">Genre(s): <span class="genre">Genres/Subject</span></p>
+								<p class="mb-0"><span class="format">Paperback</span> ISBN <span class="span">**********</span></p>
+
+								<p class="description mt-4 leading-base">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut vitae, sunt natus a delectus architecto corporis repellendus, possimus earum reiciendis asperiores rerum quaerat voluptates libero tempore! Obcaecati quaerat non libero?</p>
+							</div>
+
+							<div class="actions flex flex-col gap-2 items-end">
+								<button><i class="material-icons add">add</i></button>
+								<button><i class="material-icons edit">edit</i></button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</article>
+		</main>
+
+		@common.Footer()
+	</body>
+}
