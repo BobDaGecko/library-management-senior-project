@@ -73,7 +73,8 @@ func HandleSearch(p *fail.RoutingParams) {
 	if fail.Done(p) {
 		return
 	}
-	fail.Render(p, pages.SearchPage())
+	q := p.Param("q")
+	fail.Render(p, pages.SearchPage(q))
 }
 
 func HandleHelp(p *fail.RoutingParams) {

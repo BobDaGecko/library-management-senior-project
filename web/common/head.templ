@@ -25,17 +25,19 @@ templ NavHead(subpage string, searchPrefill string) {
 				<span class="text-muted"> · { subpage }</span>
 			}
 		</a>
-		<div class="input-search" style="width: 30%">
-			<input
-				class="form-input-lg"
-				type="search"
-				name="q"
-				id="q"
-				placeholder="Search the catalog..."
-				value={ searchPrefill }
-			/>
-			<button class="btn-small btn-primary input-icon" type="submit">Search</button>
-		</div>
+		<form action="/search" method="get" style="width: 30%">
+			<div class="input-search">
+				<input
+					class="form-input-lg"
+					type="search"
+					name="q"
+					id="q"
+					placeholder="Search the catalog..."
+					value={ searchPrefill }
+				/>
+				<button class="btn-small btn-primary input-icon" type="submit">Search</button>
+			</div>
+		</form>
 	</nav>
 }
 

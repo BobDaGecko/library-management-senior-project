@@ -1,11 +1,38 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/fetch"
+	"voxelprismatic/library-management-senior-project/web/book"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
 
-templ SearchPage() {
+func searchBooks(q string) []db.BookWork {
+	if q == "" {
+		return nil
+	}
+	data, err := fetch.GBooksSearch(q)
+	if err != nil {
+		return nil // graceful for public-facing search (rate limits, network, etc.)
+	}
+
+	seen := map[string]bool{}
+	var results []db.BookWork
+	for _, o := range data.Items {
+		b := o.ToLocalStruct()
+		if seen[b.ID] {
+			continue
+		}
+		seen[b.ID] = true
+		results = append(results, b)
+	}
+	return results
+}
+
+templ SearchPage(q string) {
 	@common.Head("Search Results · Town Library", "Search results for books, ebooks, and audiobooks in the Town Library catalog.")
 	<body class="bg-base">
-		@common.NavHead("Search", "history")
+		@common.NavHead("Search", q)
 
 		<!-- Sub nav -->
 		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
@@ -27,7 +54,7 @@ templ SearchPage() {
 
 			<!-- Results Header -->
 			<header class="between mb-6">
-				<h1>Search Results for “history”</h1>
+				<h1>Search Results for “{ q }”</h1>
 
 				<!-- Sorting -->
 				<select class="form-input select w-fit">
@@ -84,55 +111,17 @@ templ SearchPage() {
 
 			<!-- Results List -->
 			<section class="stack">
-
-				<!-- Result Card -->
-				<article class="card">
-					<div class="card-body">
-						<h3>
-							<a href="/book/123">Modern World History</a>
-						</h3>
-						<p class="text-sm text-muted">by Jane Smith</p>
-						<p>
-							A concise overview of major global events shaping the modern era.
-						</p>
-
-						<!-- Genre Tags -->
-						<div class="demo-row mb-4">
-							<span class="badge">History</span>
-							<span class="badge">Non‑fiction</span>
-						</div>
-
-						<!-- Availability -->
-						<div class="stack-sm">
-							<div class="flex items-center gap-2">
-								<i class="material-icons text-green">check_circle</i>
-								<span>Book — Available</span>
-							</div>
-							<div class="flex items-center gap-2">
-								<i class="material-icons text-red">cancel</i>
-								<span>eBook — Checked out</span>
-							</div>
-							<div class="flex items-center gap-2">
-								<i class="material-icons text-green">check_circle</i>
-								<span>Audiobook — Available</span>
-							</div>
-						</div>
-					</div>
-				</article>
-
-				<!-- Result Card -->
-				<article class="card">
-					<div class="card-body">
-						<h3>
-							<a href="/book/456">History Through Stories</a>
-						</h3>
-						<p class="text-sm text-muted">by Alan Cooper</p>
-						<p>
-							Engaging narratives that bring historical moments to life.
-						</p>
-					</div>
-				</article>
-
+				{{ results := searchBooks(q) }}
+				for _, b := range results {
+					@book.BookTrunk(b)
+				}
+				if len(results) == 0 {
+					if q == "" {
+						<p class="text-center text-muted">Use the search bar (in the header or above) to find books.</p>
+					} else {
+						<p class="text-center text-muted">No results found for “{ q }”. Try a different term.</p>
+					}
+				}
 			</section>
 		</main>
 
