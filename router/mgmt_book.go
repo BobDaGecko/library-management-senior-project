@@ -165,7 +165,7 @@ func HandleManagementBookCopies(p *fail.RoutingParams, bookID string) {
 		return
 	}
 
-	book, copiesMap, err := getBookAndCopies(bookID)
+	book, copiesMap, err := GetBookAndCopies(bookID)
 	if err != nil {
 		http.Error(p.W, "Book not found or error loading copies: "+err.Error(), http.StatusNotFound)
 		return
@@ -202,7 +202,7 @@ func HandleManagementBookCopies(p *fail.RoutingParams, bookID string) {
 		}
 
 		// Re-fetch for fresh grouped data
-		_, freshMap, _ := getBookAndCopies(bookID)
+		_, freshMap, _ := GetBookAndCopies(bookID)
 		fail.Render(p, pages.MgmtBookCopiesList(bookID, freshMap))
 	default:
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
@@ -293,8 +293,9 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 	fail.Render(p, pages.MgmtBookCopyDetail(bookID, copy, entries, page, totalPages, total, p))
 }
 
-// getBookAndCopies loads the BookWork and its copies grouped by Format using the existing MapFormats helper.
-func getBookAndCopies(bookID string) (db.BookWork, db.FormatsMap[db.CopyList], error) {
+// GetBookAndCopies loads the BookWork and its copies grouped by Format using the existing MapFormats helper.
+// Exported for use by public book details router.
+func GetBookAndCopies(bookID string) (db.BookWork, db.FormatsMap[db.CopyList], error) {
 	var book db.BookWork
 	if err := db.Db().Where("id = ?", bookID).First(&book).Error; err != nil {
 		return book, nil, err

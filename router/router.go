@@ -20,6 +20,15 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	case "assets":
 		HandleAsset(p)
 
+	case "search":
+		HandleSearch(p)
+	case "help":
+		HandleHelp(p)
+	case "blog":
+		BlogRouter(p)
+	case "book":
+		BookRouter(p)
+
 	case "management":
 		ManagementRouter(p)
 
@@ -27,7 +36,7 @@ func Router(w http.ResponseWriter, r *http.Request) {
 		UserRouter(p)
 
 	case "":
-		fail.Render(p, pages.HomePage())
+		fail.Render(p, pages.PublicHomePage())
 	}
 }
 
@@ -56,4 +65,21 @@ func HandleAsset(p *fail.RoutingParams) {
 	}
 
 	http.ServeFile(p.W, p.Req, "./assets"+p.SubPath())
+}
+
+// Flat public pages (not under a sub-tree router)
+
+func HandleSearch(p *fail.RoutingParams) {
+	if fail.Done(p) {
+		return
+	}
+	q := p.Param("q")
+	fail.Render(p, pages.SearchPage(q))
+}
+
+func HandleHelp(p *fail.RoutingParams) {
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.HelpPage())
 }

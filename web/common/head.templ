@@ -17,27 +17,27 @@ templ Head(title string, desc string) {
 }
 
 templ NavHead(subpage string, searchPrefill string) {
-	<nav class="navbar" style="justfiy-content: space-around">
-		<!-- TO-DO: Chance Image Placement -->
+	<nav class="navbar" style="justify-content: space-around;">
 		<a href="/" class="navbar-brand">
-			<img src="../../assets/img/placeholder.jpg"/>
+			<img src="/assets/img/placeholder.png" alt="Town Library logo"/>
 			Town Library
-			{ subpage }
+			if subpage != "" {
+				<span class="text-muted"> · { subpage }</span>
+			}
 		</a>
-		<div class="input-search" style="width: 30%">
-			<!-- TO-DO: Button won't go next to searchbar for regular form input. -->
-			<!-- TO-DO: Either fix or edit form-input-sm to match shape -->
-			<input
-				class="form-input-lg"
-				type="search"
-				name="q"
-				id="q"
-				placeholder="Search..."
-				value={ searchPrefill }
-			/>
-			<!-- TO-DO: Add magnifying glass to button text -->
-			<button class="btn-small btn-primary input-icon">Search</button>
-		</div>
+		<form action="/search" method="get" style="width: 30%">
+			<div class="input-search">
+				<input
+					class="form-input-lg"
+					type="search"
+					name="q"
+					id="q"
+					placeholder="Search the catalog..."
+					value={ searchPrefill }
+				/>
+				<button class="btn-small btn-primary input-icon" type="submit">Search</button>
+			</div>
+		</form>
 	</nav>
 }
 
@@ -56,11 +56,10 @@ templ NavAside(entries NavAsideEntryList, active string) {
 }
 
 templ Footer() {
-	<footer class="page-footer  mt-8 flex justify-between">
+	<footer class="page-footer mt-8 flex justify-between">
 		<p class="text-s">&#169; 2026 Town Library</p>
-		<!-- TO-DO: Link to user Library home page. -->
-		<button class="btn-small btn-ghost">
-			<i class="material-icons mb-2" style="font-size: 24px;">home</i>
+		<button class="btn-small btn-ghost" _="on click window.scrollTo(0, 0)">
+			<i class="material-icons mb-2" style="font-size: 24px;">settings</i>
 		</button>
 	</footer>
 }

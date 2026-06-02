@@ -1,0 +1,73 @@
+package pages
+
+import "voxelprismatic/library-management-senior-project/web/common"
+
+templ AccountPage() {
+	@common.Head("My Account · Town Library", "View a summary of your loans, holds, fines and saved items.")
+	<body class="bg-base">
+		@common.NavHead("Account", "")
+
+		<!-- Sub nav matching public pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+			<header class="mb-6">
+				<h1>My Account</h1>
+				<p class="text-muted">View a summary of your library activity and manage your account.</p>
+			</header>
+
+			<section class="four-col">
+				<article class="card text-center">
+					<div class="card-body">
+						<i class="material-icons text-3xl mb-2">menu_book</i>
+						<h3>Loans</h3>
+						<p class="text-2xl font-bold">3</p>
+						<a href="/account/loans" class="btn btn-link">View loans</a>
+					</div>
+				</article>
+
+				<article class="card text-center">
+					<div class="card-body">
+						<i class="material-icons text-3xl mb-2">bookmark</i>
+						<h3>Holds</h3>
+						<p class="text-2xl font-bold">2</p>
+						<a href="/account/holds" class="btn btn-link">View holds</a>
+					</div>
+				</article>
+
+				<article class="card text-center">
+					<div class="card-body">
+						<i class="material-icons text-3xl mb-2">payments</i>
+						<h3>Fines</h3>
+						<p class="text-2xl font-bold">$4.50</p>
+						<a href="/account/fines" class="btn btn-link">View fines</a>
+					</div>
+				</article>
+
+				<article class="card text-center">
+					<div class="card-body">
+						<i class="material-icons text-3xl mb-2">favorite</i>
+						<h3>Saved Items</h3>
+						<p class="text-2xl font-bold">5</p>
+						<a href="/account/saved" class="btn btn-link">View saved</a>
+					</div>
+				</article>
+			</section>
+		</main>
+
+		@common.Footer()
+	</body>
+}
