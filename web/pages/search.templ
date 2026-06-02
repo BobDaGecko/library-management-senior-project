@@ -1,0 +1,141 @@
+package pages
+
+import "github.com/VoxelPrismatic/library-management-senior-project/web/common"
+
+templ SearchPage() {
+	@common.Head("Search Results · Town Library", "Search results for books, ebooks, and audiobooks in the Town Library catalog.")
+	<body class="bg-base">
+		@common.NavHead("Search", "history")
+
+		<!-- Sub nav -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+
+			<!-- Results Header -->
+			<header class="between mb-6">
+				<h1>Search Results for “history”</h1>
+
+				<!-- Sorting -->
+				<select class="form-input select w-fit">
+					<option>Sort by relevance</option>
+					<option>Title</option>
+					<option>Author</option>
+					<option>Availability</option>
+				</select>
+			</header>
+
+			<!-- Filters -->
+			<section class="card-flat mb-6">
+				<div class="three-col">
+					<div class="form-group">
+						<label class="label-uppercase">Format</label>
+						<select class="form-input select">
+							<option>All formats</option>
+							<option>Book</option>
+							<option>eBook</option>
+							<option>Audiobook</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label class="label-uppercase">Availability</label>
+						<select class="form-input select">
+							<option>Any</option>
+							<option>Available now</option>
+							<option>Checked out</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label class="label-uppercase">Author</label>
+						<input class="form-input" placeholder="Author name" />
+					</div>
+
+					<div class="form-group">
+						<label class="label-uppercase">Genre</label>
+						<input class="form-input" placeholder="e.g. History, Biography" />
+					</div>
+
+					<div class="form-group">
+						<label class="label-uppercase">Publication Date</label>
+						<select class="form-input select">
+							<option>Any</option>
+							<option>Last year</option>
+							<option>Last 5 years</option>
+							<option>Older</option>
+						</select>
+					</div>
+				</div>
+			</section>
+
+			<!-- Results List -->
+			<section class="stack">
+
+				<!-- Result Card -->
+				<article class="card">
+					<div class="card-body">
+						<h3>
+							<a href="/book/123">Modern World History</a>
+						</h3>
+						<p class="text-sm text-muted">by Jane Smith</p>
+						<p>
+							A concise overview of major global events shaping the modern era.
+						</p>
+
+						<!-- Genre Tags -->
+						<div class="demo-row mb-4">
+							<span class="badge">History</span>
+							<span class="badge">Non‑fiction</span>
+						</div>
+
+						<!-- Availability -->
+						<div class="stack-sm">
+							<div class="flex items-center gap-2">
+								<i class="material-icons text-green">check_circle</i>
+								<span>Book — Available</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<i class="material-icons text-red">cancel</i>
+								<span>eBook — Checked out</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<i class="material-icons text-green">check_circle</i>
+								<span>Audiobook — Available</span>
+							</div>
+						</div>
+					</div>
+				</article>
+
+				<!-- Result Card -->
+				<article class="card">
+					<div class="card-body">
+						<h3>
+							<a href="/book/456">History Through Stories</a>
+						</h3>
+						<p class="text-sm text-muted">by Alan Cooper</p>
+						<p>
+							Engaging narratives that bring historical moments to life.
+						</p>
+					</div>
+				</article>
+
+			</section>
+		</main>
+
+		@common.Footer()
+	</body>
+}
