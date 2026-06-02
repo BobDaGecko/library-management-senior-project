@@ -1,8 +1,8 @@
 package pages
 
 import (
+	"strings"
 	"voxelprismatic/library-management-senior-project/db"
-	"voxelprismatic/library-management-senior-project/fetch"
 	"voxelprismatic/library-management-senior-project/web/book"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
@@ -11,21 +11,16 @@ func searchBooks(q string) []db.BookWork {
 	if q == "" {
 		return nil
 	}
-	data, err := fetch.GBooksSearch(q)
-	if err != nil {
-		return nil // graceful for public-facing search (rate limits, network, etc.)
-	}
-
-	seen := map[string]bool{}
 	var results []db.BookWork
-	for _, o := range data.Items {
-		b := o.ToLocalStruct()
-		if seen[b.ID] {
-			continue
-		}
-		seen[b.ID] = true
-		results = append(results, b)
-	}
+	like := "%" + strings.ToLower(q) + "%"
+	db.Db().Where("lower(title) LIKE ?", like).
+		Or("lower(subtitle) LIKE ?", like).
+		Or("lower(description) LIKE ?", like).
+		Or("lower(publisher) LIKE ?", like).
+		Or("lower(authors) LIKE ?", like).
+		Or("lower(categories) LIKE ?", like).
+		Limit(50).
+		Find(&results)
 	return results
 }
 
@@ -33,7 +28,6 @@ templ SearchPage(q string) {
 	@common.Head("Search Results · Town Library", "Search results for books, ebooks, and audiobooks in the Town Library catalog.")
 	<body class="bg-base">
 		@common.NavHead("Search", q)
-
 		<!-- Sub nav -->
 		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
 			<div class="navbar-collapse justify-between">
@@ -49,13 +43,10 @@ templ SearchPage(q string) {
 				</ul>
 			</div>
 		</nav>
-
 		<main class="container-lg mt-8">
-
 			<!-- Results Header -->
 			<header class="between mb-6">
 				<h1>Search Results for “{ q }”</h1>
-
 				<!-- Sorting -->
 				<select class="form-input select w-fit">
 					<option>Sort by relevance</option>
@@ -64,7 +55,6 @@ templ SearchPage(q string) {
 					<option>Availability</option>
 				</select>
 			</header>
-
 			<!-- Filters -->
 			<section class="card-flat mb-6">
 				<div class="three-col">
@@ -77,7 +67,6 @@ templ SearchPage(q string) {
 							<option>Audiobook</option>
 						</select>
 					</div>
-
 					<div class="form-group">
 						<label class="label-uppercase">Availability</label>
 						<select class="form-input select">
@@ -86,17 +75,14 @@ templ SearchPage(q string) {
 							<option>Checked out</option>
 						</select>
 					</div>
-
 					<div class="form-group">
 						<label class="label-uppercase">Author</label>
-						<input class="form-input" placeholder="Author name" />
+						<input class="form-input" placeholder="Author name"/>
 					</div>
-
 					<div class="form-group">
 						<label class="label-uppercase">Genre</label>
-						<input class="form-input" placeholder="e.g. History, Biography" />
+						<input class="form-input" placeholder="e.g. History, Biography"/>
 					</div>
-
 					<div class="form-group">
 						<label class="label-uppercase">Publication Date</label>
 						<select class="form-input select">
@@ -108,7 +94,6 @@ templ SearchPage(q string) {
 					</div>
 				</div>
 			</section>
-
 			<!-- Results List -->
 			<section class="stack">
 				{{ results := searchBooks(q) }}
@@ -124,7 +109,6 @@ templ SearchPage(q string) {
 				}
 			</section>
 		</main>
-
 		@common.Footer()
 	</body>
 }
