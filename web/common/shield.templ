@@ -1,6 +1,9 @@
 package common
 
-import "fmt"
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+)
 
 func colors(fg, bg string) []templ.SafeCSS {
 	return []templ.SafeCSS{
@@ -23,4 +26,21 @@ templ ShieldText(lhs string, rhs string, bg string, fg string) {
 		<div style="background: var(--bg-base);">{ lhs }</div>
 		<div style={ colors(fg, bg) }>{ rhs }</div>
 	</div>
+}
+
+templ ShieldFormat(f db.BookFmtFlag, count db.CopyCount) {
+	switch f {
+		case db.BookFmtPaperback:
+			@ShieldText("Paperback", fmt.Sprintf("%d", count.Available), "var(--peach)", "var(--text)")
+		case db.BookFmtHardCover:
+			@ShieldText("Hard Cover", fmt.Sprintf("%d", count.Available), "var(--peach)", "var(--text)")
+		case db.BookFmtPhysicalAudio:
+			@ShieldText("Audio Player", fmt.Sprintf("%d", count.Available), "var(--teal)", "var(--text)")
+		case db.BookFmtDigitalBook:
+			@ShieldText("Kindle", fmt.Sprintf("%d", count.Available), "var(--green)", "var(--text)")
+		case db.BookFmtDigitalAudio:
+			@ShieldText("Audible", fmt.Sprintf("%d", count.Available), "var(--sky)", "var(--text)")
+		default:
+			@ShieldText(f.String(), fmt.Sprintf("%d", count.Available), "var(--red)", "white")
+	}
 }

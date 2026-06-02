@@ -1,9 +1,45 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"fmt"
+	"strings"
 
-templ BookDetailsPage() {
-	@common.Head("Book Details · Town Library", "View book details, availability by format, and actions like placing holds or bookmarking.")
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+var bookDetailFormats = []db.BookFmtFlag{
+	db.BookFmtPaperback,
+	db.BookFmtHardCover,
+	db.BookFmtPhysicalAudio,
+	db.BookFmtDigitalBook,
+	db.BookFmtDigitalAudio,
+}
+
+func limitedCategories(cats db.SqlStringList, max int) []string {
+	if len(cats) > max {
+		return cats[:max]
+	}
+	return cats
+}
+
+func bookTitleForHead(b db.BookWork) string {
+	if b.Title != "" {
+		return b.Title + " · Town Library"
+	}
+	return "Book Details · Town Library"
+}
+
+func copyLoanStatus(c db.BookCopy) string {
+	s, err := c.LoanStatus()
+	if err != nil {
+		return "Unknown"
+	}
+	return s.DisplayName()
+}
+
+templ BookDetailsPage(bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList]) {
+	@common.Head(bookTitleForHead(book), book.Description)
 	<body class="bg-base">
 		@common.NavHead("Book Details", "")
 
@@ -29,9 +65,15 @@ templ BookDetailsPage() {
 
 				<!-- Left: Cover Image -->
 				<section>
+					{{ coverSrc := "/assets/img/placeholder.jpg" }}
+					if book.CoverImage != "" {
+						{{ coverSrc = book.CoverImage }}
+					} else if book.CoverThumb != "" {
+						{{ coverSrc = book.CoverThumb }}
+					}
 					<img
-						src="/assets/img/placeholder.jpg"
-						alt="Book cover"
+						src={ coverSrc }
+						alt={ book.Title + " cover" }
 						class="rounded shadow"
 					/>
 				</section>
@@ -39,14 +81,20 @@ templ BookDetailsPage() {
 				<!-- Right: Metadata & Actions -->
 				<section class="stack">
 
-					<h1>Modern World History</h1>
-					<p class="text-muted">by Jane Smith</p>
+					<h1>{ book.Title }</h1>
+					if len(book.Authors) > 0 {
+						<p class="text-muted">by { strings.Join(book.Authors, ", ") }</p>
+					}
 
 					<!-- Genre Tags -->
 					<div class="demo-row">
-						<span class="badge">History</span>
-						<span class="badge">Non‑fiction</span>
-						<span class="badge">Academic</span>
+						if len(book.Categories) > 0 {
+							for _, cat := range limitedCategories(book.Categories, 3) {
+								<span class="badge">{ cat }</span>
+							}
+						} else {
+							<span class="badge">Book</span>
+						}
 					</div>
 
 					<!-- Action Area -->
@@ -67,17 +115,29 @@ templ BookDetailsPage() {
 
 					<!-- Description -->
 					<p>
-						A concise overview of major global events shaping the modern era,
-						designed for both casual readers and academic study.
+						{ book.Description }
 					</p>
 
 					<!-- Full Metadata -->
 					<ul class="list border rounded">
-						<li class="list-item"><strong>ISBN:</strong> 978‑ 1‑123456‑789‑0</li>
-						<li class="list-item"><strong>Publisher:</strong> Academic Press</li>
-						<li class="list-item"><strong>Publication Date:</strong> 2021</li>
-						<li class="list-item"><strong>Language:</strong> English</li>
-						<li class="list-item"><strong>Pages:</strong> 412</li>
+						if book.Isbn13 != "" || book.Isbn10 != "" {
+							<li class="list-item"><strong>ISBN:</strong> 
+								if book.Isbn13 != "" {
+									{ book.Isbn13 }
+								} else {
+									{ book.Isbn10 }
+								}
+							</li>
+						}
+						if book.Publisher != "" {
+							<li class="list-item"><strong>Publisher:</strong> { book.Publisher }</li>
+						}
+						if !book.PublishedDate.IsZero() {
+							<li class="list-item"><strong>Publication Date:</strong> { book.PublishedDate.Format("2006") }</li>
+						}
+						if book.PageCount > 0 {
+							<li class="list-item"><strong>Pages:</strong> { fmt.Sprintf("%d", book.PageCount) }</li>
+						}
 					</ul>
 
 				</section>
@@ -98,38 +158,30 @@ templ BookDetailsPage() {
 						</tr>
 					</thead>
 					<tbody>
-						<tr>
-							<td>Book</td>
-							<td>Copy 1</td>
-							<td>
-								<i class="material-icons text-green">check_circle</i>
-								Available
-							</td>
-						</tr>
-						<tr>
-							<td>Book</td>
-							<td>Copy 2</td>
-							<td>
-								<i class="material-icons text-red">cancel</i>
-								Checked out
-							</td>
-						</tr>
-						<tr>
-							<td>eBook</td>
-							<td>Digital</td>
-							<td>
-								<i class="material-icons text-green">check_circle</i>
-								Available
-							</td>
-						</tr>
-						<tr>
-							<td>Audiobook</td>
-							<td>Digital</td>
-							<td>
-								<i class="material-icons text-red">cancel</i>
-								Checked out
-							</td>
-						</tr>
+						for _, f := range bookDetailFormats {
+							if cl, ok := copies[f]; ok && len(cl) > 0 {
+								for i, c := range cl {
+									<tr>
+										<td>{ f.DisplayName() }</td>
+										<td>Copy { i + 1 }</td>
+										<td>
+											if copyLoanStatus(c) == "Available" {
+												<i class="material-icons text-green">check_circle</i>
+												Available
+											} else {
+												<i class="material-icons text-red">cancel</i>
+												{ copyLoanStatus(c) }
+											}
+										</td>
+									</tr>
+								}
+							}
+						}
+						if len(copies) == 0 {
+							<tr>
+								<td colspan="3" class="text-muted">No copies on file yet.</td>
+							</tr>
+						}
 					</tbody>
 				</table>
 

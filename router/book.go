@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
 )
@@ -21,6 +23,12 @@ func BookRouter(p *fail.RoutingParams) {
 		fail.Done(p)
 		return
 	}
-	_ = id // TODO: load book + availability; enhance BookDetailsPage to accept params
-	fail.Render(p, pages.BookDetailsPage())
+
+	book, copiesMap, err := GetBookAndCopies(id)
+	if err != nil {
+		http.Error(p.W, "Book not found", http.StatusNotFound)
+		return
+	}
+
+	fail.Render(p, pages.BookDetailsPage(id, book, copiesMap))
 }
