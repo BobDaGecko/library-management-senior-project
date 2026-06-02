@@ -8,6 +8,7 @@ import (
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
+	"voxelprismatic/library-management-senior-project/web/user"
 )
 
 // UserRouter handles the /user tree:
@@ -18,7 +19,7 @@ import (
 //	/user/loans     -> user_loans
 //	/user/holds     -> user_holds
 //	/user/fines     -> user_fines
-//	/user/saved     -> user_saved (included for completeness with account dashboard)
+//	/user/saved     -> user_saved (included for completeness with account dashboard).
 func UserRouter(p *fail.RoutingParams) {
 	switch p.Pop() {
 	case "login":
@@ -48,7 +49,7 @@ func HandleUserLogin(p *fail.RoutingParams) {
 
 	switch p.Req.Method {
 	case http.MethodGet:
-		fail.Render(p, pages.LoginPage())
+		fail.Render(p, user.Login())
 	case http.MethodPost:
 		HandleUserLoginPost(p)
 	default:
@@ -91,7 +92,7 @@ func HandleUserRegister(p *fail.RoutingParams) {
 
 	switch p.Req.Method {
 	case http.MethodGet:
-		fail.Render(p, pages.RegisterPage())
+		fail.Render(p, user.Register())
 	case http.MethodPost:
 		HandleUserRegisterPost(p)
 	default:
