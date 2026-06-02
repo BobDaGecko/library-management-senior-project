@@ -25,11 +25,24 @@ func ManagementBooksRouter(p *fail.RoutingParams) {
 	case "add":
 		HandleManagementBooksAdd(p)
 	case "":
-		fail.Redirect(p)
+		HandleManagementCatalog(p)
 	default:
 		// Treat as Google Books Volume ID for add/edit operations
 		HandleManagementBook(p, segment)
 	}
+}
+
+func HandleManagementCatalog(p *fail.RoutingParams) {
+	if fail.Done(p) {
+		return
+	}
+	q := p.Req.URL.Query().Get("q")
+	page := parsePageParam(p)
+	if p.Req.Header.Get("HX-Request") == "true" {
+		fail.Render(p, pages.MgmtCatalogResults(q, page))
+		return
+	}
+	fail.Render(p, pages.MgmtCatalog(p, q, page))
 }
 
 func HandleManagementBooksAdd(p *fail.RoutingParams) {
@@ -97,8 +110,7 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 			return
 		}
 
-		// Book exists locally → placeholder for full edit page
-		http.Error(p.W, "Edit page for book not yet implemented (501)", http.StatusNotImplemented)
+		fail.Render(p, pages.MgmtBookDetail(p, book))
 
 	case http.MethodPut:
 		// Fetch all details from Google Books and overwrite in DB
@@ -231,20 +243,17 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 		return
 	}
 
-	// Support delete (only offered in UI when history total == 0)
 	if p.Req.Method == http.MethodPost {
 		if fail.Form(p) {
 			return
 		}
-		if p.Req.FormValue("action") == "delete" {
-			// Re-check safety: must still have zero history
+		switch p.Req.FormValue("action") {
+		case "delete":
 			_, histTotal, _ := copy.History(1, 1)
 			if histTotal > 0 {
 				http.Error(p.W, "Cannot delete a copy that has checkout or repair history", http.StatusConflict)
 				return
 			}
-
-			// Clean related records then hard-delete the copy itself
 			tx := db.Db().Begin()
 			tx.Where("book_copy_id = ?", copy.ID).Delete(&db.Loan{})
 			tx.Where("book_copy_id = ?", copy.ID).Delete(&db.RepairLog{})
@@ -255,11 +264,58 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 				return
 			}
 			tx.Commit()
-
 			p.W.Header().Set("HX-Redirect", fmt.Sprintf("/management/books/%s/copies", bookID))
 			return
+
+		case "start_repair":
+			if err := db.Db().Model(&db.BookCopy{}).Where("id = ?", copy.ID).Update("status", db.CopyStatusRepairing).Error; err != nil {
+				http.Error(p.W, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			copy.Status = db.CopyStatusRepairing
+			fail.Render(p, pages.CopyManagementSection(bookID, copy))
+			return
+
+		case "complete_repair":
+			technician := p.Req.FormValue("technician")
+			condInt, _ := strconv.Atoi(p.Req.FormValue("condition"))
+			repairLog := db.RepairLog{
+				BookCopyID:     copy.ID,
+				Date:           time.Now(),
+				IncomingStatus: copy.Status,
+				OutgoingStatus: db.CopyStatusPublic,
+				TechnicianName: technician,
+			}
+			db.Db().Create(&repairLog)
+			db.Db().Model(&db.BookCopy{}).Where("id = ?", copy.ID).Updates(map[string]interface{}{
+				"status":    db.CopyStatusPublic,
+				"condition": db.ConditionFlag(condInt),
+			})
+			copy.Status = db.CopyStatusPublic
+			copy.Condition = db.ConditionFlag(condInt)
+
+			const perPage = 25
+			entries, histTotal, _ := copy.History(1, perPage)
+			totalPgs := 1
+			if histTotal > perPage {
+				totalPgs = int((histTotal + perPage - 1) / perPage)
+			}
+			fail.Render(p, pages.CopyManagementWithHistoryOOB(bookID, copy, entries, 1, totalPgs, histTotal))
+			return
+
+		case "discard":
+			db.Db().Model(&db.BookCopy{}).Where("id = ?", copy.ID).Update("status", db.CopyStatusDiscarded)
+			copy.Status = db.CopyStatusDiscarded
+			fail.Render(p, pages.CopyManagementSection(bookID, copy))
+			return
+
+		case "restore":
+			db.Db().Model(&db.BookCopy{}).Where("id = ?", copy.ID).Update("status", db.CopyStatusPublic)
+			copy.Status = db.CopyStatusPublic
+			fail.Render(p, pages.CopyManagementSection(bookID, copy))
+			return
 		}
-		// fallthrough: POST without delete action = pagination request for history table
+		// fallthrough: pagination POST from common.Pagination component
 	}
 
 	// Pagination (supports both ?page= on GET and form page= from the common Pagination component POST)
