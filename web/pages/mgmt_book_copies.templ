@@ -28,11 +28,10 @@ func copyCheckoutName(c db.BookCopy) string {
 
 // MgmtBookCopies is the full page for /management/books/:book-id/copies
 templ MgmtBookCopies(bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList], p *fail.RoutingParams) {
-	@common.Head("Copies - Management", "Manage book copies")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
+	@common.Head("Copies — Management", "Manage book copies")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
 			<div class="flex items-center justify-between mb-4">
 				<div>
 					<h1 class="mb-1">Copies</h1>
@@ -51,8 +50,8 @@ templ MgmtBookCopies(bookID string, book db.BookWork, copies db.FormatsMap[db.Co
 			</div>
 			@MgmtBookCopiesList(bookID, copies)
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }
 
 // MgmtBookCopiesList is the HTMX-updatable section listing all format sections + cards.

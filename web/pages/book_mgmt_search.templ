@@ -32,12 +32,10 @@ css center_width() {
 }
 
 templ BookMgmtSearchFull(q string, p *fail.RoutingParams) {
-	@common.Head("Add Books", "Add books to the library")
-	@common.NavHead("Administration", "")
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
+	@common.Head("Add Books — Management", "Add books to the library")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
 			<div class="text-center"><h1>Add Books</h1></div>
 			<article class="card card-flat h-auto" style="min-height: 400px;">
 				<h2 class="text-secondary my-4">Search for Books</h2>
@@ -63,6 +61,7 @@ templ BookMgmtSearchFull(q string, p *fail.RoutingParams) {
 			</article>
 		</div>
 	</main>
+	@common.Footer()
 }
 
 templ BookMgmtSearchGrid(q string) {

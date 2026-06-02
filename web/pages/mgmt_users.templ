@@ -35,19 +35,18 @@ func getUserTotalPages() int {
 
 // MgmtUsers full page
 templ MgmtUsers(p *fail.RoutingParams, page int) {
-	@common.Head("Users - Management", "User Management")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
-			<h1>Users</h1>
-			<p class="mb-4">Manage library users and their roles. Changing a role via the dropdown applies immediately via HTMX.</p>
+	@common.Head("Users — Management", "User Management")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Users</h1>
+			<p class="text-sub mb-6">Manage library users and their roles. Role changes apply immediately.</p>
 			<div id="users-container">
 				@MgmtUsersTable(page)
 			</div>
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }
 
 // MgmtUsersTable for list + pagination (supports HTMX partial)
@@ -95,21 +94,20 @@ templ UserRoleSelect(userID string, current db.UserRoleFlag) {
 	</select>
 }
 
-// UserDetail is a stub for the user detail subpage (/management/users/:id?tab=...)
-// TODO: implement full loans/fines/holds detail view for a user.
+// UserDetail stub — will be replaced with full implementation
 templ UserDetail(p *fail.RoutingParams, userID string, tab string) {
-	@common.Head("User Detail - Management", "User details")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
-			<h1>User Detail</h1>
-			<p class="text-secondary">User ID: { userID } (tab: { tab })</p>
-			<div class="card card-flat mt-4">
-				<p>This page is not yet implemented.</p>
-				<p><a href="/management/users">← Back to users list</a></p>
+	@common.Head("User Detail — Management", "User details")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center gap-3 mb-6">
+				<a href="/management/users" class="btn btn-ghost btn-sm">← Users</a>
+				<h1 class="mb-0">User Detail</h1>
+			</div>
+			<div class="card-flat">
+				<p class="text-sub">This page is not yet implemented.</p>
 			</div>
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }

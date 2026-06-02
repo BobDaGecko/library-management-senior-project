@@ -35,19 +35,18 @@ func getTotalPages() int {
 
 // MgmtTransactions renders the full management transactions page
 templ MgmtTransactions(p *fail.RoutingParams, page int) {
-	@common.Head("Transactions - Management", "Transaction History")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
-			<h1>Transaction History</h1>
-			<p class="mb-4">Listing all payment transactions. 100 items per page. Use pagination below to navigate (table updates dynamically via HTMX).</p>
+	@common.Head("Transactions — Management", "Transaction History")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Transaction History</h1>
+			<p class="text-sub mb-6">All payment transactions, newest first. 100 per page.</p>
 			<div id="transactions-container">
 				@MgmtTransactionsTable(page)
 			</div>
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }
 
 // MgmtTransactionsTable renders the table and pagination controls (for HTMX partial updates)

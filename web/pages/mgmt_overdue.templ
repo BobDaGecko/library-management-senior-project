@@ -43,19 +43,18 @@ func isFeeWaived(loanID db.SqlUUID) bool {
 
 // MgmtOverdue full page
 templ MgmtOverdue(p *fail.RoutingParams) {
-	@common.Head("Overdue Books - Management", "Overdue Books")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
-			<h1>Overdue Books</h1>
-			<p class="mb-4">List of currently overdue loans. Librarians can waive associated fees using the button (with confirmation). Button is disabled if fee already waived.</p>
+	@common.Head("Overdue Books — Management", "Overdue Books")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Overdue Books</h1>
+			<p class="text-sub mb-6">Currently overdue loans. Waive fees with confirmation — disabled once waived.</p>
 			<div id="overdue-container">
 				@MgmtOverdueTable()
 			</div>
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }
 
 // MgmtOverdueTable renders the table of overdue loans and waive buttons.
