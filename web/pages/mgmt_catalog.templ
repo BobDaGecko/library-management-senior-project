@@ -1,0 +1,339 @@
+package pages
+
+import (
+	"fmt"
+	"net/url"
+	"strings"
+
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+const catalogPerPage = 40
+
+type catalogCopyStats struct {
+	Total     int
+	Available int
+}
+
+type catalogPageData struct {
+	Books      []db.BookWork
+	Total      int64
+	TotalPages int
+	Counts     map[string]catalogCopyStats
+}
+
+func loadCatalog(q string, page int) catalogPageData {
+	if page < 1 {
+		page = 1
+	}
+	gdb := db.Db().Model(&db.BookWork{})
+	if q != "" {
+		like := "%" + q + "%"
+		gdb = gdb.Where("title LIKE ? OR authors LIKE ? OR isbn13 LIKE ? OR isbn10 LIKE ?", like, like, like, like)
+	}
+
+	var total int64
+	gdb.Count(&total)
+
+	var books []db.BookWork
+	gdb.Order("title ASC").Offset((page - 1) * catalogPerPage).Limit(catalogPerPage).Find(&books)
+
+	totalPages := 1
+	if total > int64(catalogPerPage) {
+		totalPages = int((total + int64(catalogPerPage) - 1) / int64(catalogPerPage))
+	}
+
+	bookIDs := make([]string, len(books))
+	for i, b := range books {
+		bookIDs[i] = b.ID
+	}
+
+	counts := map[string]catalogCopyStats{}
+	if len(bookIDs) > 0 {
+		type countRow struct {
+			BookWorkID string
+			Count      int
+		}
+
+		var totals []countRow
+		db.Db().Model(&db.BookCopy{}).
+			Select("book_work_id, COUNT(*) as count").
+			Where("book_work_id IN ?", bookIDs).
+			Group("book_work_id").
+			Scan(&totals)
+
+		checkedOut := db.Db().Table("loans l").
+			Select("1").
+			Where("l.book_copy_id = book_copies.id").
+			Where("l.date_returned = ?", db.NilTime)
+		var avails []countRow
+		db.Db().Model(&db.BookCopy{}).
+			Select("book_work_id, COUNT(*) as count").
+			Where("book_work_id IN ?", bookIDs).
+			Where("status = ?", db.CopyStatusPublic).
+			Where("NOT EXISTS (?)", checkedOut).
+			Group("book_work_id").
+			Scan(&avails)
+
+		for _, r := range totals {
+			s := counts[r.BookWorkID]
+			s.Total = r.Count
+			counts[r.BookWorkID] = s
+		}
+		for _, r := range avails {
+			s := counts[r.BookWorkID]
+			s.Available = r.Count
+			counts[r.BookWorkID] = s
+		}
+	}
+
+	return catalogPageData{
+		Books:      books,
+		Total:      total,
+		TotalPages: totalPages,
+		Counts:     counts,
+	}
+}
+
+func bookCopyStats(bookID string) catalogCopyStats {
+	var total int64
+	db.Db().Model(&db.BookCopy{}).Where("book_work_id = ?", bookID).Count(&total)
+
+	checkedOut := db.Db().Table("loans l").
+		Select("1").
+		Where("l.book_copy_id = book_copies.id").
+		Where("l.date_returned = ?", db.NilTime)
+	var avail int64
+	db.Db().Model(&db.BookCopy{}).
+		Where("book_work_id = ?", bookID).
+		Where("status = ?", db.CopyStatusPublic).
+		Where("NOT EXISTS (?)", checkedOut).
+		Count(&avail)
+
+	return catalogCopyStats{Total: int(total), Available: int(avail)}
+}
+
+// MgmtCatalog is the full catalog page at /management/books
+templ MgmtCatalog(p *fail.RoutingParams, q string, page int) {
+	@common.Head("Catalog — Management", "Book catalog")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-4">
+				<div>
+					<h1 class="mb-0">Catalog</h1>
+					<p class="text-sub mb-0">All titles in the library system.</p>
+				</div>
+				<a href="/management/books/add" class="btn btn-primary btn-sm">
+					<i class="material-icons" style="font-size:16px;vertical-align:-3px;">add</i>
+					Add Books
+				</a>
+			</div>
+			<div class="mb-4">
+				<input
+					type="search"
+					class="form-input"
+					placeholder="Search by title, author, or ISBN…"
+					name="q"
+					value={ q }
+					style="max-width: 420px;"
+					hx-get="/management/books"
+					hx-trigger="input changed delay:350ms, search"
+					hx-target="#catalog-results"
+					hx-swap="outerHTML"
+					hx-include="this"
+				/>
+			</div>
+			@MgmtCatalogResults(q, page)
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// MgmtCatalogResults is the HTMX-swappable results section.
+// Returned directly for HTMX search/pagination requests.
+templ MgmtCatalogResults(q string, page int) {
+	{{ data := loadCatalog(q, page) }}
+	<div id="catalog-results">
+		if data.Total == 0 {
+			<p class="text-sub mt-4">
+				if q != "" {
+					No books found matching "{ q }".
+				} else {
+					No books in the catalog yet.
+					<a href="/management/books/add">Add some!</a>
+				}
+			</p>
+		} else {
+			<p class="text-sm text-sub mb-2">{ fmt.Sprintf("%d title(s)", data.Total) }</p>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Title / Authors</th>
+						<th>Publisher</th>
+						<th>Year</th>
+						<th>ISBN</th>
+						<th>Copies</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, b := range data.Books {
+						@catalogRow(b, data.Counts[b.ID])
+					}
+				</tbody>
+			</table>
+			if data.TotalPages > 1 {
+				<div class="flex items-center gap-3 mt-4">
+					if page > 1 {
+						<a
+							class="btn btn-sm btn-ghost"
+							href={ templ.SafeURL(fmt.Sprintf("/management/books?q=%s&page=%d", url.QueryEscape(q), page-1)) }
+							hx-get={ fmt.Sprintf("/management/books?q=%s&page=%d", url.QueryEscape(q), page-1) }
+							hx-target="#catalog-results"
+							hx-swap="outerHTML"
+						>← Prev</a>
+					}
+					<span class="text-sm text-sub">Page { fmt.Sprintf("%d", page) } of { fmt.Sprintf("%d", data.TotalPages) }</span>
+					if page < data.TotalPages {
+						<a
+							class="btn btn-sm btn-ghost"
+							href={ templ.SafeURL(fmt.Sprintf("/management/books?q=%s&page=%d", url.QueryEscape(q), page+1)) }
+							hx-get={ fmt.Sprintf("/management/books?q=%s&page=%d", url.QueryEscape(q), page+1) }
+							hx-target="#catalog-results"
+							hx-swap="outerHTML"
+						>Next →</a>
+					}
+				</div>
+			}
+		}
+	</div>
+}
+
+templ catalogRow(b db.BookWork, stats catalogCopyStats) {
+	<tr>
+		<td>
+			<div class="font-medium">{ b.Title }</div>
+			if len(b.Authors) > 0 {
+				<div class="text-xs text-sub">{ strings.Join(b.Authors, ", ") }</div>
+			}
+		</td>
+		<td class="text-sm text-sub">{ b.Publisher }</td>
+		<td class="text-sm text-sub whitespace-nowrap">
+			if !b.PublishedDate.IsZero() {
+				{ b.PublishedDate.Format("2006") }
+			}
+		</td>
+		<td class="text-sm whitespace-nowrap">
+			if b.Isbn13 != "" {
+				<code class="text-xs">{ b.Isbn13 }</code>
+			} else if b.Isbn10 != "" {
+				<code class="text-xs">{ b.Isbn10 }</code>
+			} else {
+				<span class="text-sub">—</span>
+			}
+		</td>
+		<td class="whitespace-nowrap">
+			if stats.Total == 0 {
+				<span class="ctag ctag-muted">No copies</span>
+			} else {
+				<span class="ctag ctag-sky">{ fmt.Sprintf("%d", stats.Total) } total</span>
+				if stats.Available == 0 {
+					<span class="ctag ctag-red">0 avail</span>
+				} else if stats.Available == stats.Total {
+					<span class="ctag ctag-green">{ fmt.Sprintf("%d", stats.Available) } avail</span>
+				} else {
+					<span class="ctag ctag-teal">{ fmt.Sprintf("%d", stats.Available) } avail</span>
+				}
+			}
+		</td>
+		<td class="whitespace-nowrap">
+			<a href={ templ.SafeURL("/management/books/" + b.ID + "/copies") } class="btn btn-sm btn-subtle">
+				<i class="material-icons" style="font-size:14px;vertical-align:-2px;">library_books</i>
+				Copies
+			</a>
+			<a href={ templ.SafeURL("/management/books/" + b.ID) } class="btn btn-sm btn-subtle">
+				<i class="material-icons" style="font-size:14px;vertical-align:-2px;">info_outline</i>
+				Detail
+			</a>
+		</td>
+	</tr>
+}
+
+// MgmtBookDetail is the read-only detail page for a single BookWork.
+templ MgmtBookDetail(p *fail.RoutingParams, book db.BookWork) {
+	{{ stats := bookCopyStats(book.ID) }}
+	@common.Head(book.Title+" — Management", "Book detail")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-6">
+				<div class="flex items-center gap-3">
+					<a href="/management/books" class="btn btn-ghost btn-sm">← Catalog</a>
+					<h1 class="mb-0">{ book.Title }</h1>
+				</div>
+				<a href={ templ.SafeURL("/management/books/" + book.ID + "/copies") } class="btn btn-primary btn-sm">
+					<i class="material-icons" style="font-size:16px;vertical-align:-3px;">library_books</i>
+					Manage Copies
+				</a>
+			</div>
+			<div class="card card-flat mb-6">
+				<div class="flex gap-6 items-start">
+					if book.CoverImage != "" {
+						<img
+							src={ book.CoverImage }
+							alt={ "Cover of " + book.Title }
+							style="height:200px;width:auto;object-fit:cover;flex-shrink:0;border-radius:var(--radius);"
+						/>
+					}
+					<div class="flex-1">
+						<h2 class="mb-1">{ book.Title }</h2>
+						if book.Subtitle != "" {
+							<p class="text-sub mb-2">{ book.Subtitle }</p>
+						}
+						if len(book.Authors) > 0 {
+							<p class="mb-1"><span class="text-sub">Authors: </span>{ strings.Join(book.Authors, ", ") }</p>
+						}
+						if book.Publisher != "" {
+							<p class="mb-1"><span class="text-sub">Publisher: </span>{ book.Publisher }</p>
+						}
+						if !book.PublishedDate.IsZero() {
+							<p class="mb-1"><span class="text-sub">Published: </span>{ book.PublishedDate.Format("January 2006") }</p>
+						}
+						if book.Isbn13 != "" {
+							<p class="mb-1"><span class="text-sub">ISBN-13: </span><code>{ book.Isbn13 }</code></p>
+						}
+						if book.Isbn10 != "" {
+							<p class="mb-1"><span class="text-sub">ISBN-10: </span><code>{ book.Isbn10 }</code></p>
+						}
+						if book.PageCount > 0 {
+							<p class="mb-1"><span class="text-sub">Pages: </span>{ fmt.Sprintf("%d", book.PageCount) }</p>
+						}
+						<div class="flex gap-3 mt-4">
+							<div class="stat-card" style="padding: var(--space-3) var(--space-4); min-width: 90px;">
+								<div class="stat-value" style="font-size: var(--fs-2xl);">{ fmt.Sprintf("%d", stats.Total) }</div>
+								<div class="stat-label">Total copies</div>
+							</div>
+							<div
+								class={ "stat-card", templ.KV("stat-warn", stats.Available == 0 && stats.Total > 0) }
+								style="padding: var(--space-3) var(--space-4); min-width: 90px;"
+							>
+								<div class="stat-value" style="font-size: var(--fs-2xl);">{ fmt.Sprintf("%d", stats.Available) }</div>
+								<div class="stat-label">Available</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			if book.Description != "" {
+				<div class="card card-flat">
+					<h3 class="mb-2">Description</h3>
+					<p class="text-sm" style="max-width: 72ch; white-space: pre-wrap;">{ book.Description }</p>
+				</div>
+			}
+		</div>
+	</main>
+	@common.Footer()
+}
