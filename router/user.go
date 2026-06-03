@@ -15,6 +15,7 @@ import (
 //	/user/login     -> public_login page (LoginPage)
 //	/user/register  -> public_register page (RegisterPage)
 //	/user           -> user_account page (AccountPage)
+//	/user/dashboard -> user_dashboard page (DashboardPage)
 //	/user/loans     -> user_loans
 //	/user/holds     -> user_holds
 //	/user/fines     -> user_fines
@@ -33,6 +34,8 @@ func UserRouter(p *fail.RoutingParams) {
 		HandleUserFines(p)
 	case "saved":
 		HandleUserSaved(p)
+	case "dashboard":
+		HandleUserDashboard(p)
 	case "":
 		// /user exact -> account dashboard
 		HandleUserAccount(p)
@@ -162,6 +165,17 @@ func HandleUserAccount(p *fail.RoutingParams) {
 		return
 	}
 	fail.Redirect(p)
+}
+
+func HandleUserDashboard(p *fail.RoutingParams) {
+	if p.User == nil {
+		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		return
+	}
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.DashboardPage())
 }
 
 func HandleUserLoans(p *fail.RoutingParams) {
