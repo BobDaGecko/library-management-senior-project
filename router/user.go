@@ -168,8 +168,7 @@ func HandleUserAccount(p *fail.RoutingParams) {
 }
 
 func HandleUserDashboard(p *fail.RoutingParams) {
-	if p.User == nil {
-		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+	if fail.Auth(p, db.UserRolePublic) {
 		return
 	}
 	if fail.Done(p) {
