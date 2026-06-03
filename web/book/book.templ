@@ -73,7 +73,7 @@ templ BookThumb(b db.BookWork, variants ...db.BookWork) {
 templ BookTrunk(b db.BookWork) {
 	<div class="card my-4">
 		<div class="book-container">
-			@bookTrunkContainer(b)
+			@bookTrunkContainer(b, false)
 		</div>
 	</div>
 }
@@ -81,17 +81,17 @@ templ BookTrunk(b db.BookWork) {
 templ BookTrunkAdmin(b db.BookWork) {
 	<div class="card my-4" id={ "book-" + b.ID }>
 		<div class="book-container">
-			@bookTrunkContainer(b)
+			@bookTrunkContainer(b, true)
 			<div class="actions flex flex-col gap-2 items-end">
 				<!-- TO-DO: Database lookup, this isn't reliable -->
-				if !b.CreatedAt.IsZero() {
+				if b.Exists() {
 					<button disabled>
 						@common.Icon("check", false)
 					</button>
 				} else {
 					<form
 						hx-put="/management/books/add"
-						hx-target={ "book-" + b.ID }
+						hx-swap="outerHTML"
 					>
 						<input name="id" class="hidden" value={ b.ID }/>
 						<button type="submit">
@@ -104,14 +104,18 @@ templ BookTrunkAdmin(b db.BookWork) {
 	</div>
 }
 
-templ bookTrunkContainer(b db.BookWork) {
+templ bookTrunkContainer(b db.BookWork, admin bool) {
 	<img src={ b.CoverThumb } alt="[book cover]" class="book-cover mr-2"/>
 	<div class="book-info flex flex-col gap-1">
-		<a href={ fmt.Sprintf("/book/%s", b.ID) }>
+		if admin {
+			<h3 class="book-title text-secondary mb-0">
+				<a href={ templ.SafeURL("/management/books/" + b.ID) }>{ b.Title }</a>
+			</h3>
+		} else {
 			<h3 class="book-title text-secondary mb-0">
 				<a href={ templ.SafeURL("/book/" + b.ID) }>{ b.Title }</a>
 			</h3>
-		</a>
+		}
 		<span class="author text-sm mb-2">
 			{ "by " }
 			for i, author := range b.Authors {

@@ -109,6 +109,12 @@ func (b *BookWork) AllCopies() (CopyList, error) {
 	return ret, status.Error
 }
 
+func (b BookWork) Exists() bool {
+	c := int64(0)
+	Db().Model(&b).Where(&BookWork{ID: b.ID}).Count(&c)
+	return c != 0
+}
+
 // Strictly matches against this particular edition
 func (b *BookWork) CopiesStrict() (CopyList, error) {
 	db := Db()

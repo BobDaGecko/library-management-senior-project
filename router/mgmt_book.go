@@ -51,12 +51,34 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 			fmt.Sprintf("%s?q=%s", p.Req.URL.String(), url.QueryEscape(query)),
 		)
 		fail.Render(p, pages.BookMgmtSearchGrid(query))
+	case http.MethodPut:
+		if fail.Form(p) {
+			return
+		}
+		id := p.Req.Form.Get("id")
+		if id == "" {
+			http.Error(p.W, "missing id", http.StatusBadRequest)
+			return
+		}
+		details, err := fetch.GBooksVolume(id)
+		if err != nil {
+			http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+		book := details.ToLocalStruct()
+		if err := db.Db().Save(&book).Error; err != nil {
+			http.Error(p.W, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprint(p.W, `<button disabled><i class="material-icons">check</i></button>`)
+		return
 	default:
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// HandleManagementBook handles GET (edit page placeholder), PUT (fetch from Google & overwrite), PATCH (form update with reflect)
+// HandleManagementBook handles GET (edit page), PUT (fetch from Google & overwrite), PATCH (form update with reflect)
 // for /management/books/:id where :id is Google Books volume ID.
 // It also supports nested routes:
 //
@@ -97,8 +119,8 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 			return
 		}
 
-		// Book exists locally → placeholder for full edit page
-		http.Error(p.W, "Edit page for book not yet implemented (501)", http.StatusNotImplemented)
+		// Book exists locally → full edit page for metadata (PATCH updates via form)
+		fail.Render(p, pages.MgmtBookEdit(bookId, book, p))
 
 	case http.MethodPut:
 		// Fetch all details from Google Books and overwrite in DB
@@ -341,6 +363,18 @@ func updateBookFromForm(target interface{}, form map[string][]string) {
 						} else if tVal, err := time.Parse("2006-01-02", valStr); err == nil {
 							fv.Set(reflect.ValueOf(tVal))
 						}
+					}
+				case reflect.Slice:
+					if fv.Type().Elem().Kind() == reflect.String {
+						parts := []string{}
+						for _, line := range strings.Split(valStr, "\n") {
+							for _, p := range strings.Split(line, ",") {
+								if t := strings.TrimSpace(p); t != "" {
+									parts = append(parts, t)
+								}
+							}
+						}
+						fv.Set(reflect.ValueOf(parts).Convert(fv.Type()))
 					}
 				}
 				break

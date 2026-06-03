@@ -2,10 +2,10 @@ package pages
 
 import (
 	"fmt"
-	"strings"
 
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/book"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
@@ -27,28 +27,17 @@ func copyCheckoutName(c db.BookCopy) string {
 }
 
 // MgmtBookCopies is the full page for /management/books/:book-id/copies
-templ MgmtBookCopies(bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList], p *fail.RoutingParams) {
+templ MgmtBookCopies(bookID string, b db.BookWork, copies db.FormatsMap[db.CopyList], p *fail.RoutingParams) {
 	@common.Head("Copies - Management", "Manage book copies")
 	@common.NavHead("Management", p.Param("q"))
 	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
 	<main class="ml-80 mt-8">
 		<div class="container-lg">
 			<div class="flex items-center justify-between mb-4">
-				<div>
-					<h1 class="mb-1">Copies</h1>
-					if book.Title != "" {
-						<p class="text-secondary mb-0">
-							{ book.Title }
-							if len(book.Authors) > 0 {
-								<span>by { strings.Join(book.Authors, ", ") }</span>
-							}
-						</p>
-					} else {
-						<p class="text-secondary">Book ID: { bookID }</p>
-					}
-				</div>
+				<h1 class="mb-1">Copies</h1>
 				<a href="/management" class="btn btn-sm btn-ghost">← Catalog</a>
 			</div>
+			@book.BookTrunk(b)
 			@MgmtBookCopiesList(bookID, copies)
 		</div>
 		@common.Footer()
