@@ -1,0 +1,137 @@
+package pages
+
+import "voxelprismatic/library-management-senior-project/web/common"
+
+templ BlogPage() {
+	@common.Head("Staff Picks & Blog · Town Library", "Explore staff picks, library news, and blog posts from the Town Library team.")
+	<body class="bg-base">
+		@common.NavHead("Blog", "")
+
+		<!-- Sub nav matching user pages pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+
+			<!-- Page Header -->
+			<header class="between mb-6">
+				<h1>Staff Picks & Library Blog</h1>
+
+				<!-- Sorting -->
+				<select class="form-input select w-fit">
+					<option>Most recent</option>
+					<option>Oldest first</option>
+				</select>
+			</header>
+
+			<!-- Tag Filters -->
+			<section class="demo-row mb-6">
+				<span class="badge">Staff Picks</span>
+				<span class="badge">New Arrivals</span>
+				<span class="badge">History</span>
+				<span class="badge">Fiction</span>
+				<span class="badge">Community</span>
+			</section>
+
+			<!-- Blog Posts List -->
+			<section class="stack">
+
+				<!-- Blog Card -->
+				<article class="card">
+					<div class="two-col">
+
+						<img
+							src="/assets/img/placeholder.jpg"
+							alt="Blog post cover"
+							class="rounded"
+						/>
+
+						<div class="card-body">
+							<h2>
+								<a href="/blog/1">Staff Picks: Modern History Reads</a>
+							</h2>
+
+							<p class="text-sm text-muted">
+								Posted May 2026 · by Library Staff
+							</p>
+
+							<p>
+								Our librarians share their favorite modern history titles that
+								offer insight into global events and cultural change.
+							</p>
+
+							<div class="demo-row mb-4">
+								<span class="badge">Staff Picks</span>
+								<span class="badge">History</span>
+							</div>
+
+							<a href="/blog/1" class="btn btn-link">
+								Read more →
+							</a>
+						</div>
+
+					</div>
+				</article>
+
+				<!-- Blog Card -->
+				<article class="card">
+					<div class="two-col">
+
+						<img
+							src="/assets/img/placeholder.jpg"
+							alt="Blog post cover"
+							class="rounded"
+						/>
+
+						<div class="card-body">
+							<h2>
+								<a href="/blog/2">Books Behind the Movies</a>
+							</h2>
+
+							<p class="text-sm text-muted">
+								Posted April 2026 · by Library Staff
+							</p>
+
+							<p>
+								Discover popular films that started as books, and explore the
+								original stories behind the screen.
+							</p>
+
+							<div class="demo-row mb-4">
+								<span class="badge">Fiction</span>
+								<span class="badge">Staff Picks</span>
+							</div>
+
+							<!-- Linked Book -->
+							<p class="text-sm">
+								Featured Book:
+								<a href="/book/42">The Great Adventure</a>
+							</p>
+
+							<a href="/blog/2" class="btn btn-link">
+								Read more →
+							</a>
+						</div>
+
+					</div>
+				</article>
+
+			</section>
+
+		</main>
+
+		@common.Footer()
+	</body>
+}

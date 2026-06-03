@@ -1,0 +1,115 @@
+package pages
+
+import "voxelprismatic/library-management-senior-project/web/common"
+
+templ BlogDetailsPage() {
+	@common.Head("Blog Post · Town Library", "Read the full blog post and discover featured books from the Town Library staff picks.")
+	<body class="bg-base">
+		@common.NavHead("Blog", "")
+
+		<!-- Sub nav matching user pages pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+
+			<article class="prose">
+
+				<h1>Staff Picks: Modern History Reads</h1>
+
+				<p class="text-sm text-muted">
+					Posted May 2026 · by Library Staff
+				</p>
+
+				<!-- Tags -->
+				<div class="demo-row mb-4">
+					<span class="badge">Staff Picks</span>
+					<span class="badge">History</span>
+					<span class="badge">Non‑fiction</span>
+				</div>
+
+				<!-- Like Action -->
+				<div class="demo-row mb-6">
+					<button class="btn btn-ghost">
+						<i class="material-icons">thumb_up</i>
+						Like
+						</button>
+					</div>
+
+				<!-- Post Body -->
+				<p>
+					Our librarians are passionate readers, and each month they select a
+					group of titles they believe deserve special attention. This month,
+					we’re highlighting modern history books that explore pivotal global
+					events through engaging and accessible storytelling.
+				</p>
+
+				<p>
+					These works offer context, perspective, and insight into how the world
+					we live in today was shaped. Whether you’re a student, lifelong learner,
+					or casual reader, these picks are a great place to start.
+				</p>
+
+				<p>
+					Visit your local branch or explore our digital collection to check out
+					these titles today.
+				</p>
+
+				<!-- Featured Books -->
+				<section class="mt-8">
+
+					<h2>Featured Books</h2>
+
+					<div class="two-col mt-4">
+
+						<article class="card">
+							<div class="card-body">
+								<h3>
+									<a href="/book/1">Modern World History</a>
+								</h3>
+								<p class="text-sm text-muted">
+									by Jane Smith
+								</p>
+								<p class="text-sm">
+									A concise overview of major global events shaping the modern era.
+								</p>
+							</div>
+						</article>
+
+						<article class="card">
+							<div class="card-body">
+								<h3>
+									<a href="/book/2">History Through Stories</a>
+								</h3>
+								<p class="text-sm text-muted">
+									by Alan Cooper
+								</p>
+								<p class="text-sm">
+									Engaging narratives that bring historical moments to life.
+								</p>
+							</div>
+						</article>
+
+					</div>
+
+				</section>
+
+			</article>
+
+		</main>
+
+		@common.Footer()
+	</body>
+}
