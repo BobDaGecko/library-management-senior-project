@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
@@ -62,27 +61,33 @@ func HandleUserLoginPost(p *fail.RoutingParams) {
 		return
 	}
 
+	errs := map[string]error{}
 	formData := p.Form()
-	email := strings.TrimSpace(formData["email"])
-	secret := formData["password"]
-
-	userObj := db.User{Email: email}
-	if email == "" {
-		fail.Render(p, pages.LoginPage())
-		return
+	userObj := db.User{Email: formData["emailAddr"]}
+	if userObj.Email == "" {
+		errs["emailAddr"] = fmt.Errorf("email cannot be blank")
 	} else if err := db.Db().Where(&userObj).First(&userObj).Error; err != nil {
-		fail.Render(p, pages.LoginPage())
-		return
+		errs["emailAddr"] = fmt.Errorf("email not found")
 	}
 
-	if !userObj.TestSecret(secret) {
-		fail.Render(p, pages.LoginPage())
+	if len(errs) == 0 && !userObj.TestSecret(formData["secret"]) {
+		errs["secret"] = fmt.Errorf("incorrect password")
+	}
+
+	if len(errs) > 0 {
+		(fail.HTMX{
+			Retarget: "#formEntry",
+			Reswap:   "outerHTML",
+		}).Apply(p)
+		fail.Render(p, user.FormTable(user.LoginFormEntries, formData, errs))
 		return
 	}
 
 	jwt := userObj.IssueJWT()
 	p.W.Header().Set("Set-Cookie", fmt.Sprintf("tok=%s; path=/", jwt.Token))
-	http.Redirect(p.W, p.Req, "/user", http.StatusSeeOther)
+	(fail.HTMX{
+		Redirect: "/",
+	}).Apply(p)
 }
 
 func HandleUserRegister(p *fail.RoutingParams) {
@@ -105,47 +110,44 @@ func HandleUserRegisterPost(p *fail.RoutingParams) {
 		return
 	}
 
-	form := p.Form()
-	fullName := strings.TrimSpace(form["name"])
-	email := strings.TrimSpace(form["email"])
-	secret := form["password"]
-	secret2 := form["confirm_password"]
-
-	// crude name split (new templates use single "name"; db model uses first+last)
-	first, last := "", ""
-	if fullName != "" {
-		parts := strings.SplitN(fullName, " ", 2)
-		first = parts[0]
-		if len(parts) > 1 {
-			last = parts[1]
-		}
-	}
-
 	userObj := db.User{}
-	if err := userObj.SetFirstName(first); err != nil {
-		fail.Render(p, pages.RegisterPage())
-		return
+	errs := map[string]error{}
+	formData := p.Form()
+
+	if err := userObj.SetFirstName(formData["firstName"]); err != nil {
+		errs["firstName"] = err
 	}
-	if err := userObj.SetLastName(last); err != nil {
-		fail.Render(p, pages.RegisterPage())
-		return
+
+	if err := userObj.SetLastName(formData["lastName"]); err != nil {
+		errs["lastName"] = err
 	}
-	if err := userObj.SetEmail(email); err != nil {
-		fail.Render(p, pages.RegisterPage())
-		return
+
+	if err := userObj.SetEmail(formData["emailAddr"]); err != nil {
+		errs["emailAddr"] = err
 	}
-	if err := db.TestSecretStrength(secret); err != nil {
-		fail.Render(p, pages.RegisterPage())
-		return
+
+	if err := db.TestSecretStrength(formData["secret"]); err != nil {
+		errs["secret"] = err
 	}
-	if err := userObj.SetSecret(secret, secret2); err != nil {
-		fail.Render(p, pages.RegisterPage())
+
+	if err := userObj.SetSecret(formData["secret"], formData["secret_again"]); err != nil {
+		errs["secret_again"] = err
+	}
+
+	if len(errs) > 0 {
+		(fail.HTMX{
+			Retarget: "#formEntry",
+			Reswap:   "outerHTML",
+		}).Apply(p)
+		fail.Render(p, user.FormTable(user.RegisterFormEntries, formData, errs))
 		return
 	}
 
 	jwt := userObj.IssueJWT()
 	p.W.Header().Set("Set-Cookie", fmt.Sprintf("tok=%s; path=/", jwt.Token))
-	http.Redirect(p.W, p.Req, "/user", http.StatusSeeOther)
+	(fail.HTMX{
+		Redirect: "/",
+	}).Apply(p)
 }
 
 // Account (and subs) require a logged-in user.
