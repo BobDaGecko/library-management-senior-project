@@ -1,0 +1,156 @@
+package pages
+
+import "voxelprismatic/library-management-senior-project/web/common"
+
+templ DashboardPage() {
+	@common.Head("Dashboard · Town Library", "Your personal library dashboard.")
+	<body class="bg-base">
+		@common.NavHead("Dashboard", "")
+
+		<!-- Sub nav matching account/public pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+			<h2 class="ml-6 mt-6">Welcome User</h2>
+
+			<div class="card card-outline max-w-lg mx-auto">
+				<header class="card-header">
+					<nav class="mt-2 centered">
+						<ul class="navbar-nav">
+							<li><a class="border-b" href="#">Dashboard</a></li>
+							<li><a href="#">Loans &nbsp;<span>1</span></a></li>
+							<li><a href="#">Holds &nbsp;<span>1</span></a></li>
+							<li><a href="#">Fines &nbsp;<span>1</span></a></li>
+						</ul>
+					</nav>
+				</header>
+
+				<div class="four-col items-start p-3">
+					<!--Loans-->
+					<div class="card" style="min-height: 230px;">
+						<header class="card-header">Loans</header>
+						<div class="card-body">
+							<!--For when user has no loaned books-->
+							<section class="emptyItem ml-6 pl-2">
+								<p><i class="material-icons pl-2" style="font-size: 100px;">book</i></p>
+								<p>No books on Loan</p>
+							</section>
+
+							<!--Book on loan-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0"><sup class="counter">1</sup> <span class="bookTitle">Book Title</span></p>
+								<p class="text-sm authorName">Author Name</p>
+								<p> <i class="material-icons" style="font-size: 22px;">alarm</i>Due:<span class="dueDate"> 05/12/2026</span></p>
+							</div>
+
+							<!--Overdue book on loan-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0"><sup class="counter">2</sup> <span class="bookTitle">Book Title</span></p>
+								<p class="text-sm authorName">Author Name</p>
+								<p class="text-error"><i class="material-icons" style="font-size: 22px;">alarm</i>Overdue:<span class="dueDate"> 05/12/2026</span></p>
+							</div>
+						</div>
+					</div>
+
+					<!--Holds-->
+					<div class="card" style="min-height: 230px;">
+						<header class="card-header">Holds</header>
+						<div class="card-body">
+							<!--For when user has no books on hold-->
+							<section class="emptyItem ml-6 pl-2">
+								<p><i class="material-icons pl-2" style="font-size: 100px;">bookmark</i></p>
+								<p>No books on Hold</p>
+							</section>
+
+							<!--Book request on hold -->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0"><sup class="counter">1</sup> <span class="bookTitle">Book Title</span></p>
+								<p class="text-sm authorName">Author Name</p>
+								<p> <i class="material-icons" style="font-size: 22px;">do_not_disturb_on</i>Status:<span class="status">Not Ready</span></p>
+							</div>
+
+							<!--Book on hold ready for pickup-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0"><sup class="counter">2</sup> <span class="bookTitle">Book Title</span></p>
+								<p class="text-sm authorName">Author Name</p>
+								<p class="text-green"><i class="material-icons" style="font-size: 22px;">check</i>Status:<span class="status">Ready for pickup</span></p>
+							</div>
+						</div>
+					</div>
+
+					<!--Fines-->
+					<div class="card" style="min-height: 230px;">
+						<header class="card-header">
+							<p class="mb-0">Fines</p>
+							<!--Shows when user has an balance-->
+							<p class="mb-0 text-sm hidden">Current due:<span>$10.00</span></p>
+						</header>
+
+						<div class="card-body">
+							<!--For when user has no fines-->
+							<section class="emptyItem ml-6 pl-2">
+								<p><i class="material-icons pl-2" style="font-size: 100px;">wb_sunny</i></p>
+								<p>No books on Loan</p>
+							</section>
+
+							<!--Type of fine-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0 text-red"><sup class="counter">1</sup><i class="material-icons" style="font-size: 20px;">error</i> <span class="fineType">Overdue fine</span></p>
+								<p class="text-sm"> <span class="fineAmount"> 5.00</span> USD</p>
+								<p class="text-sm text-muted"> Fine date:<span class="fineDate"> 05/30/2026</span></p>
+							</div>
+
+							<!--Overdue book on loan-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0 text-red"><sup class="counter">2</sup><i class="material-icons" style="font-size: 20px;">error</i> <span class="fineType">Resource Sharing fine</span></p>
+								<p class="text-sm"> <span class="fineAmount"> 5.00</span> USD</p>
+								<p class="text-sm text-muted"> Fine date:<span class="fineDate"> 05/31/2026</span></p>
+							</div>
+						</div>
+					</div>
+
+					<!--Saved Items-->
+					<div class="card" style="min-height: 230px;">
+						<header class="card-header">Saved Items</header>
+						<div class="card-body">
+							<!--For when user has saved books-->
+							<section class="emptyItem ml-6 pl-2">
+								<p><i class="material-icons pl-2" style="font-size: 100px;">bookmark</i></p>
+								<p>No saved items</p>
+							</section>
+
+							<!-- Available Book-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0"><sup class="counter">1</sup> <span class="bookTitle">Book Title</span></p>
+								<p class="text-sm authorName">Author Name</p>
+								<p class="text-green"><span class="availability">Available</span></p>
+							</div>
+
+							<!--Unavailable Book-->
+							<div class="panel panel-hover block mb-4" style="border-color: var(--bg-surface);">
+								<p class="mb-0"><sup class="counter">2</sup> <span class="bookTitle">Book Title</span></p>
+								<p class="text-sm authorName">Author Name</p>
+								<p class="text-error"><span class="availability">All Copies In Use</span></p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		@common.Footer()
+	</body>
+}
