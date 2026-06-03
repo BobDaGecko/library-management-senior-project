@@ -51,6 +51,28 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 			fmt.Sprintf("%s?q=%s", p.Req.URL.String(), url.QueryEscape(query)),
 		)
 		fail.Render(p, pages.BookMgmtSearchGrid(query))
+	case http.MethodPut:
+		if fail.Form(p) {
+			return
+		}
+		id := p.Req.Form.Get("id")
+		if id == "" {
+			http.Error(p.W, "missing id", http.StatusBadRequest)
+			return
+		}
+		details, err := fetch.GBooksVolume(id)
+		if err != nil {
+			http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+		book := details.ToLocalStruct()
+		if err := db.Db().Save(&book).Error; err != nil {
+			http.Error(p.W, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprint(p.W, `<button disabled><i class="material-icons">check</i></button>`)
+		return
 	default:
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
 	}
