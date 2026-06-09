@@ -31,16 +31,16 @@ templ ShieldText(lhs string, rhs string, bg string, fg string) {
 templ ShieldFormat(f db.BookFmtFlag, count db.CopyCount) {
 	switch f {
 		case db.BookFmtPaperback:
-			@ShieldText("Paperback", fmt.Sprintf("%d", count.Available), "var(--peach)", "var(--text)")
+			@ShieldText("Paperback", fmt.Sprintf("%d", count.Available), "var(--tertiary)", "var(--on-primary)")
 		case db.BookFmtHardCover:
-			@ShieldText("Hard Cover", fmt.Sprintf("%d", count.Available), "var(--peach)", "var(--text)")
+			@ShieldText("Hard Cover", fmt.Sprintf("%d", count.Available), "var(--tertiary)", "var(--on-primary)")
 		case db.BookFmtPhysicalAudio:
-			@ShieldText("Audio Player", fmt.Sprintf("%d", count.Available), "var(--teal)", "var(--text)")
+			@ShieldText("Audio Player", fmt.Sprintf("%d", count.Available), "var(--tertiary)", "var(--on-primary)")
 		case db.BookFmtDigitalBook:
-			@ShieldText("Kindle", fmt.Sprintf("%d", count.Available), "var(--green)", "var(--text)")
+			@ShieldText("Kindle", fmt.Sprintf("%d", count.Available), "var(--tertiary)", "var(--on-primary)")
 		case db.BookFmtDigitalAudio:
-			@ShieldText("Audible", fmt.Sprintf("%d", count.Available), "var(--sky)", "var(--text)")
+			@ShieldText("Audible", fmt.Sprintf("%d", count.Available), "var(--tertiary)", "var(--on-primary)")
 		default:
-			@ShieldText(f.String(), fmt.Sprintf("%d", count.Available), "var(--red)", "white")
+			@ShieldText(f.String(), fmt.Sprintf("%d", count.Available), "var(--tertiary)", "var(--on-primary)")
 	}
 }
