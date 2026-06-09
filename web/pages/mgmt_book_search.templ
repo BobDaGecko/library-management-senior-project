@@ -1,6 +1,9 @@
 package pages
 
 import (
+	"fmt"
+	"strings"
+
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/fetch"
 	"voxelprismatic/library-management-senior-project/router/fail"
@@ -60,6 +63,75 @@ templ MgmtBookSearchFull(q string, p *fail.RoutingParams) {
 				</form>
 			</div>
 			@MgmtBookSearchGrid(q)
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// MgmtBookPreview is the read-only confirmation page before a book is saved.
+// The book struct is pre-populated from the Google Books API but not yet persisted.
+templ MgmtBookPreview(b db.BookWork, googleID string, p *fail.RoutingParams) {
+	@common.Head(b.Title+" — Add to Library", "Preview book before adding")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-6">
+				<a href="/management/books/add" class="btn btn-subtle btn-sm">← Back to Search</a>
+			</div>
+			<div class="field-warning mb-4" style="font-size:var(--fs-sm);">
+				<i class="material-icons">info</i>
+				Review the metadata below before adding to the library. This book has not been saved yet.
+			</div>
+			<div class="card card-flat mb-6">
+				<div class="flex gap-6 items-start">
+					if b.CoverImage != "" {
+						<img
+							src={ b.CoverImage }
+							alt={ "Cover of " + b.Title }
+							style="height:200px;width:auto;object-fit:cover;flex-shrink:0;border-radius:var(--radius);"
+						/>
+					}
+					<div class="flex-1">
+						<h2 class="mb-1">{ b.Title }</h2>
+						if b.Subtitle != "" {
+							<p class="text-sub mb-2">{ b.Subtitle }</p>
+						}
+						if len(b.Authors) > 0 {
+							<p class="mb-1"><span class="text-sub">Authors: </span>{ strings.Join(b.Authors, ", ") }</p>
+						}
+						if b.Publisher != "" {
+							<p class="mb-1"><span class="text-sub">Publisher: </span>{ b.Publisher }</p>
+						}
+						if !b.PublishedDate.IsZero() {
+							<p class="mb-1"><span class="text-sub">Published: </span>{ b.PublishedDate.Format("January 2006") }</p>
+						}
+						if b.Isbn13 != "" {
+							<p class="mb-1"><span class="text-sub">ISBN-13: </span><code>{ b.Isbn13 }</code></p>
+						}
+						if b.Isbn10 != "" {
+							<p class="mb-1"><span class="text-sub">ISBN-10: </span><code>{ b.Isbn10 }</code></p>
+						}
+						if b.PageCount > 0 {
+							<p class="mb-1"><span class="text-sub">Pages: </span>{ fmt.Sprintf("%d", b.PageCount) }</p>
+						}
+					</div>
+				</div>
+			</div>
+			if b.Description != "" {
+				<div class="card card-flat mb-6">
+					<h3 class="mb-2">Description</h3>
+					@templ.Raw("<div class=\"book-description\">" + b.Description + "</div>")
+				</div>
+			}
+			<div class="flex gap-3 items-center">
+				<form method="post" action={ templ.SafeURL("/management/books/add/" + googleID + "/confirm") }>
+					<button type="submit" class="btn btn-primary">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;margin-right:2px;">library_add</i>
+						Confirm &amp; Add to Library
+					</button>
+				</form>
+				<a href="/management/books/add" class="btn btn-ghost">Cancel</a>
+			</div>
 		</div>
 	</main>
 	@common.Footer()

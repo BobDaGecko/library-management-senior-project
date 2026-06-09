@@ -156,7 +156,7 @@ templ CheckoutCopyResults(copies []db.BookCopy, userID string) {
 					hx-target="#checkout-workflow"
 					hx-swap="innerHTML"
 				>
-					<span class="result-item-title">{ c.BookWork.Title }</span>
+					<span class="result-item-title">@BookTitle(c.BookWork.Title)</span>
 					<span class="result-item-meta">
 						<span class="ctag ctag-sky">{ c.Format.DisplayName() }</span>
 						<span class="text-sub">{ c.Condition.DisplayName() }</span>
@@ -180,7 +180,7 @@ templ CheckoutConfirmCard(user db.User, copy db.BookCopy, userID string, copyID 
 				</tr>
 				<tr>
 					<td class="label">Book</td>
-					<td>{ copy.BookWork.Title }</td>
+					<td>@BookTitle(copy.BookWork.Title)</td>
 				</tr>
 				<tr>
 					<td class="label">Format</td>

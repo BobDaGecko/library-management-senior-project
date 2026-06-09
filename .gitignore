@@ -8,3 +8,9 @@ CLAUDE.md
 wiki
 project-management
 
+# Local build artifacts and tooling (NOT the seed source — cmd/seed/*.go is tracked)
+/seed
+/cmd/seed/seed
+ui-*.png
+.playwright-mcp/
+

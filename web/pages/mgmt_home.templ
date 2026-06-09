@@ -107,14 +107,8 @@ templ ManagementHome(p *fail.RoutingParams) {
 	@common.MgmtNavHead(p.Req.URL.Path)
 	<main class="page-main">
 		<div class="container">
-			<div class="flex items-center justify-between mb-6">
+			<div class="mb-6">
 				<h1>Dashboard</h1>
-				<div class="flex gap-2">
-					<a href="/management/books/add" class="btn btn-primary btn-sm">
-						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">add</i>
-						Add Books
-					</a>
-				</div>
 			</div>
 			<!-- Stats row -->
 			<div class="stat-grid mb-8">
@@ -162,6 +156,10 @@ templ ManagementHome(p *fail.RoutingParams) {
 						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">login</i>
 						Checkout Book
 					</a>
+					<a href="/management/books/add" class="btn btn-green">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">add</i>
+						Add Books
+					</a>
 					<a href="/management/return" class="btn btn-subtle">
 						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">logout</i>
 						Process Return
@@ -169,6 +167,10 @@ templ ManagementHome(p *fail.RoutingParams) {
 					<a href="/management/overdue" class="btn btn-subtle">
 						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">schedule</i>
 						View Overdue
+					</a>
+					<a href="/management/transactions" class="btn btn-subtle">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">receipt_long</i>
+						View Transactions
 					</a>
 				</div>
 			</div>
@@ -195,7 +197,7 @@ templ ManagementHome(p *fail.RoutingParams) {
 							<tbody>
 								for _, l := range recentLoans {
 									<tr>
-										<td>{ l.BookCopy.BookWork.Title }</td>
+										<td>@BookTitle(l.BookCopy.BookWork.Title)</td>
 										<td>
 											<a href={ templ.SafeURL("/management/users/" + l.User.ID.String()) }>
 												{ l.User.FirstName } { l.User.LastName }
@@ -252,12 +254,9 @@ templ ManagementHome(p *fail.RoutingParams) {
 			</div>
 			<!-- Catalog section -->
 			<div class="card-flat mt-8">
-				<div class="flex items-center justify-between mb-4">
-					<h3>Recently Added to Catalog</h3>
-					<a href="/management/books/add" class="text-sm">Add more →</a>
-				</div>
-				<div class="main three-col">
-					for _, b := range getLatestBooks(9) {
+				<h3 class="mb-4">Recently Added to Catalog</h3>
+				<div class="home-recent-grid">
+					for _, b := range getLatestBooks(12) {
 						@book.BookCover(b)
 					}
 				</div>

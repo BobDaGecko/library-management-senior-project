@@ -115,6 +115,51 @@ func bookCopyStats(bookID string) catalogCopyStats {
 	return catalogCopyStats{Total: int(total), Available: int(avail)}
 }
 
+type bookDeletePreflight struct {
+	ActiveLoans      int64
+	OpenHolds        int64
+	Repairing        int64
+	PendingReturn    int64
+	PendingAction    int64
+	OutstandingFines float32
+}
+
+func deletionPreflight(bookID string) bookDeletePreflight {
+	var df bookDeletePreflight
+
+	// Active loans — block deletion if any copies are currently checked out
+	db.Db().Table("loans").
+		Joins("JOIN book_copies ON book_copies.id = loans.book_copy_id").
+		Where("book_copies.book_work_id = ?", bookID).
+		Where("loans.date_returned = ?", db.NilTime).
+		Where("loans.deleted_at IS NULL").
+		Count(&df.ActiveLoans)
+
+	// Open holds (safe to count — does not scan SqlUUID BookWorkID)
+	db.Db().Model(&db.Hold{}).
+		Where("book_work_id = ?", bookID).
+		Where("fulfilled_date = ?", db.NilTime).
+		Where("cancelled_date = ?", db.NilTime).
+		Count(&df.OpenHolds)
+
+	// Non-standard copy states (each will be warned individually)
+	db.Db().Model(&db.BookCopy{}).Where("book_work_id = ? AND status = ?", bookID, db.CopyStatusRepairing).Count(&df.Repairing)
+	db.Db().Model(&db.BookCopy{}).Where("book_work_id = ? AND status = ?", bookID, db.CopyStatusPendingReturn).Count(&df.PendingReturn)
+	db.Db().Model(&db.BookCopy{}).Where("book_work_id = ? AND status = ?", bookID, db.CopyStatusPendingAction).Count(&df.PendingAction)
+
+	// Outstanding fines through loan → book_copy → book_work chain
+	db.Db().Table("fines").
+		Select("COALESCE(SUM(fines.amount_remaining), 0)").
+		Joins("JOIN loans ON loans.id = fines.loan_id").
+		Joins("JOIN book_copies ON book_copies.id = loans.book_copy_id").
+		Where("book_copies.book_work_id = ?", bookID).
+		Where("fines.amount_remaining > 0").
+		Where("fines.deleted_at IS NULL").
+		Scan(&df.OutstandingFines)
+
+	return df
+}
+
 // MgmtCatalog is the full catalog page at /management/books
 templ MgmtCatalog(p *fail.RoutingParams, q string, page int) {
 	@common.Head("Catalog — Management", "Book catalog")
@@ -270,10 +315,7 @@ templ MgmtBookDetail(p *fail.RoutingParams, book db.BookWork) {
 	<main class="page-main">
 		<div class="container">
 			<div class="flex items-center justify-between mb-6">
-				<div class="flex items-center gap-3">
-					<a href="/management/books" class="btn btn-subtle btn-sm">← Catalog</a>
-					<h1 class="mb-0">{ book.Title }</h1>
-				</div>
+				<a href="/management/books" class="btn btn-subtle btn-sm">← Catalog</a>
 				<div class="flex gap-2">
 					<a href={ templ.SafeURL("/management/books/" + book.ID + "/edit") } class="btn btn-sm btn-subtle">
 						<i class="material-icons" style="font-size:14px;vertical-align:-2px;">edit</i>
@@ -336,9 +378,69 @@ templ MgmtBookDetail(p *fail.RoutingParams, book db.BookWork) {
 			if book.Description != "" {
 				<div class="card card-flat">
 					<h3 class="mb-2">Description</h3>
-					<p class="text-sm" style="max-width: 72ch; white-space: pre-wrap;">{ book.Description }</p>
+					@templ.Raw("<div class=\"book-description\">" + book.Description + "</div>")
 				</div>
 			}
+			{{ df := deletionPreflight(book.ID) }}
+			<div class="card card-flat" style="margin-top: var(--space-6); border-color: color-mix(in oklch, var(--red) 30%, transparent);">
+				<h3 class="mb-4" style="color: var(--red);">
+					<i class="material-icons" style="font-size:20px;vertical-align:-4px;margin-right:var(--space-2);">warning</i>
+					Danger Zone
+				</h3>
+				if df.ActiveLoans > 0 {
+					<div class="field-error">
+						<i class="material-icons">block</i>
+						{ fmt.Sprintf("This book has %d active loan(s) and cannot be deleted — return all copies first.", df.ActiveLoans) }
+					</div>
+					<div style="margin-top: var(--space-4);">
+						<button disabled class="btn btn-danger btn-sm" title="Return all active loans before deleting">
+							<i class="material-icons" style="font-size:15px;vertical-align:-3px;margin-right:2px;">delete_forever</i>
+							Delete Book from Catalog
+						</button>
+					</div>
+				} else {
+					if df.OpenHolds > 0 {
+						<div class="field-warning">
+							<i class="material-icons">warning</i>
+							{ fmt.Sprintf("%d patron(s) have open holds on this book — they will be automatically cancelled.", df.OpenHolds) }
+						</div>
+					}
+					if df.Repairing > 0 {
+						<div class="field-warning">
+							<i class="material-icons">warning</i>
+							{ fmt.Sprintf("%d cop(y/ies) currently out for repair will be soft-deleted.", df.Repairing) }
+						</div>
+					}
+					if df.PendingReturn > 0 {
+						<div class="field-warning">
+							<i class="material-icons">warning</i>
+							{ fmt.Sprintf("%d cop(y/ies) pending return will be soft-deleted.", df.PendingReturn) }
+						</div>
+					}
+					if df.PendingAction > 0 {
+						<div class="field-warning">
+							<i class="material-icons">warning</i>
+							{ fmt.Sprintf("%d cop(y/ies) pending action will be soft-deleted.", df.PendingAction) }
+						</div>
+					}
+					if df.OutstandingFines > 0 {
+						<div class="field-warning">
+							<i class="material-icons">info</i>
+							{ fmt.Sprintf("$%.2f in outstanding fines — fines remain payable after deletion.", df.OutstandingFines) }
+						</div>
+					}
+					<div style="margin-top: var(--space-4);">
+						<button
+							class="btn btn-danger btn-sm"
+							hx-post={ "/management/books/" + book.ID + "/delete" }
+							hx-confirm="Permanently remove this book and all its copies from the catalog? This action cannot be undone."
+						>
+							<i class="material-icons" style="font-size:15px;vertical-align:-3px;margin-right:2px;">delete_forever</i>
+							Delete Book from Catalog
+						</button>
+					</div>
+				}
+			</div>
 		</div>
 	</main>
 	@common.Footer()

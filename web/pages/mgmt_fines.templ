@@ -65,7 +65,7 @@ templ MgmtFinesTable() {
 								{ f.Loan.User.FirstName } { f.Loan.User.LastName }
 							</a>
 						</td>
-						<td>{ f.Loan.BookCopy.BookWork.Title }</td>
+						<td>@BookTitle(f.Loan.BookCopy.BookWork.Title)</td>
 						<td>@fineReasonCtag(f.IssueReason)</td>
 						<td>{ fmt.Sprintf("$%.2f", f.AmountIssued) }</td>
 						<td>{ fmt.Sprintf("$%.2f", f.AmountRemaining) }</td>

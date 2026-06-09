@@ -1,117 +1,84 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"fmt"
+	"time"
 
-templ HoldsPage() {
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+// PatronHoldView is a flat hold row for patron-facing pages.
+// It uses plain strings to avoid SqlUUID scan failures on Google Books IDs.
+type PatronHoldView struct {
+	HoldID        string
+	BookWorkRawID string
+	BookTitle     string
+	Format        db.BookFmtFlag
+	RequestedDate time.Time
+}
+
+templ HoldsPage(p *fail.RoutingParams, holds []PatronHoldView, isPostponed bool) {
 	@common.Head("My Holds · Town Library", "View and manage your requested items.")
-	<body class="bg-base">
-		@common.NavHead("Account", "")
-
-		<!-- Sub nav matching account/public pattern -->
-		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
-			<div class="navbar-collapse justify-between">
-				<ul class="navbar-nav">
-					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
-				</ul>
-				<ul class="navbar-nav">
-					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
-					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
-				</ul>
-			</div>
-		</nav>
-
-		<main class="container-lg mt-8">
-			<header class="between mb-6">
+	@common.NavHead(p.User, p.Req.URL.Path, "")
+	<main class="page-main">
+		<div class="container">
+			<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)">
 				<div>
 					<h1>My Holds</h1>
-					<p class="text-muted">
-						View and manage your requested items.
-					</p>
+					<p class="text-sub">{ fmt.Sprintf("%d active hold", len(holds)) }{ pluralS(len(holds)) }</p>
 				</div>
-
-				<a href="/account" class="btn btn-link">
-					← Back to Account
-				</a>
-			</header>
-
-			<!-- Sorting Controls -->
-			<div class="between mb-4">
-				<span class="text-sm text-muted">
-					Showing current holds
-				</span>
-
-				<select class="form-input select w-fit">
-					<option>Sort by requested date</option>
-					<option>Sort by status</option>
-				</select>
+				<a href="/user" class="btn btn-subtle">← Back to Account</a>
 			</div>
-
-			<!-- Holds List -->
-			<ul class="list border rounded">
-
-				<li class="list-item">
-					<div>
-						<h3>
-							<a href="/">Modern World History</a>
-						</h3>
-						<p class="text-sm text-muted">
-							Format: Book · Requested May 20, 2026
-						</p>
-					</div>
-
-					<span class="badge badge-success">
-						Ready for pickup
-					</span>
-
-					<button class="btn btn-danger btn-sm ml-auto">
-						Cancel
-					</button>
-				</li>
-
-				<li class="list-item">
-					<div>
-						<h3>
-							<a href="/">History Through Stories</a>
-						</h3>
-						<p class="text-sm text-muted">
-							Format: eBook · Requested May 18, 2026
-						</p>
-					</div>
-
-					<span class="badge badge-warning">
-						Waiting
-					</span>
-
-					<button class="btn btn-danger btn-sm ml-auto">
-						Cancel
-					</button>
-				</li>
-
-				<li class="list-item">
-					<div>
-						<h3>
-							<a href="/">The Great Adventure</a>
-						</h3>
-						<p class="text-sm text-muted">
-							Format: Audiobook · Requested May 15, 2026
-						</p>
-					</div>
-
-					<span class="badge badge-error">
-						On hold
-					</span>
-
-					<button class="btn btn-danger btn-sm ml-auto">
-						Cancel
-					</button>
-				</li>
-
-			</ul>
-		</main>
-
-		@common.Footer()
-	</body>
+			if len(holds) == 0 {
+				<div class="empty-state">
+					<div class="empty-state-icon"><i class="material-icons">schedule</i></div>
+					<p class="empty-state-text">You have no active holds.</p>
+				</div>
+			} else {
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>Format</th>
+							<th>Requested</th>
+							<th>Status</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, hold := range holds {
+							<tr>
+								<td>
+									if hold.BookTitle != "" {
+										<a href={ templ.SafeURL("/book/" + hold.BookWorkRawID) }>{ hold.BookTitle }</a>
+									} else {
+										<a href={ templ.SafeURL("/book/" + hold.BookWorkRawID) }>{ hold.BookWorkRawID }</a>
+									}
+								</td>
+								<td><span class="ctag ctag-muted">{ hold.Format.DisplayName() }</span></td>
+								<td>{ hold.RequestedDate.Format("Jan 2, 2006") }</td>
+								<td>
+									if isPostponed {
+										<span class="ctag ctag-peach">Postponed</span>
+									} else {
+										<span class="ctag ctag-sky">Queued</span>
+									}
+								</td>
+								<td>
+									<form hx-post="/user/holds" hx-target="closest tr" hx-swap="outerHTML">
+										<input type="hidden" name="action" value="cancel"/>
+										<input type="hidden" name="hold_id" value={ hold.HoldID }/>
+										<button type="submit" class="btn btn-danger-outline btn-sm">Cancel</button>
+									</form>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</main>
+	@common.Footer()
 }

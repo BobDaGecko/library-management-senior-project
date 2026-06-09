@@ -1,7 +1,6 @@
 package book
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -56,17 +55,10 @@ templ BookTrunkAdmin(b db.BookWork) {
 							In Library →
 						</a>
 					} else {
-						<form
-							hx-put="/management/books/add"
-							hx-swap="innerHTML"
-							hx-target={ "#book-" + b.ID + " .search-result-action" }
-						>
-							<input name="id" type="hidden" value={ b.ID }/>
-							<button type="submit" class="btn btn-sm btn-primary">
-								<i class="material-icons" style="font-size:14px;vertical-align:-2px;">add</i>
-								Add
-							</button>
-						</form>
+						<a href={ templ.SafeURL("/management/books/add/" + b.ID + "/preview") } class="btn btn-sm btn-primary">
+							<i class="material-icons" style="font-size:14px;vertical-align:-2px;">add</i>
+							Add
+						</a>
 					}
 				</div>
 			</div>
@@ -94,7 +86,13 @@ templ BookTrunk(b db.BookWork) {
 }
 
 templ bookTrunkContainer(b db.BookWork, admin bool) {
-	<img src={ b.CoverThumb } alt={ b.Title + " cover" } class="book-cover mr-2"/>
+	if b.CoverThumb != "" {
+		<img src={ b.CoverThumb } alt={ b.Title + " cover" } class="book-cover"/>
+	} else {
+		<div class="book-cover" style="background:var(--bg-mantle);display:flex;align-items:center;justify-content:center;color:var(--text-sub);opacity:0.4;">
+			<i class="material-icons" style="font-size:2rem;">menu_book</i>
+		</div>
+	}
 	<div class="book-info flex flex-col gap-1">
 		if admin {
 			<h3 class="book-title mb-0">
@@ -105,25 +103,26 @@ templ bookTrunkContainer(b db.BookWork, admin bool) {
 				<a href={ templ.SafeURL("/book/" + b.ID) }>{ b.Title }</a>
 			</h3>
 		}
-		<span class="text-sub text-sm mb-2">
-			{ "by " }
-			for i, author := range b.Authors {
-				<a
-					href="#"
-					data-search={ fmt.Sprintf("author:%s", author) }
-					_="on click
-						put my.dataset.search into #main-search-bar.value
-						trigger submit on #search-form
-					end"
-				>
-					{ author }
-				</a>{  }
-				if i < len(b.Authors)-1 {
-					<span>{ ", " }</span>
+		if len(b.Authors) > 0 {
+			<span class="text-sub text-sm">
+				by { strings.Join([]string(b.Authors), ", ") }
+				if bookYear(b) != "" {
+					<span style="opacity:0.5"> · </span>{ bookYear(b) }
 				}
+			</span>
+		}
+		if len(b.Categories) > 0 {
+			{{ cats := []string(b.Categories) }}
+			if len(cats) > 2 {
+				{{ cats = cats[:2] }}
 			}
-		</span>
-		<div>
+			<div>
+				for _, cat := range cats {
+					<span class="ctag ctag-muted">{ cat }</span>
+				}
+			</div>
+		}
+		<div class="mt-1">
 			if counts, err := b.AvailableCopies(false); err == nil {
 				for f, count := range counts {
 					@common.ShieldFormat(f, count)

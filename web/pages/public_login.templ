@@ -1,83 +1,29 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+	"voxelprismatic/library-management-senior-project/web/user"
+)
 
-templ LoginPage() {
-	@common.Head("Log In · Town Library", "Log in to access your loans, holds, fines, and saved items at Town Library.")
-	<body class="bg-base">
-		@common.NavHead("Log In", "")
-
-		<!-- Sub nav matching account/public pattern -->
-		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
-			<div class="navbar-collapse justify-between">
-				<ul class="navbar-nav">
-					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
-				</ul>
-				<ul class="navbar-nav">
-					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
-					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
-				</ul>
-			</div>
-		</nav>
-
-		<main class="container-lg mt-8">
-			<section class="card max-w-sm mx-auto">
-				<div class="card-body">
-
-					<h1>Log In</h1>
-
-					<form action="/login" method="post">
-
-						<div class="form-group">
-							<label for="email" class="form-label">Email address</label>
-							<input
-								type="email"
-								id="email"
-								name="email"
-								class="form-input"
-								placeholder="you@example.com"
-								required
-							/>
-							<span class="form-error">
-								Please enter a valid email address.
-							</span>
-						</div>
-
-						<div class="form-group">
-							<label for="password" class="form-label">Password</label>
-							<input
-								type="password"
-								id="password"
-								name="password"
-								class="form-input"
-								placeholder="••••••••"
-								required
-							/>
-							<span class="form-error">
-								Incorrect email or password.
-							</span>
-						</div>
-
-						<div class="form-group mt-4">
-							<button type="submit" class="btn btn-primary w-full">
-								Log In
-							</button>
-						</div>
-
+// LoginPage is the full patron login page.
+templ LoginPage(p *fail.RoutingParams) {
+	@common.Head("Log In · Town Library", "Log in to your Town Library account.")
+	@common.NavHead(nil, "/user/login", "")
+	<main class="page-main">
+		<div class="container">
+			<div class="auth-page-center">
+				<div class="card-flat auth-card">
+					<h1 class="auth-heading">Welcome back</h1>
+					<p class="text-sub auth-subheading">Log in to access your loans, holds, and fines.</p>
+					<form hx-post="/user/login" hx-target="#formEntry" hx-swap="outerHTML">
+						@user.FormTable(user.LoginFormEntries, map[string]string{}, map[string]error{})
+						<button type="submit" class="btn btn-primary auth-submit-btn">Log In</button>
 					</form>
-
-					<p class="text-sm text-muted mt-4">
-						Don’t have an account?
-						<a href="/register">Register for a library card</a>
-					</p>
-
+					<p class="auth-alt-link">Don't have an account? <a href="/user/register">Register →</a></p>
 				</div>
-			</section>
-		</main>
-
-		@common.Footer()
-	</body>
+			</div>
+		</div>
+	</main>
+	@common.Footer()
 }

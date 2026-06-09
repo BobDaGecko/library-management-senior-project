@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
 )
@@ -36,7 +37,7 @@ func Router(w http.ResponseWriter, r *http.Request) {
 		UserRouter(p)
 
 	case "":
-		fail.Render(p, pages.PublicHomePage())
+		HandlePublicHome(p)
 	}
 }
 
@@ -73,13 +74,50 @@ func HandleSearch(p *fail.RoutingParams) {
 	if fail.Done(p) {
 		return
 	}
-	q := p.Param("q")
-	fail.Render(p, pages.SearchPage(q))
+
+	f := pages.SearchFilter{
+		Q:     p.Param("q"),
+		Genre: p.Param("genre"),
+		Sort:  p.Param("sort"),
+	}
+
+	// Parse format
+	if fmtStr := p.Param("format"); fmtStr != "" {
+		var fmtInt int
+		fmt.Sscanf(fmtStr, "%d", &fmtInt)
+		f.Format = db.BookFmtFlag(fmtInt)
+	}
+
+	// Parse availability
+	f.Available = p.Param("available") == "1"
+
+	if p.Req.Header.Get("HX-Request") == "true" {
+		fail.Render(p, pages.SearchResults(f))
+		return
+	}
+	fail.Render(p, pages.SearchPage(p, f))
 }
 
 func HandleHelp(p *fail.RoutingParams) {
 	if fail.Done(p) {
 		return
 	}
-	fail.Render(p, pages.HelpPage())
+	fail.Render(p, pages.HelpPage(p))
+}
+
+func HandlePublicHome(p *fail.RoutingParams) {
+	if fail.Done(p) {
+		return
+	}
+
+	// Staff picks: 3 featured books (shown with covers, linking to the book
+	// detail page). The 3 newest titles serve as the picks.
+	var staffPickBooks []db.BookWork
+	db.Db().Where("id != ''").Order("created_at DESC").Limit(3).Find(&staffPickBooks)
+
+	// Recently Added: the next 6 titles, kept distinct from the staff picks above.
+	var recentBooks []db.BookWork
+	db.Db().Where("id != ''").Order("created_at DESC").Offset(3).Limit(6).Find(&recentBooks)
+
+	fail.Render(p, pages.PublicHomePage(p, nil, staffPickBooks, recentBooks))
 }

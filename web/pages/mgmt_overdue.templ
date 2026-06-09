@@ -94,7 +94,7 @@ templ MgmtOverdueTable() {
 
 templ overdueRow(l db.Loan) {
 	<tr>
-		<td>{ l.BookCopy.BookWork.Title }</td>
+		<td>@BookTitle(l.BookCopy.BookWork.Title)</td>
 		<td>
 			<a href={ templ.SafeURL("/management/users/" + l.User.ID.String()) }>
 				{ l.User.FirstName } { l.User.LastName }

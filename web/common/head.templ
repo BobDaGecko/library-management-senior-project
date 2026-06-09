@@ -1,6 +1,11 @@
 package common
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"voxelprismatic/library-management-senior-project/db"
+)
 
 templ Head(title string, desc string) {
 	<!DOCTYPE html>
@@ -11,37 +16,150 @@ templ Head(title string, desc string) {
 		<meta name="description" content={ desc }/>
 		<title>{ title }</title>
 		<script type="text/javascript" src="/assets/js/htmx-2.0.8.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js" integrity="sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js" integrity="sha384-OT9bNmUa5rM34SmxFpRftn2F6GbgM/4xnTmn0z106OE5uvsigkdtUMOpdPKOigyO" crossorigin="anonymous"></script>
 		<link rel="stylesheet" type="text/css" href="/assets/css/semtx.css"/>
 		<link rel="stylesheet" type="text/css" href="/assets/css/custom.css"/>
 		<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
+		<script>
+			(function () {
+				var REQS = [
+					{ label: "8+ chars",  test: function(p) { return p.length >= 8; } },
+					{ label: "Uppercase", test: function(p) { return /[A-Z]/.test(p); } },
+					{ label: "Lowercase", test: function(p) { return /[a-z]/.test(p); } },
+					{ label: "Number",    test: function(p) { return /[0-9]/.test(p); } },
+					{ label: "Symbol",    test: function(p) { return /[^A-Za-z0-9]/.test(p); } }
+				];
+				function updateChecklist(container, password) {
+					var chips = container.querySelectorAll(".pwd-req");
+					chips.forEach(function (chip, i) {
+						var met = REQS[i].test(password);
+						var icon = chip.querySelector(".material-icons");
+						chip.classList.remove("pwd-req-pass", "pwd-req-fail", "pwd-req-neutral");
+						if (password === "") {
+							chip.classList.add("pwd-req-neutral");
+							if (icon) icon.textContent = "radio_button_unchecked";
+						} else if (met) {
+							chip.classList.add("pwd-req-pass");
+							if (icon) icon.textContent = "check";
+						} else {
+							chip.classList.add("pwd-req-fail");
+							if (icon) icon.textContent = "close";
+						}
+					});
+				}
+				function wireChecklists(root) {
+					(root || document).querySelectorAll("[data-pwd-input]").forEach(function (container) {
+						var inputID = container.getAttribute("data-pwd-input");
+						var input = document.getElementById(inputID);
+						if (!input || input._pwdWired) return;
+						input._pwdWired = true;
+						input.addEventListener("input", function () {
+							updateChecklist(container, input.value);
+						});
+					});
+				}
+				document.addEventListener("DOMContentLoaded", function () { wireChecklists(); });
+				document.addEventListener("htmx:afterSwap", function (e) { wireChecklists(e.detail.elt); });
+			})();
+		</script>
 	</head>
 }
 
-templ NavHead(subpage string, searchPrefill string) {
-	<nav class="navbar">
-		<a href="/" class="navbar-brand">
-			<img src="/assets/img/placeholder.jpg" alt="Town Library" class="navbar-logo"/>
-			<span>Town Library</span>
-			if subpage != "" {
-				<span class="navbar-sub">{ subpage }</span>
-			}
-		</a>
-		<form action="/search" method="get" style="width: 30%">
-			<div class="input-search">
-				<input
-					class="form-input-lg"
-					type="search"
-					name="q"
-					id="q"
-					placeholder="Search the catalog..."
-					value={ searchPrefill }
-				/>
-				<button class="btn-small btn-primary input-icon" type="submit">
-					<i class="material-icons">search</i>
-				</button>
+// NavHead is the sticky top navigation bar for all patron/public pages.
+// Pass p.User (may be nil for guests), p.Req.URL.Path for active-link highlighting,
+// and a search query string to pre-fill the search bar.
+templ NavHead(user *db.UserPartial, activePath string, searchPrefill string) {
+	{{ overdueCount, fineBalance := patronNavStatus(user) }}
+	{{ catalogActive := activePath == "/search" || strings.HasPrefix(activePath, "/book") }}
+	{{ blogActive := strings.HasPrefix(activePath, "/blog") }}
+	{{ helpActive := activePath == "/help" }}
+	<nav class="navbar patron-navbar">
+		<div class="patron-navbar-inner">
+			<!-- Brand -->
+			<a href="/" class="navbar-brand patron-brand">
+				<img src="/assets/img/placeholder.jpg" alt="Town Library" class="navbar-logo"/>
+				<span class="patron-brand-name">Town Library</span>
+			</a>
+			<!-- Page nav links -->
+			<ul class="navbar-nav patron-nav-links">
+				<li>
+					<a href="/search" class={ templ.KV("active", catalogActive) }>
+						<i class="material-icons mgmt-nav-icon">menu_book</i>
+						Catalog
+					</a>
+				</li>
+				<li>
+					<a href="/blog" class={ templ.KV("active", blogActive) }>
+						<i class="material-icons mgmt-nav-icon">article</i>
+						Blog
+					</a>
+				</li>
+				<li>
+					<a href="/help" class={ templ.KV("active", helpActive) }>
+						<i class="material-icons mgmt-nav-icon">help_outline</i>
+						Help
+					</a>
+				</li>
+			</ul>
+			<!-- Auth / account area -->
+			<div class="patron-nav-auth">
+				if user == nil {
+					<a href="/user/login" class="btn btn-subtle">Log in</a>
+					<a href="/user/register" class="btn btn-primary">Register</a>
+				} else {
+					<div class="nav-dropdown">
+						<button class="patron-user-btn" type="button">
+							<i class="material-icons patron-user-icon">account_circle</i>
+							{ user.FirstName }
+							if overdueCount > 0 {
+								<span class="ctag ctag-peach patron-nav-badge">{ fmt.Sprintf("%d", overdueCount) }</span>
+							}
+							<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
+						</button>
+						<div class="nav-dropdown-menu patron-dropdown-right">
+							<a href="/user">
+								<i class="material-icons patron-menu-icon">person</i>
+								My Account
+							</a>
+							<a href="/user/loans">
+								<i class="material-icons patron-menu-icon">book</i>
+								My Loans
+								if overdueCount > 0 {
+									<span class="ctag ctag-peach">{ formatOverdueCount(overdueCount) }</span>
+								}
+							</a>
+							<a href="/user/holds">
+								<i class="material-icons patron-menu-icon">schedule</i>
+								My Holds
+							</a>
+							<a href="/user/fines">
+								<i class="material-icons patron-menu-icon">receipt_long</i>
+								My Fines
+								if fineBalance > 0 {
+									<span class="ctag ctag-peach">{ formatBalance(fineBalance) }</span>
+								}
+							</a>
+							<a href="/user/settings">
+								<i class="material-icons patron-menu-icon">settings</i>
+								Settings
+							</a>
+							if user.Roles >= db.UserRoleLibrarian {
+								<div class="nav-dropdown-divider"></div>
+								<a href="/management">
+									<i class="material-icons patron-menu-icon">admin_panel_settings</i>
+									Management
+								</a>
+							}
+							<div class="nav-dropdown-divider"></div>
+							<a href="/user/logout" class="patron-logout-link">
+								<i class="material-icons patron-menu-icon">logout</i>
+								Logout
+							</a>
+						</div>
+					</div>
+				}
 			</div>
-		</form>
+		</div>
 	</nav>
 }
 
@@ -49,7 +167,7 @@ templ NavHead(subpage string, searchPrefill string) {
 // Pass p.Req.URL.Path as active for correct link highlighting.
 templ MgmtNavHead(active string) {
 	{{ dashActive := active == "/management" }}
-	{{ booksActive := strings.HasPrefix(active, "/management/books") || active == "/management/checkout" || active == "/management/return" || active == "/management/repair" }}
+	{{ booksActive := strings.HasPrefix(active, "/management/books") || active == "/management/checkout" || active == "/management/return" }}
 	{{ usersActive := strings.HasPrefix(active, "/management/users") || active == "/management/overdue" || active == "/management/holds" || active == "/management/fines" || active == "/management/transactions" }}
 	<nav class="navbar mgmt-navbar">
 		<div class="mgmt-navbar-inner">
@@ -58,47 +176,52 @@ templ MgmtNavHead(active string) {
 				<span class="mgmt-brand-name">Town Library</span>
 				<span class="mgmt-brand-label">Management</span>
 			</a>
-			<ul class="navbar-nav">
-				<!-- Dashboard -->
-				<li>
-					<a href="/management" class={ templ.KV("active", dashActive) }>
-						<i class="material-icons mgmt-nav-icon">grid_view</i>
-						Dashboard
-					</a>
-				</li>
-				<!-- Books dropdown -->
-				<li class="nav-dropdown">
-					<a href="/management" class={ templ.KV("active", booksActive) }>
-						<i class="material-icons mgmt-nav-icon">menu_book</i>
-						Books
-						<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
-					</a>
-					<div class="nav-dropdown-menu">
-						<a href="/management/books">Catalog</a>
-						<a href="/management/books/add">Add Books</a>
-						<div class="nav-dropdown-divider"></div>
-						<a href="/management/checkout">Checkout</a>
-						<a href="/management/return">Returns</a>
-						<a href="/management/repair">Repair Log</a>
-					</div>
-				</li>
-				<!-- Users dropdown -->
-				<li class="nav-dropdown">
-					<a href="/management/users" class={ templ.KV("active", usersActive) }>
-						<i class="material-icons mgmt-nav-icon">people</i>
-						Users
-						<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
-					</a>
-					<div class="nav-dropdown-menu">
-						<a href="/management/users">Directory</a>
-						<div class="nav-dropdown-divider"></div>
-						<a href="/management/overdue">Overdue</a>
-						<a href="/management/holds">Holds</a>
-						<a href="/management/fines">Fines</a>
-						<a href="/management/transactions">Transactions</a>
-					</div>
-				</li>
-			</ul>
+			<div class="mgmt-navbar-right">
+				<ul class="navbar-nav">
+					<!-- Dashboard -->
+					<li>
+						<a href="/management" class={ templ.KV("active", dashActive) }>
+							<i class="material-icons mgmt-nav-icon">grid_view</i>
+							Dashboard
+						</a>
+					</li>
+					<!-- Books dropdown -->
+					<li class="nav-dropdown">
+						<a href="/management" class={ templ.KV("active", booksActive) }>
+							<i class="material-icons mgmt-nav-icon">menu_book</i>
+							Books
+							<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
+						</a>
+						<div class="nav-dropdown-menu">
+							<a href="/management/books">Catalog</a>
+							<a href="/management/books/add">Add Books</a>
+							<div class="nav-dropdown-divider"></div>
+							<a href="/management/checkout">Checkout</a>
+							<a href="/management/return">Returns</a>
+						</div>
+					</li>
+					<!-- Users dropdown -->
+					<li class="nav-dropdown">
+						<a href="/management/users" class={ templ.KV("active", usersActive) }>
+							<i class="material-icons mgmt-nav-icon">people</i>
+							Users
+							<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
+						</a>
+						<div class="nav-dropdown-menu">
+							<a href="/management/users">Directory</a>
+							<div class="nav-dropdown-divider"></div>
+							<a href="/management/overdue">Overdue</a>
+							<a href="/management/holds">Holds</a>
+							<a href="/management/fines">Fines</a>
+							<a href="/management/transactions">Transactions</a>
+						</div>
+					</li>
+				</ul>
+				<a href="/" class="btn btn-subtle mgmt-exit-btn">
+					<i class="material-icons" style="font-size:16px;vertical-align:-3px;margin-right:2px;">home</i>
+					Public Site
+				</a>
+			</div>
 		</div>
 	</nav>
 }
@@ -119,8 +242,30 @@ templ NavAside(entries NavAsideEntryList, active string) {
 
 templ Footer() {
 	<footer class="page-footer">
-		<div class="container">
-			<p class="text-xs" style="color: var(--text-sub);">&#169; 2026 Town Library</p>
+		<div class="footer-main">
+			<div class="footer-inner">
+				<a href="/" class="footer-brand">
+					<img src="/assets/img/placeholder.jpg" alt="Town Library" class="footer-logo"/>
+					<div>
+						<div class="footer-brand-name">Town Library</div>
+						<div class="footer-brand-tagline">Open to everyone, always.</div>
+					</div>
+				</a>
+				<div class="footer-right">
+					<nav class="footer-links">
+						<a href="/search">Catalog</a>
+						<a href="/blog">Blog</a>
+						<a href="/help">Help</a>
+						<a href="/user/login">Log In</a>
+					</nav>
+					<p class="footer-copy">© 2026 Town Library · All rights reserved.</p>
+				</div>
+			</div>
+		</div>
+		<div class="footer-sub">
+			<div class="container">
+				Library Management System · v1.0 · Built with ♥ using Go · DePaul University CSC394 Capstone
+			</div>
 		</div>
 	</footer>
 }

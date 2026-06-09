@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
@@ -14,6 +15,16 @@ var bookDetailFormats = []db.BookFmtFlag{
 	db.BookFmtPhysicalAudio,
 	db.BookFmtDigitalBook,
 	db.BookFmtDigitalAudio,
+}
+
+func GetAvailableFormats(copies db.FormatsMap[db.CopyList]) []db.BookFmtFlag {
+	var formats []db.BookFmtFlag
+	for _, f := range bookDetailFormats {
+		if _, ok := copies[f]; ok {
+			formats = append(formats, f)
+		}
+	}
+	return formats
 }
 
 func limitedCategories(cats db.SqlStringList, max int) []string {
@@ -38,33 +49,20 @@ func copyLoanStatus(c db.BookCopy) string {
 	return s.DisplayName()
 }
 
-templ BookDetailsPage(bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList]) {
+templ BookDetailsPage(p *fail.RoutingParams, bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList], activeHold *PatronHoldView) {
 	@common.Head(bookTitleForHead(book), book.Description)
-	<body class="bg-base">
-		@common.NavHead("Book Details", "")
-
-		<!-- Sub nav matching user pages pattern -->
-		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
-			<div class="navbar-collapse justify-between">
-				<ul class="navbar-nav">
-					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
-				</ul>
-				<ul class="navbar-nav">
-					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
-					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
-				</ul>
+	@common.NavHead(p.User, p.Req.URL.Path, "")
+	<main class="page-main">
+		<div class="container">
+			<div style="margin-bottom:var(--space-4)">
+				<a href="/search" class="btn btn-subtle btn-sm">
+					<i class="material-icons" style="font-size:14px;vertical-align:-2px;">arrow_back</i>
+					Back to Catalog
+				</a>
 			</div>
-		</nav>
-
-		<main class="container-lg mt-8">
-
-			<div class="two-col">
-
-				<!-- Left: Cover Image -->
-				<section>
+			<div style="display:grid;grid-template-columns:240px 1fr;gap:var(--space-8);align-items:start">
+				<!-- Cover -->
+				<div>
 					{{ coverSrc := "/assets/img/placeholder.jpg" }}
 					if book.CoverImage != "" {
 						{{ coverSrc = book.CoverImage }}
@@ -74,82 +72,69 @@ templ BookDetailsPage(bookID string, book db.BookWork, copies db.FormatsMap[db.C
 					<img
 						src={ coverSrc }
 						alt={ book.Title + " cover" }
-						class="rounded shadow"
+						style="width:100%;border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,0.2)"
 					/>
-				</section>
-
-				<!-- Right: Metadata & Actions -->
-				<section class="stack">
-
+				</div>
+				<!-- Metadata & actions -->
+				<div>
 					<h1>{ book.Title }</h1>
 					if len(book.Authors) > 0 {
-						<p class="text-muted">by { strings.Join(book.Authors, ", ") }</p>
+						<p class="text-sub">by { strings.Join(book.Authors, ", ") }</p>
 					}
-
-					<!-- Genre Tags -->
-					<div class="demo-row">
+					<div class="mt-2 mb-4">
 						if len(book.Categories) > 0 {
 							for _, cat := range limitedCategories(book.Categories, 3) {
-								<span class="badge">{ cat }</span>
+								<span class="ctag ctag-sky">{ cat }</span>
+							}
+						}
+					</div>
+					<!-- Place Hold / Cancel Hold action area -->
+					<div class="book-action-area mb-6">
+						if len(copies) > 0 {
+							{{ formats := GetAvailableFormats(copies) }}
+							if len(formats) > 0 {
+								if activeHold != nil {
+									@ActiveHoldFragment(bookID, formats, activeHold)
+								} else {
+									@PlaceHoldFormFragment(bookID, formats)
+								}
 							}
 						} else {
-							<span class="badge">Book</span>
+							<p class="text-sub">No copies available in this catalog.</p>
 						}
 					</div>
-
-					<!-- Action Area -->
-					<div class="demo-row mt-4">
-						<button class="btn btn-primary">
-							<i class="material-icons">bookmark</i>
-							Place Hold
-						</button>
-						<button class="btn btn-secondary">
-							<i class="material-icons">favorite_border</i>
-							Bookmark
-						</button>
-						<button class="btn btn-ghost">
-							<i class="material-icons">star_border</i>
-							Rate
-						</button>
-					</div>
-
-					<!-- Description -->
-					<p>
-						{ book.Description }
-					</p>
-
-					<!-- Full Metadata -->
-					<ul class="list border rounded">
+					if book.Description != "" {
+						@templ.Raw("<div class=\"book-description\">" + book.Description + "</div>")
+					}
+					<table class="table mt-6" style="width:auto">
 						if book.Isbn13 != "" || book.Isbn10 != "" {
-							<li class="list-item"><strong>ISBN:</strong> 
-								if book.Isbn13 != "" {
-									{ book.Isbn13 }
-								} else {
-									{ book.Isbn10 }
-								}
-							</li>
+							<tr>
+								<th>ISBN</th>
+								<td>
+									if book.Isbn13 != "" {
+										{ book.Isbn13 }
+									} else {
+										{ book.Isbn10 }
+									}
+								</td>
+							</tr>
 						}
 						if book.Publisher != "" {
-							<li class="list-item"><strong>Publisher:</strong> { book.Publisher }</li>
+							<tr><th>Publisher</th><td>{ book.Publisher }</td></tr>
 						}
 						if !book.PublishedDate.IsZero() {
-							<li class="list-item"><strong>Publication Date:</strong> { book.PublishedDate.Format("2006") }</li>
+							<tr><th>Published</th><td>{ book.PublishedDate.Format("2006") }</td></tr>
 						}
 						if book.PageCount > 0 {
-							<li class="list-item"><strong>Pages:</strong> { fmt.Sprintf("%d", book.PageCount) }</li>
+							<tr><th>Pages</th><td>{ fmt.Sprintf("%d", book.PageCount) }</td></tr>
 						}
-					</ul>
-
-				</section>
-
+					</table>
+				</div>
 			</div>
-
-			<!-- Availability by Format -->
+			<!-- Availability -->
 			<section class="mt-8">
-
 				<h2>Availability</h2>
-
-				<table class="table table-striped table-hover mt-4">
+				<table class="table mt-4">
 					<thead>
 						<tr>
 							<th>Format</th>
@@ -163,14 +148,12 @@ templ BookDetailsPage(bookID string, book db.BookWork, copies db.FormatsMap[db.C
 								for i, c := range cl {
 									<tr>
 										<td>{ f.DisplayName() }</td>
-										<td>Copy { i + 1 }</td>
+										<td>Copy { fmt.Sprintf("%d", i+1) }</td>
 										<td>
-											if copyLoanStatus(c) == "Available" {
-												<i class="material-icons text-green">check_circle</i>
-												Available
+											if copyLoanStatus(c) == "ready" {
+												<span class="ctag ctag-green">Ready</span>
 											} else {
-												<i class="material-icons text-red">cancel</i>
-												{ copyLoanStatus(c) }
+												<span class="ctag ctag-peach">{ copyLoanStatus(c) }</span>
 											}
 										</td>
 									</tr>
@@ -179,16 +162,60 @@ templ BookDetailsPage(bookID string, book db.BookWork, copies db.FormatsMap[db.C
 						}
 						if len(copies) == 0 {
 							<tr>
-								<td colspan="3" class="text-muted">No copies on file yet.</td>
+								<td colspan="3" class="text-sub">No copies on file yet.</td>
 							</tr>
 						}
 					</tbody>
 				</table>
-
 			</section>
+		</div>
+	</main>
+	@common.Footer()
+}
 
-		</main>
+// PlaceHoldFormFragment is the normal place-hold form — rendered on initial load and
+// returned by HandleBookCancelHold to restore the action area after cancellation.
+templ PlaceHoldFormFragment(bookID string, formats []db.BookFmtFlag) {
+	<form hx-post={ "/book/" + bookID + "/hold" } hx-target=".book-action-area" hx-swap="innerHTML">
+		<div style="display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap">
+			<select name="format" class="search-filter-select">
+				for _, f := range formats {
+					<option value={ fmt.Sprintf("%d", int(f)) }>{ f.DisplayName() }</option>
+				}
+			</select>
+			<button type="submit" class="btn btn-primary">
+				<i class="material-icons">schedule</i>
+				Place Hold
+			</button>
+		</div>
+	</form>
+}
 
-		@common.Footer()
-	</body>
+// ActiveHoldFragment shows when the logged-in user already has a hold on this book.
+// The dropdown is locked to the held format; a Cancel Hold button is shown.
+templ ActiveHoldFragment(bookID string, formats []db.BookFmtFlag, hold *PatronHoldView) {
+	<form hx-post={ "/book/" + bookID + "/hold/cancel" } hx-target=".book-action-area" hx-swap="innerHTML">
+		<input type="hidden" name="hold_id" value={ hold.HoldID }/>
+		<div style="display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap">
+			<select name="format" class="search-filter-select" disabled>
+				for _, f := range formats {
+					<option value={ fmt.Sprintf("%d", int(f)) } selected?={ f == hold.Format }>{ f.DisplayName() }</option>
+				}
+			</select>
+			<span class="ctag ctag-sky">On Hold</span>
+			<button type="submit" class="btn btn-danger-outline">
+				<i class="material-icons" style="font-size:14px;vertical-align:-2px;">cancel</i>
+				Cancel Hold
+			</button>
+		</div>
+	</form>
+}
+
+// HoldFragment is the HTMX swap fragment returned by HandleBookHold.
+// It replaces the contents of .book-action-area after a hold action.
+templ HoldFragment(title string, subtitle string, ctagClass string) {
+	<span class={ "ctag " + ctagClass }>{ title }</span>
+	if subtitle != "" {
+		<p class="text-sub" style="font-size: var(--fs-sm); margin-top: var(--space-2)">{ subtitle }</p>
+	}
 }

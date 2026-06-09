@@ -180,10 +180,13 @@ templ copyActionsCard(bookID string, c db.BookCopy) {
 							<option value="3">Poor</option>
 						</select>
 					</div>
-					<button class="btn btn-primary" type="submit">
-						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">check_circle</i>
-						Complete Repair
-					</button>
+					<div class="form-group mb-0">
+						<span class="form-label" style="visibility:hidden">​</span>
+						<button class="btn btn-primary" type="submit">
+							<i class="material-icons" style="font-size:16px;vertical-align:-3px;">check_circle</i>
+							Complete Repair
+						</button>
+					</div>
 				</div>
 			</form>
 		} else if c.Status == db.CopyStatusPendingAction {
@@ -222,14 +225,17 @@ templ copyActionsCard(bookID string, c db.BookCopy) {
 				<form hx-post={ postURL } hx-target="#copy-management" hx-swap="outerHTML">
 					<input type="hidden" name="action" value="start_repair"/>
 					<div class="flex flex-wrap gap-3 items-end">
-						<div class="form-group" style="margin-bottom: 0">
+						<div class="form-group mb-0">
 							<label class="form-label" for="tech-start">Technician (optional)</label>
 							<input id="tech-start" name="technician" class="form-input" placeholder="Name"/>
 						</div>
-						<button class="btn btn-subtle" type="submit">
-							<i class="material-icons" style="font-size:16px;vertical-align:-3px;">build</i>
-							Send to Repair
-						</button>
+						<div class="form-group mb-0">
+							<span class="form-label" style="visibility:hidden">​</span>
+							<button class="btn btn-subtle" type="submit">
+								<i class="material-icons" style="font-size:16px;vertical-align:-3px;">build</i>
+								Send to Repair
+							</button>
+						</div>
 					</div>
 				</form>
 			}
