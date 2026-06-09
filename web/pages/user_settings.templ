@@ -1,0 +1,121 @@
+package pages
+
+import (
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+	"voxelprismatic/library-management-senior-project/web/user"
+)
+
+templ UserSettingsPage(p *fail.RoutingParams, u db.User) {
+	@common.Head("Settings · Town Library", "Manage your Town Library account settings.")
+	@common.NavHead(p.User, p.Req.URL.Path, "")
+	<main class="page-main">
+		<div class="container">
+			<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)">
+				<h1>Account Settings</h1>
+				<a href="/user" class="btn btn-subtle">← Back to Account</a>
+			</div>
+			<div class="settings-grid">
+				@SettingsProfileForm(u, nil, false)
+				@SettingsPasswordForm(nil, false)
+			</div>
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// SettingsProfileForm owns its card wrapper + ID so HTMX outerHTML swap stays stable.
+templ SettingsProfileForm(u db.User, errs map[string]error, saved bool) {
+	<div class="card-flat" id="profile-form">
+		<h2 style="margin-bottom:var(--space-4)">Profile Information</h2>
+		if saved {
+			<div class="settings-saved-banner">
+				<i class="material-icons" style="font-size:15px;vertical-align:-3px;">check_circle</i>
+				Changes saved
+			</div>
+		}
+		<form hx-post="/user/settings/profile" hx-target="#profile-form" hx-swap="outerHTML">
+			<div class="form-fields">
+				<div class="form-group">
+					<label class="form-label" for="firstName">First Name</label>
+					<input id="firstName" name="firstName" type="text" placeholder="John" value={ u.FirstName } class="form-input"/>
+					if err := errs["firstName"]; err != nil {
+						<div class="field-error">
+							<i class="material-icons">error_outline</i>
+							{ err.Error() }
+						</div>
+					}
+				</div>
+				<div class="form-group">
+					<label class="form-label" for="lastName">Last Name</label>
+					<input id="lastName" name="lastName" type="text" placeholder="Smith" value={ u.LastName } class="form-input"/>
+					if err := errs["lastName"]; err != nil {
+						<div class="field-error">
+							<i class="material-icons">error_outline</i>
+							{ err.Error() }
+						</div>
+					}
+				</div>
+				<div class="form-group">
+					<label class="form-label" for="emailAddr">Email Address</label>
+					<input id="emailAddr" name="emailAddr" type="email" placeholder="jsmith@example.com" value={ u.Email } class="form-input"/>
+					if err := errs["emailAddr"]; err != nil {
+						<div class="field-error">
+							<i class="material-icons">error_outline</i>
+							{ err.Error() }
+						</div>
+					}
+				</div>
+			</div>
+			<div style="margin-top:var(--space-4)">
+				<button type="submit" class="btn btn-primary">Save Changes</button>
+			</div>
+		</form>
+	</div>
+}
+
+// SettingsPasswordForm owns its card wrapper + ID for stable HTMX swaps.
+templ SettingsPasswordForm(errs map[string]error, saved bool) {
+	<div class="card-flat" id="password-form">
+		<h2 style="margin-bottom:var(--space-4)">Change Password</h2>
+		if saved {
+			<div class="settings-saved-banner">
+				<i class="material-icons" style="font-size:15px;vertical-align:-3px;">check_circle</i>
+				Password updated
+			</div>
+		}
+		<form hx-post="/user/settings/password" hx-target="#password-form" hx-swap="outerHTML">
+			<div class="form-fields">
+				<div class="form-group">
+					<label class="form-label" for="currentPassword">Current Password</label>
+					<input id="currentPassword" name="currentPassword" type="password" placeholder="" class="form-input"/>
+					if err := errs["currentPassword"]; err != nil {
+						<div class="field-error">
+							<i class="material-icons">error_outline</i>
+							{ err.Error() }
+						</div>
+					}
+				</div>
+				<div class="form-group">
+					<label class="form-label" for="newPassword">New Password</label>
+					<input id="newPassword" name="newPassword" type="password" placeholder="" class="form-input"/>
+					@user.PasswordChecklist("", "newPassword")
+				</div>
+				<div class="form-group">
+					<label class="form-label" for="confirmPassword">Confirm New Password</label>
+					<input id="confirmPassword" name="confirmPassword" type="password" placeholder="" class="form-input"/>
+					if err := errs["confirmPassword"]; err != nil {
+						<div class="field-error">
+							<i class="material-icons">error_outline</i>
+							{ err.Error() }
+						</div>
+					}
+				</div>
+			</div>
+			<div style="margin-top:var(--space-4)">
+				<button type="submit" class="btn btn-primary">Update Password</button>
+			</div>
+		</form>
+	</div>
+}

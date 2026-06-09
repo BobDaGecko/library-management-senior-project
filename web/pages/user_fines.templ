@@ -1,106 +1,110 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"fmt"
 
-templ FinesPage() {
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+func fineStatusInfo(f db.Fine) (string, string) {
+	if f.AmountRemaining > 0 {
+		return "Outstanding", "ctag-peach"
+	}
+	if f.AmountWaived > 0 {
+		return "Waived", "ctag-teal"
+	}
+	return "Paid", "ctag-green"
+}
+
+func fineReasonInfo(reason db.FineReasonFlag) (string, string) {
+	switch reason {
+	case db.FineReasonLost:
+		return "Lost", "ctag-red"
+	default:
+		return reason.DisplayName(), "ctag-peach"
+	}
+}
+
+templ FinesPage(p *fail.RoutingParams, fines []db.Fine, totalOutstanding float32) {
 	@common.Head("My Fines · Town Library", "Review outstanding and paid fines on your account.")
-	<body class="bg-base">
-		@common.NavHead("Account", "")
-
-		<!-- Sub nav matching account/public pattern -->
-		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
-			<div class="navbar-collapse justify-between">
-				<ul class="navbar-nav">
-					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
-				</ul>
-				<ul class="navbar-nav">
-					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
-					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
-				</ul>
-			</div>
-		</nav>
-
-		<main class="container-lg mt-8">
-			<header class="between mb-6">
+	@common.NavHead(p.User, p.Req.URL.Path, "")
+	<main class="page-main">
+		<div class="container">
+			<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)">
 				<div>
 					<h1>My Fines</h1>
-					<p class="text-muted">
-						Review outstanding and paid fines on your account.
-					</p>
+					<p class="text-sub">Review your fine history and outstanding balances.</p>
 				</div>
-
-				<a href="/account" class="btn btn-link">
-					← Back to Account
-				</a>
-			</header>
-
-			<!-- Sorting Controls -->
-			<div class="between mb-4">
-				<span class="text-sm text-muted">
-					Showing all fines
-				</span>
-
-				<select class="form-input select w-fit">
-					<option>Sort by date</option>
-					<option>Sort by amount</option>
-				</select>
+				<a href="/user" class="btn btn-subtle">← Back to Account</a>
 			</div>
-
-			<div class="table-wrapper">
-				<table class="table table-striped table-hover">
-
+			if totalOutstanding > 0 {
+				<div class="stat-grid" style="margin-bottom:var(--space-6)">
+					<div class="stat-card stat-alert">
+						<div class="stat-icon"><i class="material-icons">receipt_long</i></div>
+						<div class="stat-value">{ fmt.Sprintf("$%.2f", totalOutstanding) }</div>
+						<div class="stat-label">Outstanding Balance</div>
+					</div>
+				</div>
+			} else if len(fines) > 0 {
+				<div class="stat-grid" style="margin-bottom:var(--space-6)">
+					<div class="stat-card">
+						<div class="stat-icon"><i class="material-icons">check_circle</i></div>
+						<div class="stat-value">$0.00</div>
+						<div class="stat-label">Outstanding Balance</div>
+					</div>
+				</div>
+			}
+			if len(fines) == 0 {
+				<div class="empty-state">
+					<div class="empty-state-icon"><i class="material-icons">receipt_long</i></div>
+					<p class="empty-state-text">You have no fines on your account.</p>
+				</div>
+			} else {
+				<table class="table">
 					<thead>
 						<tr>
+							<th>Title</th>
 							<th>Reason</th>
-							<th>Date</th>
-							<th>Amount</th>
-							<th>Remaining Balance</th>
+							<th>Issued</th>
+							<th>Amount Issued</th>
+							<th>Remaining</th>
 							<th>Status</th>
 						</tr>
 					</thead>
-
 					<tbody>
-						<tr>
-							<td>Overdue book</td>
-							<td>May 29, 2026</td>
-							<td>$2.00</td>
-							<td>$2.00</td>
-							<td class="text-red">Unpaid</td>
-						</tr>
-
-						<tr>
-							<td>Lost item fee</td>
-							<td>May 15, 2026</td>
-							<td>$10.00</td>
-							<td>$0.00</td>
-							<td class="text-green">Paid</td>
-						</tr>
-
-						<tr>
-							<td>Overdue audiobook</td>
-							<td>May 10, 2026</td>
-							<td>$1.50</td>
-							<td>$1.50</td>
-							<td class="text-warning">Pending</td>
-						</tr>
+						for _, fine := range fines {
+							{{ statusText, statusClass := fineStatusInfo(fine) }}
+							{{ reasonText, reasonClass := fineReasonInfo(fine.IssueReason) }}
+							<tr>
+								<td>
+									if fine.Loan.BookCopy.BookWork.Title != "" {
+										<a href={ templ.SafeURL("/book/" + fine.Loan.BookCopy.BookWork.ID) }>
+											{ fine.Loan.BookCopy.BookWork.Title }
+										</a>
+									} else {
+										<span style="color:var(--text-sub);font-style:italic;">[Deleted]</span>
+									}
+								</td>
+								<td><span class={ "ctag " + reasonClass }>{ reasonText }</span></td>
+								<td>{ fine.IssueDate.Format("Jan 2, 2006") }</td>
+								<td>{ fmt.Sprintf("$%.2f", fine.AmountIssued) }</td>
+								<td>{ fmt.Sprintf("$%.2f", fine.AmountRemaining) }</td>
+								<td><span class={ "ctag " + statusClass }>{ statusText }</span></td>
+							</tr>
+						}
 					</tbody>
-
-					<!-- Totals Row -->
 					<tfoot>
 						<tr>
-							<th colspan="3">Total Outstanding</th>
-							<th>$3.50</th>
-							<th></th>
+							<td colspan="4" style="text-align:right;font-weight:600">Total outstanding</td>
+							<td style="font-weight:600">{ fmt.Sprintf("$%.2f", totalOutstanding) }</td>
+							<td></td>
 						</tr>
 					</tfoot>
-
 				</table>
-			</div>
-		</main>
-
-		@common.Footer()
-	</body>
+			}
+		</div>
+	</main>
+	@common.Footer()
 }

@@ -24,12 +24,54 @@ templ (e FormEntry) TableRow(vals map[string]string, errs map[string]error) {
 	</tr>
 }
 
-templ FormTable(entries []FormEntry, vals map[string]string, errs map[string]error) {
-	<table id="formEntry">
-		for _, entry := range entries {
-			@entry.TableRow(vals, errs)
+// FieldGroup renders a labelled input with inline error or password checklist.
+templ (e FormEntry) FieldGroup(vals map[string]string, errs map[string]error) {
+	<div class="form-group">
+		<label class="form-label" for={ e.ID }>{ e.Label }</label>
+		<input
+			id={ e.ID }
+			name={ e.ID }
+			type={ e.Type }
+			placeholder={ e.Ghost }
+			value={ vals[e.ID] }
+			class="form-input"
+		/>
+		// Password fields with a checklist suppress the text error — the chips
+		// convey which requirements failed more clearly than a prose message.
+		if err := errs[e.ID]; err != nil && !e.ShowPwdChecklist {
+			<div class="field-error">
+				<i class="material-icons">error_outline</i>
+				{ err.Error() }
+			</div>
 		}
-	</table>
+		if e.ShowPwdChecklist {
+			@PasswordChecklist(vals[e.ID], e.ID)
+		}
+	</div>
+}
+
+// PasswordChecklist renders the five strength-requirement chips.
+// inputID must match the accompanying <input id="..."> for JS real-time updates.
+// When password is empty, all chips render neutral; after the user types the
+// JS in head.templ transitions them to pass/fail without a round-trip.
+templ PasswordChecklist(password string, inputID string) {
+	{{ reqs := CheckPwdReqs(password) }}
+	<div class="pwd-reqs" id={ "pwd-reqs-" + inputID } data-pwd-input={ inputID }>
+		for _, req := range reqs {
+			<span class={ "pwd-req " + PwdReqClass(req.Met, password) }>
+				<i class="material-icons">{ PwdReqIcon(req.Met, password) }</i>
+				{ req.Label }
+			</span>
+		}
+	</div>
+}
+
+templ FormTable(entries []FormEntry, vals map[string]string, errs map[string]error) {
+	<div id="formEntry" class="form-fields">
+		for _, entry := range entries {
+			@entry.FieldGroup(vals, errs)
+		}
+	</div>
 }
 
 templ Register() {

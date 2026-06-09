@@ -1,73 +1,158 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"fmt"
+	"time"
 
-templ AccountPage() {
-	@common.Head("My Account · Town Library", "View a summary of your loans, holds, fines and saved items.")
-	<body class="bg-base">
-		@common.NavHead("Account", "")
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
 
-		<!-- Sub nav matching public pattern -->
-		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
-			<div class="navbar-collapse justify-between">
-				<ul class="navbar-nav">
-					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
-				</ul>
-				<ul class="navbar-nav">
-					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
-					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
-				</ul>
+// AccountData carries pre-fetched DB data for the account hub page.
+type AccountData struct {
+	LoanCount   int64
+	HoldCount   int64
+	FineBalance float32
+	RecentLoans []db.Loan
+	ActiveHolds []PatronHoldView
+}
+
+func loanDueDate(l db.Loan) time.Time {
+	return l.DateCheckout.Add(db.LOAN_DURATION)
+}
+
+func loanStatusCtagClass(l db.Loan) string {
+	if l.Status() == db.LoanStatusOverdue {
+		return "ctag-peach"
+	}
+	if time.Until(loanDueDate(l)) < 3*24*time.Hour {
+		return "ctag-yellow"
+	}
+	return "ctag-teal"
+}
+
+func loanStatusText(l db.Loan) string {
+	if l.Status() == db.LoanStatusOverdue {
+		return "Overdue"
+	}
+	if time.Until(loanDueDate(l)) < 3*24*time.Hour {
+		return "Due soon"
+	}
+	return "On time"
+}
+
+templ AccountPage(p *fail.RoutingParams, data AccountData) {
+	@common.Head("My Account · Town Library", "View a summary of your loans, holds, and fines.")
+	@common.NavHead(p.User, p.Req.URL.Path, "")
+	<main class="page-main">
+		<div class="container">
+			<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)">
+				<div>
+					<h1>Welcome back, { p.User.FirstName }</h1>
+					<p class="text-sub">Your library account overview</p>
+				</div>
+				<a href="/user/settings" class="btn btn-subtle">Edit Profile</a>
 			</div>
-		</nav>
-
-		<main class="container-lg mt-8">
-			<header class="mb-6">
-				<h1>My Account</h1>
-				<p class="text-muted">View a summary of your library activity and manage your account.</p>
-			</header>
-
-			<section class="four-col">
-				<article class="card text-center">
-					<div class="card-body">
-						<i class="material-icons text-3xl mb-2">menu_book</i>
-						<h3>Loans</h3>
-						<p class="text-2xl font-bold">3</p>
-						<a href="/account/loans" class="btn btn-link">View loans</a>
+			<div class="stat-grid">
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">menu_book</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", data.LoanCount) }</div>
+					<div class="stat-label">Active Loans</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">schedule</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", data.HoldCount) }</div>
+					<div class="stat-label">Active Holds</div>
+				</div>
+				if data.FineBalance > 0 {
+					<div class="stat-card stat-alert">
+						<div class="stat-icon"><i class="material-icons">receipt_long</i></div>
+						<div class="stat-value">{ fmt.Sprintf("$%.2f", data.FineBalance) }</div>
+						<div class="stat-label">Outstanding Fines</div>
 					</div>
-				</article>
-
-				<article class="card text-center">
-					<div class="card-body">
-						<i class="material-icons text-3xl mb-2">bookmark</i>
-						<h3>Holds</h3>
-						<p class="text-2xl font-bold">2</p>
-						<a href="/account/holds" class="btn btn-link">View holds</a>
+				} else {
+					<div class="stat-card">
+						<div class="stat-icon"><i class="material-icons">receipt_long</i></div>
+						<div class="stat-value">{ fmt.Sprintf("$%.2f", data.FineBalance) }</div>
+						<div class="stat-label">Outstanding Fines</div>
 					</div>
-				</article>
-
-				<article class="card text-center">
-					<div class="card-body">
-						<i class="material-icons text-3xl mb-2">payments</i>
-						<h3>Fines</h3>
-						<p class="text-2xl font-bold">$4.50</p>
-						<a href="/account/fines" class="btn btn-link">View fines</a>
+				}
+			</div>
+			if len(data.RecentLoans) > 0 {
+				<div style="margin-top:var(--space-8)">
+					<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4)">
+						<h2 style="margin:0">Current Loans</h2>
+						<a href="/user/loans" class="btn btn-subtle btn-sm">View all →</a>
 					</div>
-				</article>
-
-				<article class="card text-center">
-					<div class="card-body">
-						<i class="material-icons text-3xl mb-2">favorite</i>
-						<h3>Saved Items</h3>
-						<p class="text-2xl font-bold">5</p>
-						<a href="/account/saved" class="btn btn-link">View saved</a>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Title</th>
+								<th>Format</th>
+								<th>Due Date</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, loan := range data.RecentLoans {
+								<tr>
+									<td>
+										if loan.BookCopy.BookWork.Title != "" {
+											<a href={ templ.SafeURL("/book/" + loan.BookCopy.BookWork.ID) }>
+												{ loan.BookCopy.BookWork.Title }
+											</a>
+										} else {
+											<span style="color:var(--text-sub);font-style:italic;">[Deleted]</span>
+										}
+									</td>
+									<td><span class="ctag ctag-muted">{ loan.BookCopy.Format.DisplayName() }</span></td>
+									<td>{ loanDueDate(loan).Format("Jan 2, 2006") }</td>
+									<td><span class={ "ctag " + loanStatusCtagClass(loan) }>{ loanStatusText(loan) }</span></td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			if len(data.ActiveHolds) > 0 {
+				<div style="margin-top:var(--space-8)">
+					<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4)">
+						<h2 style="margin:0">Active Holds</h2>
+						<a href="/user/holds" class="btn btn-subtle btn-sm">View all →</a>
 					</div>
-				</article>
-			</section>
-		</main>
-
-		@common.Footer()
-	</body>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Title</th>
+								<th>Format</th>
+								<th>Requested</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, hold := range data.ActiveHolds {
+								<tr>
+									<td>
+										if hold.BookTitle != "" {
+											<a href={ templ.SafeURL("/book/" + hold.BookWorkRawID) }>{ hold.BookTitle }</a>
+										} else {
+											{ hold.BookWorkRawID }
+										}
+									</td>
+									<td><span class="ctag ctag-muted">{ hold.Format.DisplayName() }</span></td>
+									<td>{ hold.RequestedDate.Format("Jan 2, 2006") }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			<div style="display:flex;gap:var(--space-3);margin-top:var(--space-8)">
+				<a href="/user/loans" class="btn btn-subtle">View Loans</a>
+				<a href="/user/holds" class="btn btn-subtle">View Holds</a>
+				<a href="/user/fines" class="btn btn-subtle">View Fines</a>
+			</div>
+		</div>
+	</main>
+	@common.Footer()
 }
