@@ -2,19 +2,52 @@ package pages
 
 import (
 	"fmt"
+	"time"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
+// getOpenHolds loads open holds via a raw SQL JOIN. Hold.BookWorkID stores raw
+// Google Books string IDs, so a plain Find(&holds)+Preload("BookWork") fails the
+// SqlUUID scan and corrupts every row (see CLAUDE.md). We hydrate db.Hold values
+// manually so the template can keep using h.User / h.BookWork.Title / h.Status().
 func getOpenHolds() []db.Hold {
-	var holds []db.Hold
-	db.Db().
-		Where("fulfilled_date = ? AND cancelled_date = ?", db.NilTime, db.NilTime).
-		Preload("User").
-		Preload("BookWork").
-		Order("requested_date asc").
-		Find(&holds)
+	type holdRow struct {
+		ID            string
+		UserID        string
+		Format        int
+		RequestedDate time.Time
+		FirstName     string
+		LastName      string
+		Title         string
+	}
+	var rows []holdRow
+	db.Db().Raw(`
+		SELECT h.id, h.user_id, h.format, h.requested_date,
+		       COALESCE(u.first_name, '') AS first_name,
+		       COALESCE(u.last_name, '')  AS last_name,
+		       COALESCE(bw.title, '')     AS title
+		FROM holds h
+		LEFT JOIN users u ON u.id = h.user_id
+		LEFT JOIN book_works bw ON bw.id = h.book_work_id
+		WHERE h.fulfilled_date = ? AND h.cancelled_date = ? AND h.deleted_at IS NULL
+		ORDER BY h.requested_date ASC
+	`, db.NilTime, db.NilTime).Scan(&rows)
+
+	holds := make([]db.Hold, 0, len(rows))
+	for _, r := range rows {
+		uid, _ := db.FromString(r.UserID)
+		hid, _ := db.FromString(r.ID)
+		holds = append(holds, db.Hold{
+			BaseModel:     db.BaseModel{ID: hid},
+			UserID:        uid,
+			User:          db.User{BaseModel: db.BaseModel{ID: uid}, FirstName: r.FirstName, LastName: r.LastName},
+			Format:        db.BookFmtFlag(r.Format),
+			RequestedDate: r.RequestedDate,
+			BookWork:      db.BookWork{Title: r.Title},
+		})
+	}
 	return holds
 }
 
@@ -65,7 +98,7 @@ templ MgmtHoldsTable() {
 								{ h.User.FirstName } { h.User.LastName }
 							</a>
 						</td>
-						<td>{ h.BookWork.Title }</td>
+						<td>@BookTitle(h.BookWork.Title)</td>
 						<td><span class="ctag ctag-sky">{ h.Format.DisplayName() }</span></td>
 						<td>{ h.RequestedDate.Format("2006-01-02") }</td>
 						<td>@holdStatusCtag(status)</td>
@@ -74,7 +107,7 @@ templ MgmtHoldsTable() {
 								class="btn btn-sm btn-subtle"
 								hx-post="/management/holds"
 								hx-vals={ fmt.Sprintf(`{"hold_id":"%s","action":"cancel"}`, h.ID.String()) }
-								hx-confirm={ fmt.Sprintf("Cancel hold for %s %s on \"%s\"?", h.User.FirstName, h.User.LastName, h.BookWork.Title) }
+								hx-confirm={ fmt.Sprintf("Cancel hold for %s %s on \"%s\"?", h.User.FirstName, h.User.LastName, bookTitleStr(h.BookWork.Title)) }
 								hx-target="this"
 								hx-swap="outerHTML"
 							>Cancel</button>
