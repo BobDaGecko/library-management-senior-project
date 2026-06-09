@@ -83,7 +83,7 @@ templ ReturnLoanResults(loans []db.Loan) {
 			<tbody>
 				for _, l := range loans {
 					<tr>
-						<td>{ l.BookCopy.BookWork.Title }</td>
+						<td>@BookTitle(l.BookCopy.BookWork.Title)</td>
 						<td>{ l.User.FirstName } { l.User.LastName }</td>
 						<td>{ l.DateCheckout.Format("2006-01-02") }</td>
 						<td>
@@ -112,7 +112,7 @@ templ ReturnConfirmCard(loan db.Loan, loanID string) {
 			<tbody>
 				<tr>
 					<td class="label" style="padding-right:var(--space-6);">Book</td>
-					<td>{ loan.BookCopy.BookWork.Title }</td>
+					<td>@BookTitle(loan.BookCopy.BookWork.Title)</td>
 				</tr>
 				<tr>
 					<td class="label">Patron</td>

@@ -46,7 +46,16 @@ func HandleManagementCatalog(p *fail.RoutingParams) {
 }
 
 func HandleManagementBooksAdd(p *fail.RoutingParams) {
-	if fail.Done(p) {
+	if fail.Remainder(p) {
+		googleId := p.Pop()
+		switch p.Pop() {
+		case "preview":
+			HandleManagementBookAddPreview(p, googleId)
+		case "confirm":
+			HandleManagementBookAddConfirm(p, googleId)
+		default:
+			fail.Done(p)
+		}
 		return
 	}
 
@@ -91,6 +100,43 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 	}
 }
 
+func HandleManagementBookAddPreview(p *fail.RoutingParams, googleId string) {
+	if fail.Done(p) {
+		return
+	}
+	if p.Req.Method != http.MethodGet {
+		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	details, err := fetch.GBooksVolume(googleId)
+	if err != nil {
+		http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	fail.Render(p, pages.MgmtBookPreview(details.ToLocalStruct(), googleId, p))
+}
+
+func HandleManagementBookAddConfirm(p *fail.RoutingParams, googleId string) {
+	if fail.Done(p) {
+		return
+	}
+	if p.Req.Method != http.MethodPost {
+		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	details, err := fetch.GBooksVolume(googleId)
+	if err != nil {
+		http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	book := details.ToLocalStruct()
+	if err := db.Db().Save(&book).Error; err != nil {
+		http.Error(p.W, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(p.W, p.Req, "/management/books/"+googleId, http.StatusSeeOther)
+}
+
 // HandleManagementBook handles GET (edit page), PUT (fetch from Google & overwrite), PATCH (form update with reflect)
 // for /management/books/:id where :id is Google Books volume ID.
 // It also supports nested routes:
@@ -110,6 +156,8 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 			HandleManagementBookCopies(p, bookId)
 		case "edit":
 			HandleManagementBookEdit(p, bookId)
+		case "delete":
+			HandleManagementBookDelete(p, bookId)
 		default:
 			fail.Done(p)
 		}
@@ -203,6 +251,43 @@ func HandleManagementBookEdit(p *fail.RoutingParams, bookId string) {
 		return
 	}
 	fail.Render(p, pages.MgmtBookEdit(bookId, book, p))
+}
+
+func HandleManagementBookDelete(p *fail.RoutingParams, bookId string) {
+	if fail.Done(p) {
+		return
+	}
+	if p.Req.Method != http.MethodPost {
+		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Block deletion if any copies are currently checked out
+	var activeLoans int64
+	db.Db().Table("loans").
+		Joins("JOIN book_copies ON book_copies.id = loans.book_copy_id").
+		Where("book_copies.book_work_id = ?", bookId).
+		Where("loans.date_returned = ?", db.NilTime).
+		Where("loans.deleted_at IS NULL").
+		Count(&activeLoans)
+	if activeLoans > 0 {
+		http.Error(p.W, "Cannot delete: book has active loans", http.StatusConflict)
+		return
+	}
+
+	// Cancel all open holds
+	db.Db().Model(&db.Hold{}).
+		Where("book_work_id = ?", bookId).
+		Where("fulfilled_date = ?", db.NilTime).
+		Where("cancelled_date = ?", db.NilTime).
+		Update("cancelled_date", time.Now())
+
+	// Soft-delete all copies, then the book work
+	db.Db().Where("book_work_id = ?", bookId).Delete(&db.BookCopy{})
+	db.Db().Where("id = ?", bookId).Delete(&db.BookWork{})
+
+	p.W.Header().Set("HX-Redirect", "/management/books")
+	p.W.WriteHeader(http.StatusOK)
 }
 
 func HandleManagementBookCopies(p *fail.RoutingParams, bookID string) {

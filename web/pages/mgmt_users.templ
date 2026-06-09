@@ -254,7 +254,7 @@ templ userDetailLoansTab(userID string) {
 			<tbody>
 				for _, l := range loans {
 					<tr>
-						<td>{ l.BookCopy.BookWork.Title }</td>
+						<td>@BookTitle(l.BookCopy.BookWork.Title)</td>
 						<td>{ l.DateCheckout.Format("2006-01-02") }</td>
 						<td>{ l.DateCheckout.Add(db.LOAN_DURATION).Format("2006-01-02") }</td>
 						<td>
@@ -295,7 +295,7 @@ templ userDetailHoldsTab(userID string) {
 				for _, h := range holds {
 					{{ status, _ := h.Status() }}
 					<tr>
-						<td>{ h.BookWork.Title }</td>
+						<td>@BookTitle(h.BookWork.Title)</td>
 						<td><span class="ctag ctag-sky">{ h.Format.DisplayName() }</span></td>
 						<td>{ h.RequestedDate.Format("2006-01-02") }</td>
 						<td>@holdStatusCtag(status)</td>
@@ -329,7 +329,7 @@ templ userDetailFinesTab(userID string) {
 			<tbody>
 				for _, f := range fines {
 					<tr>
-						<td>{ f.Loan.BookCopy.BookWork.Title }</td>
+						<td>@BookTitle(f.Loan.BookCopy.BookWork.Title)</td>
 						<td>@fineReasonCtag(f.IssueReason)</td>
 						<td>{ fmt.Sprintf("$%.2f", f.AmountIssued) }</td>
 						<td>{ fmt.Sprintf("$%.2f", f.AmountRemaining) }</td>
