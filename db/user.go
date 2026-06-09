@@ -84,10 +84,10 @@ func (p *UserPartial) SetTimestamp(t int64) {
 func (u *User) SetFirstName(name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return fmt.Errorf("first name cannot be blank")
+		return fmt.Errorf("First name cannot be blank")
 	}
 	if len(name) > MAX_NAME_LEN {
-		return fmt.Errorf("first name cannot exceed %d characters", MAX_NAME_LEN)
+		return fmt.Errorf("First name cannot exceed %d characters", MAX_NAME_LEN)
 	}
 
 	u.FirstName = name
@@ -98,11 +98,11 @@ func (u *User) SetFirstName(name string) error {
 func (u *User) SetLastName(name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return fmt.Errorf("last name cannot be blank")
+		return fmt.Errorf("Last name cannot be blank")
 	}
 
 	if len(name) > MAX_NAME_LEN {
-		return fmt.Errorf("last name cannot exceed %d characters", MAX_NAME_LEN)
+		return fmt.Errorf("Last name cannot exceed %d characters", MAX_NAME_LEN)
 	}
 
 	u.LastName = name
@@ -113,22 +113,22 @@ func (u *User) SetEmail(addr string) error {
 	db := Db()
 	addr = strings.TrimSpace(addr)
 	if addr == "" {
-		return fmt.Errorf("email cannot be blank")
+		return fmt.Errorf("Email cannot be blank")
 	}
 
 	if len(addr) > MAX_EMAIL_LEN {
-		return fmt.Errorf("email cannot exceed %d characters", MAX_EMAIL_LEN)
+		return fmt.Errorf("Email cannot exceed %d characters", MAX_EMAIL_LEN)
 	}
 
 	if !emailRegexp.MatchString(addr) {
-		return fmt.Errorf("email is malformatted")
+		return fmt.Errorf("Email is malformatted")
 	}
 
 	addrLower := strings.ToLower(addr)
 	lookup := User{}
 	db.Where(User{Email: addrLower}).First(&lookup)
 	if lookup.Email != "" && lookup.ID.UUID != u.ID.UUID {
-		return fmt.Errorf("email already in use")
+		return fmt.Errorf("Email already in use")
 	}
 
 	u.Email = addrLower
@@ -137,11 +137,11 @@ func (u *User) SetEmail(addr string) error {
 
 func TestSecretStrength(secret string) error {
 	if len(secret) < MIN_SECRET_LEN {
-		return fmt.Errorf("secret too short")
+		return fmt.Errorf("Password is too short")
 	}
 
 	if len(secret) > MAX_SECRET_LEN {
-		return fmt.Errorf("secret cannot exceed %d characters", MAX_SECRET_LEN)
+		return fmt.Errorf("Password cannot exceed %d characters", MAX_SECRET_LEN)
 	}
 
 	inclUpper := false
@@ -179,9 +179,9 @@ func TestSecretStrength(secret string) error {
 	}
 
 	if len(missing) > 1 {
-		return fmt.Errorf("secret is missing %s, and %s", strings.Join(missing[:len(missing)-1], ","), missing[len(missing)-1])
+		return fmt.Errorf("Password is missing %s, and %s", strings.Join(missing[:len(missing)-1], ","), missing[len(missing)-1])
 	} else if len(missing) == 1 {
-		return fmt.Errorf("secret is missing %s", missing[0])
+		return fmt.Errorf("Password is missing %s", missing[0])
 	}
 
 	return nil
@@ -193,11 +193,11 @@ func (u *User) TestSecret(secret string) bool {
 
 func (u *User) SetSecret(secret, verify string) error {
 	if err := TestSecretStrength(secret); err != nil {
-		return fmt.Errorf("secret has problems")
+		return fmt.Errorf("passwords must match")
 	}
 
 	if secret != verify {
-		return fmt.Errorf("secret mismatch")
+		return fmt.Errorf("passwords must match")
 	}
 
 	u.Secret = u.HashSecret(secret)

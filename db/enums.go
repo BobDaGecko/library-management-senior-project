@@ -29,21 +29,21 @@ func (f BookFmtFlag) String() string {
 	}
 }
 
-// DisplayName returns a human-friendly lowercase label for use in UI sections/headers.
+// DisplayName returns a human-friendly label for use in UI.
 func (f BookFmtFlag) DisplayName() string {
 	switch f {
 	case BookFmtPaperback:
-		return "paperback"
+		return "Paperback"
 	case BookFmtHardCover:
-		return "hardcover"
+		return "Hardcover"
 	case BookFmtPhysicalAudio:
-		return "physical audio"
+		return "Physical Audio"
 	case BookFmtDigitalBook:
-		return "digital book"
+		return "Digital Book"
 	case BookFmtDigitalAudio:
-		return "audiobook"
+		return "Audiobook"
 	default:
-		return "unknown format"
+		return "Unknown Format"
 	}
 }
 
