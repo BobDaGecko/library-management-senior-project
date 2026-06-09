@@ -1,115 +1,135 @@
 package pages
 
-import "voxelprismatic/library-management-senior-project/web/common"
+import (
+	"strings"
 
-templ BlogDetailsPage() {
-	@common.Head("Blog Post · Town Library", "Read the full blog post and discover featured books from the Town Library staff picks.")
-	<body class="bg-base">
-		@common.NavHead("Blog", "")
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
 
-		<!-- Sub nav matching user pages pattern -->
-		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
-			<div class="navbar-collapse justify-between">
-				<ul class="navbar-nav">
-					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
-					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
-				</ul>
-				<ul class="navbar-nav">
-					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
-					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
-				</ul>
-			</div>
-		</nav>
+// PostDef holds all content for a hardcoded blog post.
+type PostDef struct {
+	ID               string
+	Title            string
+	Date             string
+	Tags             []string
+	Body             []string // paragraphs
+	FeaturedCategory string   // empty = no featured section
+}
 
-		<main class="container-lg mt-8">
+var blogPosts = []PostDef{
+	{
+		ID:    "1",
+		Title: "Staff Picks: Summer Reading",
+		Date:  "June 2026",
+		Tags:  []string{"Staff Picks", "Fiction"},
+		Body: []string{
+			"Summer is the perfect time to lose yourself in a great book. Our librarians have assembled their favorite fiction titles that are ideal for the season — stories that transport you to distant places, make you feel deeply, and leave you thinking long after you've turned the last page.",
+			"From sweeping historical novels to intimate character studies and gripping thrillers, there's something in this list for every kind of reader. These picks have been loved by staff members across all of our branches.",
+			"Stop by your nearest branch or browse our digital collection to reserve any of these titles today. Happy reading!",
+		},
+		FeaturedCategory: "fiction",
+	},
+	{
+		ID:    "2",
+		Title: "New Arrivals — June 2026",
+		Date:  "June 2026",
+		Tags:  []string{"New Arrivals", "Non-fiction"},
+		Body: []string{
+			"Our collection has grown significantly this month, with a particular focus on recent non-fiction. From in-depth explorations of world history to accessible science writing and compelling memoirs, these new additions reflect the breadth of human experience.",
+			"We've worked closely with our subject librarians to identify titles that fill gaps in our collection and respond to patron requests. If you've been waiting for a specific topic to come in, now might be your moment.",
+			"Use our catalog search to check availability, or ask at any branch desk — staff are happy to help you find your next great read.",
+		},
+		FeaturedCategory: "history",
+	},
+	{
+		ID:    "3",
+		Title: "A Note from Our Librarians",
+		Date:  "June 2026",
+		Tags:  []string{"Community", "Announcements"},
+		Body: []string{
+			"Welcome to the Town Library community! Whether you've been a patron for decades or you're visiting for the first time, we're so glad you're here. Libraries are more than buildings filled with books — they are spaces for curiosity, connection, and lifelong learning.",
+			"Our team is committed to making every visit — in person or online — a great experience. We're continuously updating our digital resources, expanding our catalog, and planning community events throughout the year.",
+			"If you ever have suggestions, questions, or just want to say hello, please reach out at the front desk or through our website. This library belongs to all of you.",
+		},
+		FeaturedCategory: "", // no featured books section
+	},
+}
 
-			<article class="prose">
+func FindPost(id string) (PostDef, bool) {
+	for _, p := range blogPosts {
+		if p.ID == id {
+			return p, true
+		}
+	}
+	return PostDef{}, false
+}
 
-				<h1>Staff Picks: Modern History Reads</h1>
+func featuredBooks(category string) []db.BookWork {
+	var results []db.BookWork
+	db.Db().Where("lower(categories) LIKE ?", "%"+strings.ToLower(category)+"%").
+		Limit(3).Find(&results)
+	return results
+}
 
-				<p class="text-sm text-muted">
-					Posted May 2026 · by Library Staff
-				</p>
+func blogTagColor(tag string) string {
+	switch strings.ToLower(tag) {
+	case "staff picks":
+		return "ctag-teal"
+	case "fiction":
+		return "ctag-sky"
+	case "new arrivals":
+		return "ctag-green"
+	case "community":
+		return "ctag-peach"
+	default:
+		return "ctag-muted"
+	}
+}
 
-				<!-- Tags -->
-				<div class="demo-row mb-4">
-					<span class="badge">Staff Picks</span>
-					<span class="badge">History</span>
-					<span class="badge">Non‑fiction</span>
+templ BlogDetailsPage(p *fail.RoutingParams, post PostDef) {
+	@common.Head(post.Title + " · Town Library", "Read the full blog post and discover featured books from the Town Library staff picks.")
+	@common.NavHead(p.User, p.Req.URL.Path, "")
+	<main class="page-main">
+		<div class="container">
+			<a href="/blog" class="btn btn-subtle mb-4">← Back to Blog</a>
+			<article>
+				<h1>{ post.Title }</h1>
+				<p class="text-sub text-sm">Posted { post.Date } · by Library Staff</p>
+				<div class="mt-2 mb-4">
+					for _, tag := range post.Tags {
+						<span class={ "ctag " + blogTagColor(tag) }>{ tag }</span>
+					}
 				</div>
-
-				<!-- Like Action -->
-				<div class="demo-row mb-6">
-					<button class="btn btn-ghost">
-						<i class="material-icons">thumb_up</i>
-						Like
-						</button>
-					</div>
-
-				<!-- Post Body -->
-				<p>
-					Our librarians are passionate readers, and each month they select a
-					group of titles they believe deserve special attention. This month,
-					we’re highlighting modern history books that explore pivotal global
-					events through engaging and accessible storytelling.
-				</p>
-
-				<p>
-					These works offer context, perspective, and insight into how the world
-					we live in today was shaped. Whether you’re a student, lifelong learner,
-					or casual reader, these picks are a great place to start.
-				</p>
-
-				<p>
-					Visit your local branch or explore our digital collection to check out
-					these titles today.
-				</p>
-
-				<!-- Featured Books -->
-				<section class="mt-8">
-
-					<h2>Featured Books</h2>
-
-					<div class="two-col mt-4">
-
-						<article class="card">
-							<div class="card-body">
-								<h3>
-									<a href="/book/1">Modern World History</a>
-								</h3>
-								<p class="text-sm text-muted">
-									by Jane Smith
-								</p>
-								<p class="text-sm">
-									A concise overview of major global events shaping the modern era.
-								</p>
+				for _, para := range post.Body {
+					<p>{ para }</p>
+				}
+				if post.FeaturedCategory != "" {
+					{{ books := featuredBooks(post.FeaturedCategory) }}
+					if len(books) > 0 {
+						<section class="mt-8">
+							<h2>Featured Books</h2>
+							<div class="blog-featured-grid">
+								for _, b := range books {
+									<div class="blog-featured-card">
+										if b.CoverThumb != "" {
+											<img src={ b.CoverThumb } alt={ b.Title } class="blog-featured-cover"/>
+										}
+										<div>
+											<a href={ templ.SafeURL("/book/" + b.ID) }>{ b.Title }</a>
+											if len(b.Authors) > 0 {
+												<p class="text-sub">{ strings.Join(b.Authors, ", ") }</p>
+											}
+										</div>
+									</div>
+								}
 							</div>
-						</article>
-
-						<article class="card">
-							<div class="card-body">
-								<h3>
-									<a href="/book/2">History Through Stories</a>
-								</h3>
-								<p class="text-sm text-muted">
-									by Alan Cooper
-								</p>
-								<p class="text-sm">
-									Engaging narratives that bring historical moments to life.
-								</p>
-							</div>
-						</article>
-
-					</div>
-
-				</section>
-
+						</section>
+					}
+				}
 			</article>
-
-		</main>
-
-		@common.Footer()
-	</body>
+		</div>
+	</main>
+	@common.Footer()
 }
