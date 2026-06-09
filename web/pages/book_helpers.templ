@@ -1,0 +1,20 @@
+package pages
+
+// bookTitleStr returns the title if non-empty, or "[Deleted]" for use in Go
+// string contexts (e.g. hx-confirm messages) where HTML cannot be rendered.
+func bookTitleStr(title string) string {
+	if title != "" {
+		return title
+	}
+	return "[Deleted]"
+}
+
+// BookTitle renders the book title, or a muted "[Deleted]" placeholder when
+// the BookWork has been soft-deleted and its title is no longer available.
+templ BookTitle(title string) {
+	if title != "" {
+		{ title }
+	} else {
+		<span style="color:var(--text-sub);font-style:italic;">[Deleted]</span>
+	}
+}
