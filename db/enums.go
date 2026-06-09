@@ -203,6 +203,19 @@ func (f FineReasonFlag) String() string {
 	}
 }
 
+func (f FineReasonFlag) DisplayName() string {
+	switch f {
+	case FineReasonLate:
+		return "late return"
+	case FineReasonLost:
+		return "lost"
+	case FineReasonDamaged:
+		return "damaged"
+	default:
+		return "unknown"
+	}
+}
+
 type HoldStatusFlag int
 
 const (
@@ -230,6 +243,23 @@ func (f HoldStatusFlag) String() string {
 	}
 }
 
+func (f HoldStatusFlag) DisplayName() string {
+	switch f {
+	case HoldQueued:
+		return "queued"
+	case HoldCancelled:
+		return "cancelled"
+	case HoldPostponed:
+		return "postponed"
+	case HoldCompleted:
+		return "fulfilled"
+	case HoldRevoked:
+		return "revoked"
+	default:
+		return "unknown"
+	}
+}
+
 type LoanStatusFlag int
 
 const (
@@ -248,6 +278,19 @@ func (s LoanStatusFlag) String() string {
 		return "LoanStatusOverdue"
 	default:
 		return fmt.Sprintf("LoanStatusFlag(%d)", s)
+	}
+}
+
+func (s LoanStatusFlag) DisplayName() string {
+	switch s {
+	case LoanStatusReturned:
+		return "returned"
+	case LoanStatusCheckedOut:
+		return "checked out"
+	case LoanStatusOverdue:
+		return "overdue"
+	default:
+		return "unknown"
 	}
 }
 
@@ -275,6 +318,21 @@ func (f UserRoleFlag) String() string {
 	}
 }
 
+func (f UserRoleFlag) DisplayName() string {
+	switch f {
+	case UserRoleNone:
+		return "none"
+	case UserRolePublic:
+		return "public"
+	case UserRoleLibrarian:
+		return "librarian"
+	case UserRoleAdmin:
+		return "admin"
+	default:
+		return "unknown"
+	}
+}
+
 type UserStatusFlag int
 
 const (
@@ -296,5 +354,20 @@ func (f UserStatusFlag) String() string {
 		return "UserStatusDeleted"
 	default:
 		return fmt.Sprintf("UserStatusFlag(%d)", f)
+	}
+}
+
+func (f UserStatusFlag) DisplayName() string {
+	switch f {
+	case UserStatusActive:
+		return "active"
+	case UserStatusLimited:
+		return "limited"
+	case UserStatusLocked:
+		return "locked"
+	case UserStatusDeleted:
+		return "deleted"
+	default:
+		return "unknown"
 	}
 }

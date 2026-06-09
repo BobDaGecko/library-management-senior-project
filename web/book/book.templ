@@ -2,74 +2,89 @@ package book
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
-css book_thumb_container() {
-	height: 256px;
-	width: 512px;
-	padding: 8px;
-	background-color: #eee;
-	border: 2px solid #000;
-	margin: 4px;
-	display: inline-block;
+var htmlTagRe = regexp.MustCompile(`<[^>]+>`)
+
+func stripHTML(s string) string {
+	return htmlTagRe.ReplaceAllString(s, "")
 }
 
-css book_thumb_flex() {
-	display: flex;
-	flex-direction: row;
-	height: 100%;
+func bookYear(b db.BookWork) string {
+	if b.PublishedDate.IsZero() {
+		return ""
+	}
+	return b.PublishedDate.Format("2006")
 }
 
-css book_thumb_img() {
-	height: 100%;
-	margin-right: 4px;
-}
-
-css book_thumb_tag() {
-	padding: 4px;
-	margin: 0px 4px 0px 0px;
-	background-color: #ddd;
-	border: 2px solid #888;
-	font-size: smaller;
-}
-
-templ BookThumb(b db.BookWork, variants ...db.BookWork) {
-	<div class={ book_thumb_container() } id={ b.ID }>
-		<div class={ book_thumb_flex() }>
-			<img src={ b.CoverThumb } class={ book_thumb_img() }/>
-			<div style="display: flex; flex-direction: column;">
-				<div>{ b.Title }</div>
-				<div style="font-size: smaller;">
-					{ "by " }
-					for i, author := range b.Authors {
-						<a href={ templ.SafeURL("?q=author:" + author) }>{ author }</a>{  }
-						if i < len(b.Authors)-1 {
-							<span>{ ", " }</span>
-						}
-					}
-				</div>
-				<div style="margin: 8px 0px">
-					for _, tag := range b.Tags() {
-						<span class={ book_thumb_tag() }>{ tag }</span>
-					}
-				</div>
-				<div style="overflow: scroll">{ b.Description }</div>
-				if len(variants) > 0 {
-					<select value={ b.ID }>
-						<option value={ b.ID }>{ b.Version }</option>
-						for _, v := range variants {
-							<option value={ v.ID }>{ v.Version }</option>
-						}
-					</select>
-				}
+// BookTrunkAdmin renders a compact search result card for /management/books/add.
+templ BookTrunkAdmin(b db.BookWork) {
+	<div class="search-result-card" id={ "book-" + b.ID }>
+		if b.CoverThumb != "" {
+			<img src={ b.CoverThumb } alt={ b.Title + " cover" } class="search-result-cover"/>
+		} else {
+			<div class="search-result-cover search-result-cover-placeholder">
+				<i class="material-icons">menu_book</i>
 			</div>
+		}
+		<div class="search-result-body">
+			<div class="search-result-header">
+				<div class="search-result-titles">
+					<div class="search-result-title">{ b.Title }</div>
+					<div class="search-result-meta">
+						if len(b.Authors) > 0 {
+							<span>by { strings.Join([]string(b.Authors), ", ") }</span>
+						}
+						if bookYear(b) != "" {
+							<span class="search-result-dot">·</span>
+							<span>{ bookYear(b) }</span>
+						}
+						if b.Publisher != "" {
+							<span class="search-result-dot">·</span>
+							<span>{ b.Publisher }</span>
+						}
+					</div>
+				</div>
+				<div class="search-result-action">
+					if b.Exists() {
+						<a href={ templ.SafeURL("/management/books/" + b.ID) } class="btn btn-sm btn-subtle">
+							In Library →
+						</a>
+					} else {
+						<form
+							hx-put="/management/books/add"
+							hx-swap="innerHTML"
+							hx-target={ "#book-" + b.ID + " .search-result-action" }
+						>
+							<input name="id" type="hidden" value={ b.ID }/>
+							<button type="submit" class="btn btn-sm btn-primary">
+								<i class="material-icons" style="font-size:14px;vertical-align:-2px;">add</i>
+								Add
+							</button>
+						</form>
+					}
+				</div>
+			</div>
+			if counts, err := b.AvailableCopies(false); err == nil && len(counts) > 0 {
+				<div class="search-result-shields">
+					for f, count := range counts {
+						@common.ShieldFormat(f, count)
+					}
+				</div>
+			}
+			if desc := stripHTML(b.Description); desc != "" {
+				<p class="search-result-description">{ desc }</p>
+			}
 		</div>
 	</div>
 }
 
+// BookTrunk renders a full-width book card for patron-facing search results.
 templ BookTrunk(b db.BookWork) {
 	<div class="card my-4">
 		<div class="book-container">
@@ -78,45 +93,19 @@ templ BookTrunk(b db.BookWork) {
 	</div>
 }
 
-templ BookTrunkAdmin(b db.BookWork) {
-	<div class="card my-4" id={ "book-" + b.ID }>
-		<div class="book-container">
-			@bookTrunkContainer(b, true)
-			<div class="actions flex flex-col gap-2 items-end">
-				<!-- TO-DO: Database lookup, this isn't reliable -->
-				if b.Exists() {
-					<button disabled>
-						@common.Icon("check", false)
-					</button>
-				} else {
-					<form
-						hx-put="/management/books/add"
-						hx-swap="outerHTML"
-					>
-						<input name="id" class="hidden" value={ b.ID }/>
-						<button type="submit">
-							@common.Icon("add", false)
-						</button>
-					</form>
-				}
-			</div>
-		</div>
-	</div>
-}
-
 templ bookTrunkContainer(b db.BookWork, admin bool) {
-	<img src={ b.CoverThumb } alt="[book cover]" class="book-cover mr-2"/>
+	<img src={ b.CoverThumb } alt={ b.Title + " cover" } class="book-cover mr-2"/>
 	<div class="book-info flex flex-col gap-1">
 		if admin {
-			<h3 class="book-title text-secondary mb-0">
+			<h3 class="book-title mb-0">
 				<a href={ templ.SafeURL("/management/books/" + b.ID) }>{ b.Title }</a>
 			</h3>
 		} else {
-			<h3 class="book-title text-secondary mb-0">
+			<h3 class="book-title mb-0">
 				<a href={ templ.SafeURL("/book/" + b.ID) }>{ b.Title }</a>
 			</h3>
 		}
-		<span class="author text-sm mb-2">
+		<span class="text-sub text-sm mb-2">
 			{ "by " }
 			for i, author := range b.Authors {
 				<a
@@ -135,41 +124,33 @@ templ bookTrunkContainer(b db.BookWork, admin bool) {
 			}
 		</span>
 		<div>
-			if counts, err := b.AvailableCopies(false); err != nil {
-				<span>{ err.Error() }</span>
-			} else {
+			if counts, err := b.AvailableCopies(false); err == nil {
 				for f, count := range counts {
 					@common.ShieldFormat(f, count)
 				}
 			}
-			<!-- TO-DO: Tags -->
 		</div>
-		<div style="overflow: scroll" class="description mt-4 leading-base">
-			@templ.Raw(b.Description)
-		</div>
+		if desc := stripHTML(b.Description); desc != "" {
+			<div class="book-description-clamp mt-2">{ desc }</div>
+		}
 	</div>
 }
 
+// BookCover renders a compact cover card for the dashboard "Recently Added" grid.
 templ BookCover(b db.BookWork) {
-	<div class="well">
-		<article>
-			<img src={ b.CoverThumb } alt={ fmt.Sprintf("%s by %s", b.Title, b.Authors) }/>
-			<p class="text">
-				{ b.Title }
-				<br/>
-				<span style="font-size: smaller;">
-					{ "by " }
-					for i, author := range b.Authors {
-						<span>{ author }</span>{  }
-						if i < len(b.Authors)-1 {
-							<span>{ ", " }</span>
-						}
-						if i == len(b.Authors)-2 {
-							<span>{ "and " }</span>
-						}
-					}
-				</span>
-			</p>
-		</article>
-	</div>
+	<a href={ templ.SafeURL("/management/books/" + b.ID) } class="book-cover-card">
+		if b.CoverThumb != "" {
+			<img src={ b.CoverThumb } alt={ b.Title } class="book-cover-card-img"/>
+		} else {
+			<div class="book-cover-card-img book-cover-card-placeholder">
+				<i class="material-icons">menu_book</i>
+			</div>
+		}
+		<div class="book-cover-card-info">
+			<div class="book-cover-card-title">{ b.Title }</div>
+			if len(b.Authors) > 0 {
+				<div class="book-cover-card-author">{ strings.Join([]string(b.Authors), ", ") }</div>
+			}
+		</div>
+	</a>
 }

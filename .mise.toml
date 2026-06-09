@@ -1,0 +1,3 @@
+[tools]
+# templ version must match go.mod (github.com/a-h/templ v0.3.1001)
+"go:github.com/a-h/templ/cmd/templ" = "v0.3.1001"

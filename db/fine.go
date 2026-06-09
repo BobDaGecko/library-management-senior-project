@@ -8,7 +8,9 @@ var _ = Migrate(Fine{})
 // A fine can be issued for any reason, including late, lost, or damaged.
 type Fine struct {
 	BaseModel
+	User   User
 	UserID SqlUUID `gorm:"type:text"`
+	Loan   Loan
 	LoanID SqlUUID `gorm:"type:text"`
 
 	IssueReason     FineReasonFlag

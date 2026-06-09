@@ -9,14 +9,33 @@ import (
 
 const transactionsPerPage = 100
 
-func getTransactions(page int) []db.Transaction {
+type transactionRow struct {
+	db.Transaction
+	PatronID    string `gorm:"column:patron_id"`
+	PatronFirst string `gorm:"column:patron_first"`
+	PatronLast  string `gorm:"column:patron_last"`
+	PatronEmail string `gorm:"column:patron_email"`
+}
+
+func getTransactions(page int) []transactionRow {
 	if page < 1 {
 		page = 1
 	}
 	offset := (page - 1) * transactionsPerPage
-	var txs []db.Transaction
-	db.Db().Model(&db.Transaction{}).Order("date desc").Offset(offset).Limit(transactionsPerPage).Find(&txs)
-	return txs
+	var rows []transactionRow
+	db.Db().Raw(`
+		SELECT t.*,
+			u.id         AS patron_id,
+			u.first_name AS patron_first,
+			u.last_name  AS patron_last,
+			u.email      AS patron_email
+		FROM transactions t
+		LEFT JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL
+		WHERE t.deleted_at IS NULL
+		ORDER BY t.date DESC
+		LIMIT ? OFFSET ?
+	`, transactionsPerPage, offset).Scan(&rows)
+	return rows
 }
 
 func getTransactionTotal() int64 {
@@ -35,44 +54,62 @@ func getTotalPages() int {
 
 // MgmtTransactions renders the full management transactions page
 templ MgmtTransactions(p *fail.RoutingParams, page int) {
-	@common.Head("Transactions - Management", "Transaction History")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
-			<h1>Transaction History</h1>
-			<p class="mb-4">Listing all payment transactions. 100 items per page. Use pagination below to navigate (table updates dynamically via HTMX).</p>
+	@common.Head("Transactions — Management", "Transaction History")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Transaction History</h1>
+			<p class="text-sub mb-6">All payment transactions, newest first. 100 per page.</p>
 			<div id="transactions-container">
 				@MgmtTransactionsTable(page)
 			</div>
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }
 
 // MgmtTransactionsTable renders the table and pagination controls (for HTMX partial updates)
 templ MgmtTransactionsTable(page int) {
+	{{ txs := getTransactions(page) }}
 	<div id="transactions-table">
 		@transactionsTableHeader(page)
-		<table class="table">
-			<thead>
-				<tr>
-					<th>Date</th>
-					<th>Amount Paid</th>
-					<th>User ID</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, t := range getTransactions(page) {
+		if len(txs) == 0 {
+			<div class="card-flat">
+				<div class="empty-state">
+					<i class="material-icons empty-state-icon">receipt_long</i>
+					<p class="empty-state-text">No transactions recorded yet.</p>
+				</div>
+			</div>
+		} else {
+			<table class="table">
+				<thead>
 					<tr>
-						<td>{ t.Date.Format("2006-01-02 15:04") }</td>
-						<td>{ fmt.Sprintf("$%.2f", t.AmountPaid) }</td>
-						<td>{ t.UserID.String() }</td>
+						<th>Date</th>
+						<th>Amount Paid</th>
+						<th>Patron</th>
 					</tr>
-				}
-			</tbody>
-		</table>
-		@common.Pagination("transactions-pager", page, getTotalPages(), "transactions-container", "/management/transactions")
+				</thead>
+				<tbody>
+					for _, t := range txs {
+						<tr>
+							<td>{ t.Date.Format("2006-01-02 15:04") }</td>
+							<td>{ fmt.Sprintf("$%.2f", t.AmountPaid) }</td>
+							<td>
+								if t.PatronFirst == "" && t.PatronLast == "" {
+									<span class="text-sub">—</span>
+								} else {
+									<a href={ templ.SafeURL("/management/users/" + t.PatronID) }>
+										{ t.PatronFirst } { t.PatronLast }
+									</a>
+									<div class="text-sub" style="font-size:var(--fs-xs);">{ t.PatronEmail }</div>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			@common.Pagination("transactions-pager", page, getTotalPages(), "transactions-container", "/management/transactions")
+		}
 	</div>
 }
 

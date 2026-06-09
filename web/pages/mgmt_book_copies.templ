@@ -2,10 +2,10 @@ package pages
 
 import (
 	"fmt"
+	"strings"
 
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
-	"voxelprismatic/library-management-senior-project/web/book"
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
@@ -27,21 +27,52 @@ func copyCheckoutName(c db.BookCopy) string {
 }
 
 // MgmtBookCopies is the full page for /management/books/:book-id/copies
-templ MgmtBookCopies(bookID string, b db.BookWork, copies db.FormatsMap[db.CopyList], p *fail.RoutingParams) {
-	@common.Head("Copies - Management", "Manage book copies")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<div class="container-lg">
-			<div class="flex items-center justify-between mb-4">
-				<h1 class="mb-1">Copies</h1>
-				<a href="/management" class="btn btn-sm btn-ghost">← Catalog</a>
+templ MgmtBookCopies(bookID string, bw db.BookWork, copies db.FormatsMap[db.CopyList], p *fail.RoutingParams) {
+	@common.Head("Copies — Management", "Manage book copies")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-6">
+				<div>
+					<h1 class="mb-1">{ bw.Title }</h1>
+					<p class="text-sub mb-0">Physical copies</p>
+				</div>
+				<a href="/management/books" class="btn btn-sm btn-subtle">← Catalog</a>
 			</div>
-			@book.BookTrunk(b)
+			<div class="card card-flat mb-6">
+				<div class="flex gap-4 items-center">
+					if bw.CoverThumb != "" {
+						<img
+							src={ bw.CoverThumb }
+							alt={ bw.Title + " cover" }
+							style="height:88px;width:auto;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0;"
+						/>
+					}
+					<div class="flex-1">
+						if len(bw.Authors) > 0 {
+							<p class="text-sub mb-3">by { strings.Join(bw.Authors, ", ") }</p>
+						}
+						{{ stats := bookCopyStats(bookID) }}
+						<div class="flex gap-3">
+							<div class="stat-card" style="padding:var(--space-2) var(--space-4);min-width:72px;">
+								<div class="stat-value" style="font-size:var(--fs-xl);">{ fmt.Sprintf("%d", stats.Total) }</div>
+								<div class="stat-label">Total</div>
+							</div>
+							<div
+								class={ "stat-card", templ.KV("stat-warn", stats.Available == 0 && stats.Total > 0) }
+								style="padding:var(--space-2) var(--space-4);min-width:72px;"
+							>
+								<div class="stat-value" style="font-size:var(--fs-xl);">{ fmt.Sprintf("%d", stats.Available) }</div>
+								<div class="stat-label">Available</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 			@MgmtBookCopiesList(bookID, copies)
 		</div>
-		@common.Footer()
 	</main>
+	@common.Footer()
 }
 
 // MgmtBookCopiesList is the HTMX-updatable section listing all format sections + cards.
@@ -53,7 +84,7 @@ templ MgmtBookCopiesList(bookID string, copies db.FormatsMap[db.CopyList]) {
 				<div class="copy-section-header">
 					<h3>{ f.DisplayName() }</h3>
 					<button
-						class="btn btn-sm"
+						class="btn btn-sm btn-subtle"
 						hx-post={ "/management/books/" + bookID + "/copies" }
 						hx-vals={ fmt.Sprintf(`{"format":%d}`, int(f)) }
 						hx-target="#copies-list"

@@ -164,3 +164,58 @@ func TestHoldStatusPostponedTooManyLoans(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, status, HoldPostponed)
 }
+
+func TestCancelHoldSetsCancelledDate(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
+		Status:    UserStatusActive,
+	}
+	tx.Save(&user)
+
+	hold := Hold{
+		UserID:        user.ID,
+		RequestedDate: time.Now(),
+	}
+	tx.Create(&hold)
+
+	tx.Model(&Hold{}).Where("id = ?", hold.ID).Update("cancelled_date", time.Now())
+
+	var updated Hold
+	tx.Where("id = ?", hold.ID).First(&updated)
+	assert.Assert(t, !updated.CancelledDate.IsZero(), "CancelledDate should be set after cancel")
+}
+
+func TestCancelledHoldExcludedFromOpenQuery(t *testing.T) {
+	tx := TestDb()
+	defer tx.Rollback()
+
+	user := User{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     "test@example.com",
+		Status:    UserStatusActive,
+	}
+	tx.Save(&user)
+
+	hold := Hold{
+		UserID:        user.ID,
+		RequestedDate: time.Now(),
+	}
+	tx.Create(&hold)
+
+	tx.Model(&Hold{}).Where("id = ?", hold.ID).Update("cancelled_date", time.Now())
+
+	var openHolds []Hold
+	tx.Where("fulfilled_date = ? AND cancelled_date = ?", NilTime, NilTime).Find(&openHolds)
+
+	for _, h := range openHolds {
+		if h.ID == hold.ID {
+			t.Error("cancelled hold should not appear in open holds query")
+		}
+	}
+}

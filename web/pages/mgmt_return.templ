@@ -1,0 +1,171 @@
+package pages
+
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+// returnSteps renders the 2-step workflow indicator. step: 1=search, 2=confirm.
+templ returnSteps(step int) {
+	<div class="workflow-steps">
+		<div class={ "workflow-step", templ.KV("done", step > 1), templ.KV("active", step == 1) }>
+			<span class="workflow-step-num">1</span>
+			<span class="workflow-step-label">Find Loan</span>
+		</div>
+		<div class="workflow-connector"></div>
+		<div class={ "workflow-step", templ.KV("active", step == 2) }>
+			<span class="workflow-step-num">2</span>
+			<span class="workflow-step-label">Confirm Return</span>
+		</div>
+	</div>
+}
+
+// MgmtReturn is the full return page shell.
+templ MgmtReturn(p *fail.RoutingParams) {
+	@common.Head("Returns — Management", "Process book returns")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Returns</h1>
+			<p class="text-sub mb-6">Search for an active loan to process the return.</p>
+			<div id="return-workflow">
+				@ReturnLoanSearch("")
+			</div>
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// ReturnLoanSearch renders the loan search input and empty results container.
+templ ReturnLoanSearch(q string) {
+	@returnSteps(1)
+	<div class="card-flat">
+		<h2 class="mb-4">Find Active Loan</h2>
+		<input
+			type="text"
+			name="q"
+			value={ q }
+			placeholder="Search by title or author..."
+			class="form-input mb-1"
+			hx-get="/management/return"
+			hx-trigger="input delay:300ms"
+			hx-vals='{"step":"loan"}'
+			hx-target="#loan-results"
+			hx-swap="innerHTML"
+			hx-indicator="#loan-indicator"
+		/>
+		<div id="loan-indicator" class="htmx-indicator progress progress-slim mb-3">
+			<div class="progress-bar indeterminate"></div>
+		</div>
+		<div id="loan-results"></div>
+	</div>
+}
+
+// ReturnLoanResults swaps into #loan-results.
+templ ReturnLoanResults(loans []db.Loan) {
+	if len(loans) == 0 {
+		<div class="empty-state">
+			<i class="material-icons empty-state-icon">search_off</i>
+			<p class="empty-state-text">No active loans found.</p>
+		</div>
+	} else {
+		<table class="table mt-2">
+			<thead>
+				<tr>
+					<th>Book Title</th>
+					<th>Patron</th>
+					<th>Checked Out</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, l := range loans {
+					<tr>
+						<td>{ l.BookCopy.BookWork.Title }</td>
+						<td>{ l.User.FirstName } { l.User.LastName }</td>
+						<td>{ l.DateCheckout.Format("2006-01-02") }</td>
+						<td>
+							<button
+								type="button"
+								class="btn btn-sm btn-subtle"
+								hx-get="/management/return"
+								hx-vals={ fmt.Sprintf(`{"step":"loan_selected","loan_id":"%s"}`, l.ID.String()) }
+								hx-target="#return-workflow"
+								hx-swap="innerHTML"
+							>Select</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// ReturnConfirmCard shows the return confirmation form.
+templ ReturnConfirmCard(loan db.Loan, loanID string) {
+	@returnSteps(2)
+	<div class="card-flat">
+		<h2 class="mb-4">Confirm Return</h2>
+		<table class="table mb-4" style="width:auto;">
+			<tbody>
+				<tr>
+					<td class="label" style="padding-right:var(--space-6);">Book</td>
+					<td>{ loan.BookCopy.BookWork.Title }</td>
+				</tr>
+				<tr>
+					<td class="label">Patron</td>
+					<td>{ loan.User.FirstName } { loan.User.LastName }</td>
+				</tr>
+				<tr>
+					<td class="label">Checked Out</td>
+					<td>{ loan.DateCheckout.Format("2006-01-02") }</td>
+				</tr>
+			</tbody>
+		</table>
+		<form hx-post="/management/return" hx-target="#return-workflow" hx-swap="innerHTML">
+			<input type="hidden" name="action" value="return"/>
+			<input type="hidden" name="loan_id" value={ loanID }/>
+			<div class="form-group mb-4">
+				<label class="form-label">Incoming Condition</label>
+				<select name="condition" class="form-select">
+					<option value="1" selected>Good</option>
+					<option value="0">Mint</option>
+					<option value="2">Fair</option>
+					<option value="3">Poor</option>
+					<option value="4">Damaged</option>
+					<option value="5">Lost</option>
+				</select>
+			</div>
+			<div class="flex gap-3">
+				<button type="submit" class="btn btn-primary">Confirm Return</button>
+				<a href="/management/return" class="btn btn-ghost">Cancel</a>
+			</div>
+		</form>
+	</div>
+}
+
+// ReturnSuccess resets to empty state with a green alert.
+templ ReturnSuccess(userName string, bookTitle string) {
+	<div class="alert alert-success mb-6">
+		<div class="alert-icon"><i class="material-icons" style="font-size:1.25rem;line-height:1;">check_circle</i></div>
+		<div class="alert-content">
+			<div class="alert-title">Back in circulation</div>
+			<p>{ bookTitle } returned by { userName }</p>
+		</div>
+	</div>
+	@ReturnLoanSearch("")
+}
+
+// ReturnSuccessFlagged resets to empty state with a warning alert.
+templ ReturnSuccessFlagged(userName string, bookTitle string) {
+	<div class="alert alert-warning mb-6">
+		<div class="alert-icon"><i class="material-icons" style="font-size:1.25rem;line-height:1;">warning</i></div>
+		<div class="alert-content">
+			<div class="alert-title">Flagged for inspection — copy withdrawn</div>
+			<p>{ bookTitle } returned by { userName }</p>
+		</div>
+	</div>
+	@ReturnLoanSearch("")
+}

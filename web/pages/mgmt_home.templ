@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+	"time"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/book"
@@ -13,31 +15,254 @@ func getLatestBooks(limit int) []db.BookWork {
 	return books
 }
 
+func countBooks() int64 {
+	var n int64
+	db.Db().Model(&db.BookWork{}).Count(&n)
+	return n
+}
+
+func countCopies() int64 {
+	var n int64
+	db.Db().Model(&db.BookCopy{}).Count(&n)
+	return n
+}
+
+func countActiveLoans() int64 {
+	var n int64
+	db.Db().Model(&db.Loan{}).Where("date_returned = ?", db.NilTime).Count(&n)
+	return n
+}
+
+func countOverdueLoans() int64 {
+	var n int64
+	db.Db().Model(&db.Loan{}).
+		Where("date_returned = ?", db.NilTime).
+		Where("date_checkout < ?", time.Now().Add(-db.LOAN_DURATION)).
+		Count(&n)
+	return n
+}
+
+func countOpenHolds() int64 {
+	var n int64
+	db.Db().Model(&db.Hold{}).
+		Where("fulfilled_date = ?", db.NilTime).
+		Where("cancelled_date = ?", db.NilTime).
+		Count(&n)
+	return n
+}
+
+func sumOutstandingFines() float64 {
+	var total float64
+	db.Db().Model(&db.Fine{}).
+		Where("amount_remaining > 0").
+		Select("COALESCE(SUM(amount_remaining), 0)").
+		Scan(&total)
+	return total
+}
+
+func countUsers() int64 {
+	var n int64
+	db.Db().Model(&db.User{}).Where("status != ?", db.UserStatusDeleted).Count(&n)
+	return n
+}
+
+func getRecentLoans(limit int) []db.Loan {
+	var loans []db.Loan
+	db.Db().Model(&db.Loan{}).
+		Where("date_returned != ?", db.NilTime).
+		Order("date_returned desc").
+		Limit(limit).
+		Preload("User").
+		Preload("BookCopy.BookWork").
+		Find(&loans)
+	return loans
+}
+
+type attentionUser struct {
+	db.User
+	HasOverdue bool `gorm:"column:has_overdue"`
+	HasFines   bool `gorm:"column:has_fines"`
+}
+
+func getAttentionUsers(limit int) []attentionUser {
+	var results []attentionUser
+	db.Db().Raw(`
+		SELECT u.*,
+			MAX(CASE WHEN l.id IS NOT NULL THEN 1 ELSE 0 END) as has_overdue,
+			MAX(CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END) as has_fines
+		FROM users u
+		LEFT JOIN loans l ON l.user_id = u.id AND l.date_returned = ? AND l.date_checkout < ?
+		LEFT JOIN loans l2 ON l2.user_id = u.id AND l2.deleted_at IS NULL
+		LEFT JOIN fines f ON f.loan_id = l2.id AND f.amount_remaining > 0 AND f.deleted_at IS NULL
+		WHERE u.deleted_at IS NULL AND u.status != ?
+			AND (l.id IS NOT NULL OR f.id IS NOT NULL)
+		GROUP BY u.id
+		LIMIT ?
+	`, db.NilTime, time.Now().Add(-db.LOAN_DURATION), db.UserStatusDeleted, limit).Scan(&results)
+	return results
+}
+
 templ ManagementHome(p *fail.RoutingParams) {
-	@common.Head("Management Home", "Management Home")
-	@common.NavHead("Management", p.Param("q"))
-	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
-	<main class="ml-80 mt-8">
-		<!-- TO-DO: Maybe change container to something else -->
-		<div class="container-lg">
-			<div class="text-center">
-				<h1>Catalog</h1>
-				<div class="demo-row justify center">
-					<a href="/management/books/add"><i class="material-icons">add_circle</i> Add Books</a>
-					<a href="#"><i class="material-icons">filter_alt</i> Filter</a>
+	@common.Head("Dashboard — Management", "Library management dashboard")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-6">
+				<h1>Dashboard</h1>
+				<div class="flex gap-2">
+					<a href="/management/books/add" class="btn btn-primary btn-sm">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">add</i>
+						Add Books
+					</a>
 				</div>
 			</div>
-			<div class="card-flat">
-				<h3 class="mb-4">Recently Added</h3>
-				<!-- TO-DO: Increase columns -->
+			<!-- Stats row -->
+			<div class="stat-grid mb-8">
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">menu_book</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", countBooks()) }</div>
+					<div class="stat-label">Titles in Catalog</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">inventory_2</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", countCopies()) }</div>
+					<div class="stat-label">Physical Copies</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">bookmark</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", countActiveLoans()) }</div>
+					<div class="stat-label">Active Loans</div>
+				</div>
+				<div class={ "stat-card", templ.KV("stat-warn", countOverdueLoans() > 0) }>
+					<div class="stat-icon"><i class="material-icons">schedule</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", countOverdueLoans()) }</div>
+					<div class="stat-label">Overdue</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">hourglass_top</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", countOpenHolds()) }</div>
+					<div class="stat-label">Open Holds</div>
+				</div>
+				<div class={ "stat-card", templ.KV("stat-alert", sumOutstandingFines() > 0) }>
+					<div class="stat-icon"><i class="material-icons">payments</i></div>
+					<div class="stat-value">{ fmt.Sprintf("$%.0f", sumOutstandingFines()) }</div>
+					<div class="stat-label">Outstanding Fines</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-icon"><i class="material-icons">people</i></div>
+					<div class="stat-value">{ fmt.Sprintf("%d", countUsers()) }</div>
+					<div class="stat-label">Registered Users</div>
+				</div>
+			</div>
+			<!-- Quick actions -->
+			<div class="card-flat mb-8">
+				<h3 class="mb-4">Quick Actions</h3>
+				<div class="flex gap-3">
+					<a href="/management/checkout" class="btn btn-primary">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">login</i>
+						Checkout Book
+					</a>
+					<a href="/management/return" class="btn btn-subtle">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">logout</i>
+						Process Return
+					</a>
+					<a href="/management/overdue" class="btn btn-subtle">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">schedule</i>
+						View Overdue
+					</a>
+				</div>
+			</div>
+			<!-- Bottom two-column grid: recent activity + attention needed -->
+			<div class="two-col gap-6">
+				<!-- Recently returned -->
+				<div class="card-flat">
+					<h3 class="mb-4">Recently Returned</h3>
+					{{ recentLoans := getRecentLoans(5) }}
+					if len(recentLoans) == 0 {
+						<div class="empty-state">
+							<i class="material-icons empty-state-icon">history</i>
+							<p class="empty-state-text">No returns yet.</p>
+						</div>
+					} else {
+						<table class="table">
+							<thead>
+								<tr>
+									<th>Book</th>
+									<th>Patron</th>
+									<th>Returned</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, l := range recentLoans {
+									<tr>
+										<td>{ l.BookCopy.BookWork.Title }</td>
+										<td>
+											<a href={ templ.SafeURL("/management/users/" + l.User.ID.String()) }>
+												{ l.User.FirstName } { l.User.LastName }
+											</a>
+										</td>
+										<td class="text-sub" style="white-space:nowrap;">{ l.DateReturned.Format("Jan 2") }</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					}
+				</div>
+				<!-- Needs attention -->
+				<div class="card-flat">
+					<h3 class="mb-4">Needs Attention</h3>
+					{{ attention := getAttentionUsers(5) }}
+					if len(attention) == 0 {
+						<div class="empty-state">
+							<i class="material-icons empty-state-icon">check_circle</i>
+							<p class="empty-state-text">No outstanding issues.</p>
+						</div>
+					} else {
+						<table class="table">
+							<thead>
+								<tr>
+									<th>Patron</th>
+									<th>Email</th>
+									<th>Reason</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, u := range attention {
+									<tr>
+										<td>
+											<a href={ templ.SafeURL("/management/users/" + u.ID.String()) }>
+												{ u.FirstName } { u.LastName }
+											</a>
+										</td>
+										<td class="text-sub">{ u.Email }</td>
+										<td>
+											if u.HasOverdue {
+												<span class="ctag ctag-peach">overdue</span>
+											}
+											if u.HasFines {
+												<span class="ctag ctag-red">fine</span>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					}
+				</div>
+			</div>
+			<!-- Catalog section -->
+			<div class="card-flat mt-8">
+				<div class="flex items-center justify-between mb-4">
+					<h3>Recently Added to Catalog</h3>
+					<a href="/management/books/add" class="text-sm">Add more →</a>
+				</div>
 				<div class="main three-col">
-					for _, b := range getLatestBooks(12) {
+					for _, b := range getLatestBooks(9) {
 						@book.BookCover(b)
 					}
 				</div>
 			</div>
 		</div>
-		<!-- TO-DO: Fix length after fixing nav bar -->
-		@common.Footer()
 	</main>
+	@common.Footer()
 }

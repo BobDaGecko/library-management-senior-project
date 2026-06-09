@@ -1,5 +1,7 @@
 package common
 
+import "strings"
+
 templ Head(title string, desc string) {
 	<!DOCTYPE html>
 	<head>
@@ -17,12 +19,12 @@ templ Head(title string, desc string) {
 }
 
 templ NavHead(subpage string, searchPrefill string) {
-	<nav class="navbar" style="justify-content: space-around;">
+	<nav class="navbar">
 		<a href="/" class="navbar-brand">
-			<img src="/assets/img/placeholder.png" alt="Town Library logo"/>
-			Town Library
+			<img src="/assets/img/placeholder.jpg" alt="Town Library" class="navbar-logo"/>
+			<span>Town Library</span>
 			if subpage != "" {
-				<span class="text-muted"> · { subpage }</span>
+				<span class="navbar-sub">{ subpage }</span>
 			}
 		</a>
 		<form action="/search" method="get" style="width: 30%">
@@ -35,9 +37,69 @@ templ NavHead(subpage string, searchPrefill string) {
 					placeholder="Search the catalog..."
 					value={ searchPrefill }
 				/>
-				<button class="btn-small btn-primary input-icon" type="submit">Search</button>
+				<button class="btn-small btn-primary input-icon" type="submit">
+					<i class="material-icons">search</i>
+				</button>
 			</div>
 		</form>
+	</nav>
+}
+
+// MgmtNavHead is the sticky top navigation bar for all management pages.
+// Pass p.Req.URL.Path as active for correct link highlighting.
+templ MgmtNavHead(active string) {
+	{{ dashActive := active == "/management" }}
+	{{ booksActive := strings.HasPrefix(active, "/management/books") || active == "/management/checkout" || active == "/management/return" || active == "/management/repair" }}
+	{{ usersActive := strings.HasPrefix(active, "/management/users") || active == "/management/overdue" || active == "/management/holds" || active == "/management/fines" || active == "/management/transactions" }}
+	<nav class="navbar mgmt-navbar">
+		<div class="mgmt-navbar-inner">
+			<a href="/management" class="navbar-brand">
+				<img src="/assets/img/placeholder.jpg" alt="Town Library" class="navbar-logo"/>
+				<span class="mgmt-brand-name">Town Library</span>
+				<span class="mgmt-brand-label">Management</span>
+			</a>
+			<ul class="navbar-nav">
+				<!-- Dashboard -->
+				<li>
+					<a href="/management" class={ templ.KV("active", dashActive) }>
+						<i class="material-icons mgmt-nav-icon">grid_view</i>
+						Dashboard
+					</a>
+				</li>
+				<!-- Books dropdown -->
+				<li class="nav-dropdown">
+					<a href="/management" class={ templ.KV("active", booksActive) }>
+						<i class="material-icons mgmt-nav-icon">menu_book</i>
+						Books
+						<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
+					</a>
+					<div class="nav-dropdown-menu">
+						<a href="/management/books">Catalog</a>
+						<a href="/management/books/add">Add Books</a>
+						<div class="nav-dropdown-divider"></div>
+						<a href="/management/checkout">Checkout</a>
+						<a href="/management/return">Returns</a>
+						<a href="/management/repair">Repair Log</a>
+					</div>
+				</li>
+				<!-- Users dropdown -->
+				<li class="nav-dropdown">
+					<a href="/management/users" class={ templ.KV("active", usersActive) }>
+						<i class="material-icons mgmt-nav-icon">people</i>
+						Users
+						<i class="material-icons mgmt-nav-caret">arrow_drop_down</i>
+					</a>
+					<div class="nav-dropdown-menu">
+						<a href="/management/users">Directory</a>
+						<div class="nav-dropdown-divider"></div>
+						<a href="/management/overdue">Overdue</a>
+						<a href="/management/holds">Holds</a>
+						<a href="/management/fines">Fines</a>
+						<a href="/management/transactions">Transactions</a>
+					</div>
+				</li>
+			</ul>
+		</div>
 	</nav>
 }
 
@@ -56,10 +118,9 @@ templ NavAside(entries NavAsideEntryList, active string) {
 }
 
 templ Footer() {
-	<footer class="page-footer mt-8 flex justify-between">
-		<p class="text-s">&#169; 2026 Town Library</p>
-		<button class="btn-small btn-ghost" _="on click window.scrollTo(0, 0)">
-			<i class="material-icons mb-2" style="font-size: 24px;">settings</i>
-		</button>
+	<footer class="page-footer">
+		<div class="container">
+			<p class="text-xs" style="color: var(--text-sub);">&#169; 2026 Town Library</p>
+		</div>
 	</footer>
 }

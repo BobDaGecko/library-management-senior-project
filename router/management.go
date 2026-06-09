@@ -21,6 +21,14 @@ func ManagementRouter(p *fail.RoutingParams) {
 		ManagementBooksRouter(p)
 	case "users":
 		HandleManagementUsers(p)
+	case "checkout":
+		HandleManagementCheckout(p)
+	case "return":
+		HandleManagementReturn(p)
+	case "holds":
+		HandleManagementHolds(p)
+	case "fines":
+		HandleManagementFines(p)
 	case "transactions":
 		HandleManagementTransactions(p)
 	case "overdue":
