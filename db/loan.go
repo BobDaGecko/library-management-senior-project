@@ -51,6 +51,17 @@ func (l Loan) Status() LoanStatusFlag {
 	return LoanStatusCheckedOut
 }
 
+// ReturnCopyStatus maps a returned book's condition to the appropriate copy status.
+// Poor/Dead/Lost conditions require librarian inspection before re-circulation.
+func ReturnCopyStatus(c ConditionFlag) CopyStatusFlag {
+	switch c {
+	case ConditionPoor, ConditionDead, ConditionLost:
+		return CopyStatusPendingAction
+	default:
+		return CopyStatusPublic
+	}
+}
+
 // Marks a book as returned
 func (c *Loan) Return() error {
 	db := Db()

@@ -80,3 +80,15 @@ func TestLoanReturn(t *testing.T) {
 
 	assert.Assert(t, !loan.DateReturned.IsZero())
 }
+
+func TestReturnCopyStatusPublicConditions(t *testing.T) {
+	assert.Equal(t, ReturnCopyStatus(ConditionMint), CopyStatusPublic)
+	assert.Equal(t, ReturnCopyStatus(ConditionGood), CopyStatusPublic)
+	assert.Equal(t, ReturnCopyStatus(ConditionFair), CopyStatusPublic)
+}
+
+func TestReturnCopyStatusPendingActionConditions(t *testing.T) {
+	assert.Equal(t, ReturnCopyStatus(ConditionPoor), CopyStatusPendingAction)
+	assert.Equal(t, ReturnCopyStatus(ConditionDead), CopyStatusPendingAction)
+	assert.Equal(t, ReturnCopyStatus(ConditionLost), CopyStatusPendingAction)
+}

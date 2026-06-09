@@ -2,6 +2,8 @@ package pages
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/common"
@@ -94,20 +96,256 @@ templ UserRoleSelect(userID string, current db.UserRoleFlag) {
 	</select>
 }
 
-// UserDetail stub — will be replaced with full implementation
-templ UserDetail(p *fail.RoutingParams, userID string, tab string) {
-	@common.Head("User Detail — Management", "User details")
-	@common.MgmtNavHead(p.Req.URL.Path)
-	<main class="page-main">
-		<div class="container">
-			<div class="flex items-center gap-3 mb-6">
-				<a href="/management/users" class="btn btn-ghost btn-sm">← Users</a>
-				<h1 class="mb-0">User Detail</h1>
-			</div>
-			<div class="card-flat">
-				<p class="text-sub">This page is not yet implemented.</p>
-			</div>
-		</div>
-	</main>
-	@common.Footer()
+func getUserForDetail(userID string) (db.User, bool) {
+	var user db.User
+	err := db.Db().Where("id = ?", userID).First(&user).Error
+	return user, err == nil
 }
+
+func getUserDetailLoans(userID string) []db.Loan {
+	var loans []db.Loan
+	db.Db().
+		Where("user_id = ?", userID).
+		Preload("BookCopy.BookWork").
+		Order("date_checkout DESC").
+		Find(&loans)
+	return loans
+}
+
+func getUserDetailOpenHolds(userID string) []db.Hold {
+	var holds []db.Hold
+	db.Db().
+		Where("user_id = ? AND fulfilled_date = ? AND cancelled_date = ?", userID, db.NilTime, db.NilTime).
+		Preload("BookWork").
+		Find(&holds)
+	return holds
+}
+
+func getUserDetailFines(userID string) []db.Fine {
+	var fines []db.Fine
+	db.Db().
+		Where("user_id = ? AND amount_remaining > 0", userID).
+		Preload("Loan.BookCopy.BookWork").
+		Find(&fines)
+	return fines
+}
+
+// UserDetail replaces the stub with a full summary + tabbed detail view.
+templ UserDetail(p *fail.RoutingParams, userID string, tab string) {
+	{{ user, ok := getUserForDetail(userID) }}
+	if !ok {
+		@common.Head("User Not Found — Management", "User not found")
+		@common.MgmtNavHead(p.Req.URL.Path)
+		<main class="page-main">
+			<div class="container">
+				<p class="text-sub">User not found.</p>
+			</div>
+		</main>
+		@common.Footer()
+	} else {
+		{{ loans, _ := user.CheckedOut() }}
+		@common.Head("User Detail — Management", "User details")
+		@common.MgmtNavHead(p.Req.URL.Path)
+		<main class="page-main">
+			<div class="container">
+				<div class="flex items-center gap-3 mb-6">
+					<a href="/management/users" class="btn btn-ghost btn-sm">← Users</a>
+					<h1 class="mb-0">{ user.FirstName } { user.LastName }</h1>
+				</div>
+				<div class="card-flat mb-6">
+					<div class="flex items-center gap-3 mb-3">
+						@userRoleCtag(user.Roles)
+						@userDetailStatusCtag(user.Status)
+					</div>
+					<p class="text-sub mb-1">{ user.Email }</p>
+					<p class="text-sub">{ strconv.Itoa(len(loans)) } book(s) currently checked out</p>
+				</div>
+				<div class="mb-6" style="display:flex;gap:var(--space-2);">
+					<a
+						href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=loans", userID)) }
+						class={ "btn btn-sm", templ.KV("btn-primary", tab == "loans"), templ.KV("btn-subtle", tab != "loans") }
+					>Loans</a>
+					<a
+						href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=holds", userID)) }
+						class={ "btn btn-sm", templ.KV("btn-primary", tab == "holds"), templ.KV("btn-subtle", tab != "holds") }
+					>Holds</a>
+					<a
+						href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=fines", userID)) }
+						class={ "btn btn-sm", templ.KV("btn-primary", tab == "fines"), templ.KV("btn-subtle", tab != "fines") }
+					>Fines</a>
+				</div>
+				if tab == "holds" {
+					@userDetailHoldsTab(userID)
+				} else if tab == "fines" {
+					@userDetailFinesTab(userID)
+				} else {
+					@userDetailLoansTab(userID)
+				}
+			</div>
+		</main>
+		@common.Footer()
+	}
+}
+
+templ userDetailLoansTab(userID string) {
+	{{ loans := getUserDetailLoans(userID) }}
+	if len(loans) == 0 {
+		<div class="card-flat"><p class="text-sub">No loan history.</p></div>
+	} else {
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Checked Out</th>
+					<th>Due</th>
+					<th>Returned</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, l := range loans {
+					<tr>
+						<td>{ l.BookCopy.BookWork.Title }</td>
+						<td>{ l.DateCheckout.Format("2006-01-02") }</td>
+						<td>{ l.DateCheckout.Add(db.LOAN_DURATION).Format("2006-01-02") }</td>
+						<td>
+							if l.DateReturned.IsZero() {
+								<em class="text-sub">Active</em>
+							} else {
+								{ l.DateReturned.Format("2006-01-02") }
+							}
+						</td>
+						<td>@loanStatusCtag(l.Status())</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ userDetailHoldsTab(userID string) {
+	{{ holds := getUserDetailOpenHolds(userID) }}
+	if len(holds) == 0 {
+		<div class="card-flat"><p class="text-sub">No open holds.</p></div>
+	} else {
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Format</th>
+					<th>Requested</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, h := range holds {
+					{{ status, _ := h.Status() }}
+					<tr>
+						<td>{ h.BookWork.Title }</td>
+						<td><span class="ctag ctag-sky">{ h.Format.DisplayName() }</span></td>
+						<td>{ h.RequestedDate.Format("2006-01-02") }</td>
+						<td>@holdStatusCtag(status)</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ userDetailFinesTab(userID string) {
+	{{ fines := getUserDetailFines(userID) }}
+	if len(fines) == 0 {
+		<div class="card-flat"><p class="text-sub">No outstanding fines.</p></div>
+	} else {
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Reason</th>
+					<th>Issued</th>
+					<th>Remaining</th>
+					<th>Date</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, f := range fines {
+					<tr>
+						<td>{ f.Loan.BookCopy.BookWork.Title }</td>
+						<td>@fineReasonCtag(f.IssueReason)</td>
+						<td>{ fmt.Sprintf("$%.2f", f.AmountIssued) }</td>
+						<td>{ fmt.Sprintf("$%.2f", f.AmountRemaining) }</td>
+						<td>{ f.IssueDate.Format("2006-01-02") }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ userDetailStatusCtag(status db.UserStatusFlag) {
+	switch status {
+	case db.UserStatusActive:
+		<span class="ctag ctag-green">{ status.DisplayName() }</span>
+	case db.UserStatusLimited:
+		<span class="ctag ctag-peach">{ status.DisplayName() }</span>
+	case db.UserStatusLocked, db.UserStatusDeleted:
+		<span class="ctag ctag-red">{ status.DisplayName() }</span>
+	default:
+		<span class="ctag ctag-muted">{ status.DisplayName() }</span>
+	}
+}
+
+templ userRoleCtag(role db.UserRoleFlag) {
+	switch role {
+	case db.UserRoleAdmin:
+		<span class="ctag ctag-red">{ role.DisplayName() }</span>
+	case db.UserRoleLibrarian:
+		<span class="ctag ctag-teal">{ role.DisplayName() }</span>
+	case db.UserRolePublic:
+		<span class="ctag ctag-sky">{ role.DisplayName() }</span>
+	default:
+		<span class="ctag ctag-muted">{ role.DisplayName() }</span>
+	}
+}
+
+templ loanStatusCtag(status db.LoanStatusFlag) {
+	switch status {
+	case db.LoanStatusReturned:
+		<span class="ctag ctag-green">{ status.DisplayName() }</span>
+	case db.LoanStatusCheckedOut:
+		<span class="ctag ctag-sky">{ status.DisplayName() }</span>
+	case db.LoanStatusOverdue:
+		<span class="ctag ctag-peach">{ status.DisplayName() }</span>
+	default:
+		<span class="ctag ctag-muted">{ status.DisplayName() }</span>
+	}
+}
+
+templ holdStatusCtag(status db.HoldStatusFlag) {
+	switch status {
+	case db.HoldQueued:
+		<span class="ctag ctag-sky">{ status.DisplayName() }</span>
+	case db.HoldPostponed:
+		<span class="ctag ctag-peach">{ status.DisplayName() }</span>
+	case db.HoldCompleted:
+		<span class="ctag ctag-green">{ status.DisplayName() }</span>
+	default:
+		<span class="ctag ctag-muted">{ status.DisplayName() }</span>
+	}
+}
+
+templ fineReasonCtag(reason db.FineReasonFlag) {
+	switch reason {
+	case db.FineReasonLate:
+		<span class="ctag ctag-peach">{ reason.DisplayName() }</span>
+	case db.FineReasonLost:
+		<span class="ctag ctag-red">{ reason.DisplayName() }</span>
+	case db.FineReasonDamaged:
+		<span class="ctag ctag-peach">{ reason.DisplayName() }</span>
+	default:
+		<span class="ctag ctag-muted">{ reason.DisplayName() }</span>
+	}
+}
+
+// unused import guard
+var _ = time.Now

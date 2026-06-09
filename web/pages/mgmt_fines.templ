@@ -1,0 +1,88 @@
+package pages
+
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+func getOutstandingFines() []db.Fine {
+	var fines []db.Fine
+	db.Db().
+		Where("amount_remaining > 0").
+		Preload("Loan.User").
+		Preload("Loan.BookCopy.BookWork").
+		Order("issue_date asc").
+		Find(&fines)
+	return fines
+}
+
+// MgmtFines full page
+templ MgmtFines(p *fail.RoutingParams) {
+	@common.Head("Fines — Management", "Library fines management")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Fines</h1>
+			<p class="text-sub mb-6">Outstanding fines across all patrons. Mark paid to record full payment.</p>
+			<div id="fines-container">
+				@MgmtFinesTable()
+			</div>
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// MgmtFinesTable renders the outstanding-fines table.
+templ MgmtFinesTable() {
+	{{ fines := getOutstandingFines() }}
+	if len(fines) == 0 {
+		<div class="card-flat"><p class="text-sub">No outstanding fines.</p></div>
+	} else {
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Patron</th>
+					<th>Title</th>
+					<th>Reason</th>
+					<th>Issued</th>
+					<th>Remaining</th>
+					<th>Date</th>
+					<th>Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, f := range fines {
+					<tr>
+						<td>
+							<a href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=fines", f.Loan.User.ID.String())) }>
+								{ f.Loan.User.FirstName } { f.Loan.User.LastName }
+							</a>
+						</td>
+						<td>{ f.Loan.BookCopy.BookWork.Title }</td>
+						<td>@fineReasonCtag(f.IssueReason)</td>
+						<td>{ fmt.Sprintf("$%.2f", f.AmountIssued) }</td>
+						<td>{ fmt.Sprintf("$%.2f", f.AmountRemaining) }</td>
+						<td>{ f.IssueDate.Format("2006-01-02") }</td>
+						<td>
+							<button
+								class="btn btn-sm btn-subtle"
+								hx-post="/management/fines"
+								hx-vals={ fmt.Sprintf(`{"fine_id":"%s","action":"mark_paid"}`, f.ID.String()) }
+								hx-confirm={ fmt.Sprintf("Mark $%.2f fine for %s %s as paid in full?", f.AmountRemaining, f.Loan.User.FirstName, f.Loan.User.LastName) }
+								hx-target="this"
+								hx-swap="outerHTML"
+							>Mark Paid</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// FinePaidBadge replaces the mark-paid button after successful payment.
+templ FinePaidBadge() {
+	<span class="ctag ctag-green">Paid</span>
+}

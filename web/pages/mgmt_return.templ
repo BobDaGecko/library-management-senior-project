@@ -1,0 +1,139 @@
+package pages
+
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+// MgmtReturn is the full return page shell.
+templ MgmtReturn(p *fail.RoutingParams) {
+	@common.Head("Returns — Management", "Process book returns")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Returns</h1>
+			<p class="text-sub mb-6">Search for an active loan to process the return.</p>
+			<div id="return-workflow">
+				@ReturnLoanSearch("")
+			</div>
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// ReturnLoanSearch renders the loan search input and empty results container.
+templ ReturnLoanSearch(q string) {
+	<div class="card-flat">
+		<h2 class="mb-4">Find Active Loan</h2>
+		<input
+			type="text"
+			name="q"
+			value={ q }
+			placeholder="Search by title or author..."
+			class="form-input mb-4"
+			hx-get="/management/return"
+			hx-trigger="input delay:300ms"
+			hx-vals='{"step":"loan"}'
+			hx-target="#loan-results"
+			hx-swap="innerHTML"
+		/>
+		<div id="loan-results"></div>
+	</div>
+}
+
+// ReturnLoanResults swaps into #loan-results.
+templ ReturnLoanResults(loans []db.Loan) {
+	if len(loans) == 0 {
+		<p class="text-sub">No active loans found.</p>
+	} else {
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Book Title</th>
+					<th>Patron</th>
+					<th>Checked Out</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, l := range loans {
+					<tr>
+						<td>{ l.BookCopy.BookWork.Title }</td>
+						<td>{ l.User.FirstName } { l.User.LastName }</td>
+						<td>{ l.DateCheckout.Format("2006-01-02") }</td>
+						<td>
+							<button
+								type="button"
+								class="btn btn-sm btn-subtle"
+								hx-get="/management/return"
+								hx-vals={ fmt.Sprintf(`{"step":"loan_selected","loan_id":"%s"}`, l.ID.String()) }
+								hx-target="#return-workflow"
+								hx-swap="innerHTML"
+							>Select</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// ReturnConfirmCard shows the return confirmation form. ISS-04 wires the submit.
+templ ReturnConfirmCard(loan db.Loan, loanID string) {
+	<div class="card-flat">
+		<h2 class="mb-4">Confirm Return</h2>
+		<table class="table mb-4" style="width:auto;">
+			<tbody>
+				<tr>
+					<td class="label" style="padding-right:var(--space-6);">Book</td>
+					<td>{ loan.BookCopy.BookWork.Title }</td>
+				</tr>
+				<tr>
+					<td class="label">Patron</td>
+					<td>{ loan.User.FirstName } { loan.User.LastName }</td>
+				</tr>
+				<tr>
+					<td class="label">Checked Out</td>
+					<td>{ loan.DateCheckout.Format("2006-01-02") }</td>
+				</tr>
+			</tbody>
+		</table>
+		<form hx-post="/management/return" hx-target="#return-workflow" hx-swap="innerHTML">
+			<input type="hidden" name="action" value="return"/>
+			<input type="hidden" name="loan_id" value={ loanID }/>
+			<div class="form-group mb-4">
+				<label class="form-label">Incoming Condition</label>
+				<select name="condition" class="form-select">
+					<option value="1" selected>Good</option>
+					<option value="0">Mint</option>
+					<option value="2">Fair</option>
+					<option value="3">Poor</option>
+					<option value="4">Damaged</option>
+					<option value="5">Lost</option>
+				</select>
+			</div>
+			<button type="submit" class="btn btn-primary">Confirm Return</button>
+			<a href="/management/return" class="btn btn-ghost" style="margin-left:var(--space-3);">Cancel</a>
+		</form>
+	</div>
+}
+
+// ReturnSuccess resets to empty state with a green banner.
+templ ReturnSuccess(userName string, bookTitle string) {
+	<div class="card-flat mb-6" style="border-color:var(--green);">
+		<p style="color:var(--green);font-weight:600;">Back in circulation</p>
+		<p class="text-sub">{ bookTitle } returned by { userName }</p>
+	</div>
+	@ReturnLoanSearch("")
+}
+
+// ReturnSuccessFlagged resets to empty state with a peach banner.
+templ ReturnSuccessFlagged(userName string, bookTitle string) {
+	<div class="card-flat mb-6" style="border-color:var(--peach);">
+		<p style="color:var(--peach);font-weight:600;">Flagged for inspection — copy withdrawn</p>
+		<p class="text-sub">{ bookTitle } returned by { userName }</p>
+	</div>
+	@ReturnLoanSearch("")
+}

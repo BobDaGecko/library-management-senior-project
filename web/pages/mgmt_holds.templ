@@ -1,0 +1,87 @@
+package pages
+
+import (
+	"fmt"
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+func getOpenHolds() []db.Hold {
+	var holds []db.Hold
+	db.Db().
+		Where("fulfilled_date = ? AND cancelled_date = ?", db.NilTime, db.NilTime).
+		Preload("User").
+		Preload("BookWork").
+		Order("requested_date asc").
+		Find(&holds)
+	return holds
+}
+
+// MgmtHolds full page
+templ MgmtHolds(p *fail.RoutingParams) {
+	@common.Head("Holds — Management", "Library holds management")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<h1 class="mb-2">Holds</h1>
+			<p class="text-sub mb-6">Active holds across all patrons. Cancel holds as needed — fulfillment happens automatically at checkout.</p>
+			<div id="holds-container">
+				@MgmtHoldsTable()
+			</div>
+		</div>
+	</main>
+	@common.Footer()
+}
+
+// MgmtHoldsTable renders the open-holds table.
+templ MgmtHoldsTable() {
+	{{ holds := getOpenHolds() }}
+	if len(holds) == 0 {
+		<div class="card-flat"><p class="text-sub">No open holds.</p></div>
+	} else {
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Patron</th>
+					<th>Title</th>
+					<th>Format</th>
+					<th>Requested</th>
+					<th>Status</th>
+					<th>Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, h := range holds {
+					{{ status, _ := h.Status() }}
+					<tr>
+						<td>
+							<a href={ templ.SafeURL(fmt.Sprintf("/management/users/%s", h.User.ID.String())) }>
+								{ h.User.FirstName } { h.User.LastName }
+							</a>
+						</td>
+						<td>{ h.BookWork.Title }</td>
+						<td><span class="ctag ctag-sky">{ h.Format.DisplayName() }</span></td>
+						<td>{ h.RequestedDate.Format("2006-01-02") }</td>
+						<td>@holdStatusCtag(status)</td>
+						<td>
+							<button
+								class="btn btn-sm btn-subtle"
+								hx-post="/management/holds"
+								hx-vals={ fmt.Sprintf(`{"hold_id":"%s","action":"cancel"}`, h.ID.String()) }
+								hx-confirm={ fmt.Sprintf("Cancel hold for %s %s on \"%s\"?", h.User.FirstName, h.User.LastName, h.BookWork.Title) }
+								hx-target="this"
+								hx-swap="outerHTML"
+							>Cancel</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// HoldCancelledBadge replaces the cancel button after a successful cancellation.
+templ HoldCancelledBadge() {
+	<span class="ctag ctag-muted">Cancelled</span>
+}
