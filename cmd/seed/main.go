@@ -48,5 +48,5 @@ func main() {
 	// 6. Print the credential sheet for the demo.
 	printCredentials(cast)
 
-	fmt.Println("\n\x1b[32;1m✓ Seed complete.\x1b[0m Run `make run` and log in.\n")
+	fmt.Println("\n\x1b[32;1m✓ Seed complete.\x1b[0m Run `make run` and log in.")
 }
