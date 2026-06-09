@@ -1,0 +1,83 @@
+package pages
+
+import "voxelprismatic/library-management-senior-project/web/common"
+
+templ LoginPage() {
+	@common.Head("Log In · Town Library", "Log in to access your loans, holds, fines, and saved items at Town Library.")
+	<body class="bg-base">
+		@common.NavHead("Log In", "")
+
+		<!-- Sub nav matching account/public pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+			<section class="card max-w-sm mx-auto">
+				<div class="card-body">
+
+					<h1>Log In</h1>
+
+					<form action="/login" method="post">
+
+						<div class="form-group">
+							<label for="email" class="form-label">Email address</label>
+							<input
+								type="email"
+								id="email"
+								name="email"
+								class="form-input"
+								placeholder="you@example.com"
+								required
+							/>
+							<span class="form-error">
+								Please enter a valid email address.
+							</span>
+						</div>
+
+						<div class="form-group">
+							<label for="password" class="form-label">Password</label>
+							<input
+								type="password"
+								id="password"
+								name="password"
+								class="form-input"
+								placeholder="••••••••"
+								required
+							/>
+							<span class="form-error">
+								Incorrect email or password.
+							</span>
+						</div>
+
+						<div class="form-group mt-4">
+							<button type="submit" class="btn btn-primary w-full">
+								Log In
+							</button>
+						</div>
+
+					</form>
+
+					<p class="text-sm text-muted mt-4">
+						Don’t have an account?
+						<a href="/register">Register for a library card</a>
+					</p>
+
+				</div>
+			</section>
+		</main>
+
+		@common.Footer()
+	</body>
+}

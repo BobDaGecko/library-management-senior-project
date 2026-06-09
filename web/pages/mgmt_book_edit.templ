@@ -1,0 +1,181 @@
+package pages
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+func bookEditHeadTitle(b db.BookWork) string {
+	if b.Title != "" {
+		return "Edit " + b.Title + " · Management"
+	}
+	return "Edit Book · Management"
+}
+
+func formatDateInput(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("2006-01-02")
+}
+
+func joinLines(l db.SqlStringList) string {
+	return strings.Join([]string(l), "\n")
+}
+
+// MgmtBookEdit is the full edit page for an existing book's metadata at /management/books/:id
+templ MgmtBookEdit(bookID string, book db.BookWork, p *fail.RoutingParams) {
+	@common.Head(bookEditHeadTitle(book), "Edit book metadata and details")
+	@common.NavHead("Management", p.Param("q"))
+	@common.NavAside(managementAsideLinks, p.Req.URL.Path)
+	<main class="ml-80 mt-8">
+		<div class="container-lg">
+			<div class="flex items-center justify-between mb-4">
+				<div>
+					<h1 class="mb-1">Edit Book</h1>
+					if book.Title != "" {
+						<p class="text-secondary mb-0">
+							{ book.Title }
+							if len(book.Authors) > 0 {
+								<span>by { strings.Join(book.Authors, ", ") }</span>
+							}
+						</p>
+					} else {
+						<p class="text-secondary">Book ID: { bookID }</p>
+					}
+				</div>
+				<div class="flex gap-2">
+					<a href={ templ.SafeURL("/management/books/" + bookID + "/copies") } class="btn btn-sm btn-ghost">Manage Copies →</a>
+					<a href="/management" class="btn btn-sm btn-ghost">← Catalog</a>
+				</div>
+			</div>
+
+			<div class="card card-flat">
+				<div class="card-body">
+					<div class="flex gap-4 mb-6">
+						{{ coverSrc := "/assets/img/placeholder.jpg" }}
+						if book.CoverImage != "" {
+							{{ coverSrc = book.CoverImage }}
+						} else if book.CoverThumb != "" {
+							{{ coverSrc = book.CoverThumb }}
+						}
+						<img
+							src={ coverSrc }
+							alt={ book.Title + " cover" }
+							style="width: 110px; height: 150px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; flex-shrink: 0;"
+						/>
+						<div class="flex-1 text-sm">
+							<div><strong>Google Books ID:</strong> <code>{ bookID }</code></div>
+							if book.Publisher != "" {
+								<div><strong>Publisher:</strong> { book.Publisher }</div>
+							}
+							if !book.PublishedDate.IsZero() {
+								<div><strong>Published:</strong> { book.PublishedDate.Format("2006") }</div>
+							}
+							if book.PageCount > 0 {
+								<div><strong>Pages:</strong> { fmt.Sprintf("%d", book.PageCount) }</div>
+							}
+							<div class="mt-2">
+								<a href={ fmt.Sprintf("/book/%s", bookID) } target="_blank" class="text-secondary">View public details →</a>
+							</div>
+						</div>
+					</div>
+
+					<form
+						hx-patch={ "/management/books/" + bookID }
+						hx-swap="none"
+					>
+						<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem 1.5rem;">
+							<div class="form-group">
+								<label class="label-uppercase">Title</label>
+								<input name="Title" class="form-input" value={ book.Title } />
+							</div>
+							<div class="form-group">
+								<label class="label-uppercase">Subtitle</label>
+								<input name="Subtitle" class="form-input" value={ book.Subtitle } />
+							</div>
+
+							<div class="form-group">
+								<label class="label-uppercase">Authors (one per line)</label>
+								<textarea name="Authors" class="form-input" rows="6">{ joinLines(book.Authors) }</textarea>
+							</div>
+							<div class="form-group">
+								<label class="label-uppercase">Categories / Genres (one per line)</label>
+								<textarea name="Categories" class="form-input" rows="6">{ joinLines(book.Categories) }</textarea>
+							</div>
+
+							<div class="form-group">
+								<label class="label-uppercase">Publisher</label>
+								<input name="Publisher" class="form-input" value={ book.Publisher } />
+							</div>
+							<div class="form-group">
+								<label class="label-uppercase">Publication Date</label>
+								<input name="PublishedDate" type="date" class="form-input" value={ formatDateInput(book.PublishedDate) } />
+							</div>
+
+							<div class="form-group">
+								<label class="label-uppercase">Page Count</label>
+								<input name="PageCount" type="number" min="0" class="form-input" value={ fmt.Sprintf("%d", book.PageCount) } />
+							</div>
+							<div class="form-group">
+								<label class="label-uppercase">Version (from Google)</label>
+								<input name="Version" class="form-input" value={ book.Version } readonly />
+							</div>
+
+							<div class="form-group">
+								<label class="label-uppercase">ISBN-13</label>
+								<input name="Isbn13" class="form-input" value={ book.Isbn13 } readonly />
+							</div>
+							<div class="form-group">
+								<label class="label-uppercase">ISBN-10</label>
+								<input name="Isbn10" class="form-input" value={ book.Isbn10 } readonly />
+							</div>
+
+							<div class="form-group">
+								<label class="label-uppercase">Cover Thumbnail URL</label>
+								<input name="CoverThumb" class="form-input" value={ book.CoverThumb } />
+							</div>
+							<div class="form-group">
+								<label class="label-uppercase">Cover Image URL</label>
+								<input name="CoverImage" class="form-input" value={ book.CoverImage } />
+							</div>
+						</div>
+
+						<div class="form-group mt-2">
+							<label class="label-uppercase">Description</label>
+							<textarea name="Description" class="form-input" rows="5">{ book.Description }</textarea>
+						</div>
+
+						<div class="form-group">
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input type="hidden" name="IsMature" value="false" />
+								<input type="checkbox" name="IsMature" value="true" checked?={ book.IsMature } />
+								<span>Mature / adult content</span>
+							</label>
+						</div>
+
+						<div class="flex gap-3 mt-6">
+							<button type="submit" class="btn btn-primary">Save Changes</button>
+							<button
+								type="button"
+								class="btn btn-secondary"
+								hx-put={ "/management/books/" + bookID }
+								hx-swap="none"
+								hx-confirm="Re-fetch fresh metadata from Google Books (overwrites local changes)?"
+							>
+								Re-fetch from Google Books
+							</button>
+						</div>
+						<p class="text-xs text-muted mt-2">Saving will redirect to the public book page. Use re-fetch to pull latest details from the source.</p>
+					</form>
+				</div>
+			</div>
+		</div>
+		@common.Footer()
+	</main>
+}

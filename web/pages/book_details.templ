@@ -1,0 +1,194 @@
+package pages
+
+import (
+	"fmt"
+	"strings"
+
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+var bookDetailFormats = []db.BookFmtFlag{
+	db.BookFmtPaperback,
+	db.BookFmtHardCover,
+	db.BookFmtPhysicalAudio,
+	db.BookFmtDigitalBook,
+	db.BookFmtDigitalAudio,
+}
+
+func limitedCategories(cats db.SqlStringList, max int) []string {
+	if len(cats) > max {
+		return cats[:max]
+	}
+	return cats
+}
+
+func bookTitleForHead(b db.BookWork) string {
+	if b.Title != "" {
+		return b.Title + " · Town Library"
+	}
+	return "Book Details · Town Library"
+}
+
+func copyLoanStatus(c db.BookCopy) string {
+	s, err := c.LoanStatus()
+	if err != nil {
+		return "Unknown"
+	}
+	return s.DisplayName()
+}
+
+templ BookDetailsPage(bookID string, book db.BookWork, copies db.FormatsMap[db.CopyList]) {
+	@common.Head(bookTitleForHead(book), book.Description)
+	<body class="bg-base">
+		@common.NavHead("Book Details", "")
+
+		<!-- Sub nav matching user pages pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+
+			<div class="two-col">
+
+				<!-- Left: Cover Image -->
+				<section>
+					{{ coverSrc := "/assets/img/placeholder.jpg" }}
+					if book.CoverImage != "" {
+						{{ coverSrc = book.CoverImage }}
+					} else if book.CoverThumb != "" {
+						{{ coverSrc = book.CoverThumb }}
+					}
+					<img
+						src={ coverSrc }
+						alt={ book.Title + " cover" }
+						class="rounded shadow"
+					/>
+				</section>
+
+				<!-- Right: Metadata & Actions -->
+				<section class="stack">
+
+					<h1>{ book.Title }</h1>
+					if len(book.Authors) > 0 {
+						<p class="text-muted">by { strings.Join(book.Authors, ", ") }</p>
+					}
+
+					<!-- Genre Tags -->
+					<div class="demo-row">
+						if len(book.Categories) > 0 {
+							for _, cat := range limitedCategories(book.Categories, 3) {
+								<span class="badge">{ cat }</span>
+							}
+						} else {
+							<span class="badge">Book</span>
+						}
+					</div>
+
+					<!-- Action Area -->
+					<div class="demo-row mt-4">
+						<button class="btn btn-primary">
+							<i class="material-icons">bookmark</i>
+							Place Hold
+						</button>
+						<button class="btn btn-secondary">
+							<i class="material-icons">favorite_border</i>
+							Bookmark
+						</button>
+						<button class="btn btn-ghost">
+							<i class="material-icons">star_border</i>
+							Rate
+						</button>
+					</div>
+
+					<!-- Description -->
+					<p>
+						{ book.Description }
+					</p>
+
+					<!-- Full Metadata -->
+					<ul class="list border rounded">
+						if book.Isbn13 != "" || book.Isbn10 != "" {
+							<li class="list-item"><strong>ISBN:</strong> 
+								if book.Isbn13 != "" {
+									{ book.Isbn13 }
+								} else {
+									{ book.Isbn10 }
+								}
+							</li>
+						}
+						if book.Publisher != "" {
+							<li class="list-item"><strong>Publisher:</strong> { book.Publisher }</li>
+						}
+						if !book.PublishedDate.IsZero() {
+							<li class="list-item"><strong>Publication Date:</strong> { book.PublishedDate.Format("2006") }</li>
+						}
+						if book.PageCount > 0 {
+							<li class="list-item"><strong>Pages:</strong> { fmt.Sprintf("%d", book.PageCount) }</li>
+						}
+					</ul>
+
+				</section>
+
+			</div>
+
+			<!-- Availability by Format -->
+			<section class="mt-8">
+
+				<h2>Availability</h2>
+
+				<table class="table table-striped table-hover mt-4">
+					<thead>
+						<tr>
+							<th>Format</th>
+							<th>Copy</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, f := range bookDetailFormats {
+							if cl, ok := copies[f]; ok && len(cl) > 0 {
+								for i, c := range cl {
+									<tr>
+										<td>{ f.DisplayName() }</td>
+										<td>Copy { i + 1 }</td>
+										<td>
+											if copyLoanStatus(c) == "Available" {
+												<i class="material-icons text-green">check_circle</i>
+												Available
+											} else {
+												<i class="material-icons text-red">cancel</i>
+												{ copyLoanStatus(c) }
+											}
+										</td>
+									</tr>
+								}
+							}
+						}
+						if len(copies) == 0 {
+							<tr>
+								<td colspan="3" class="text-muted">No copies on file yet.</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+
+			</section>
+
+		</main>
+
+		@common.Footer()
+	</body>
+}

@@ -1,0 +1,106 @@
+package pages
+
+import "voxelprismatic/library-management-senior-project/web/common"
+
+templ FinesPage() {
+	@common.Head("My Fines · Town Library", "Review outstanding and paid fines on your account.")
+	<body class="bg-base">
+		@common.NavHead("Account", "")
+
+		<!-- Sub nav matching account/public pattern -->
+		<nav class="mt-2" style="border-bottom: solid var(--tertiary);">
+			<div class="navbar-collapse justify-between">
+				<ul class="navbar-nav">
+					<li><a href="#">Explore <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Services <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">Events <i class="material-icons">arrow_drop_down</i></a></li>
+					<li><a href="#">About Us <i class="material-icons">arrow_drop_down</i></a></li>
+				</ul>
+				<ul class="navbar-nav">
+					<li><a href="/account"><i class="material-icons mb-2">account_circle</i> My Account</a></li>
+					<li><a href="/help"><i class="material-icons mb-2">help</i> Help</a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<main class="container-lg mt-8">
+			<header class="between mb-6">
+				<div>
+					<h1>My Fines</h1>
+					<p class="text-muted">
+						Review outstanding and paid fines on your account.
+					</p>
+				</div>
+
+				<a href="/account" class="btn btn-link">
+					← Back to Account
+				</a>
+			</header>
+
+			<!-- Sorting Controls -->
+			<div class="between mb-4">
+				<span class="text-sm text-muted">
+					Showing all fines
+				</span>
+
+				<select class="form-input select w-fit">
+					<option>Sort by date</option>
+					<option>Sort by amount</option>
+				</select>
+			</div>
+
+			<div class="table-wrapper">
+				<table class="table table-striped table-hover">
+
+					<thead>
+						<tr>
+							<th>Reason</th>
+							<th>Date</th>
+							<th>Amount</th>
+							<th>Remaining Balance</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr>
+							<td>Overdue book</td>
+							<td>May 29, 2026</td>
+							<td>$2.00</td>
+							<td>$2.00</td>
+							<td class="text-red">Unpaid</td>
+						</tr>
+
+						<tr>
+							<td>Lost item fee</td>
+							<td>May 15, 2026</td>
+							<td>$10.00</td>
+							<td>$0.00</td>
+							<td class="text-green">Paid</td>
+						</tr>
+
+						<tr>
+							<td>Overdue audiobook</td>
+							<td>May 10, 2026</td>
+							<td>$1.50</td>
+							<td>$1.50</td>
+							<td class="text-warning">Pending</td>
+						</tr>
+					</tbody>
+
+					<!-- Totals Row -->
+					<tfoot>
+						<tr>
+							<th colspan="3">Total Outstanding</th>
+							<th>$3.50</th>
+							<th></th>
+						</tr>
+					</tfoot>
+
+				</table>
+			</div>
+		</main>
+
+		@common.Footer()
+	</body>
+}

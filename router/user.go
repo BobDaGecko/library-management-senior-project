@@ -3,17 +3,42 @@ package router
 import (
 	"fmt"
 	"net/http"
+
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/pages"
 	"voxelprismatic/library-management-senior-project/web/user"
 )
 
+// UserRouter handles the /user tree:
+//
+//	/user/login     -> public_login page (LoginPage)
+//	/user/register  -> public_register page (RegisterPage)
+//	/user           -> user_account page (AccountPage)
+//	/user/dashboard -> user_dashboard page (DashboardPage)
+//	/user/loans     -> user_loans
+//	/user/holds     -> user_holds
+//	/user/fines     -> user_fines
+//	/user/saved     -> user_saved (included for completeness with account dashboard).
 func UserRouter(p *fail.RoutingParams) {
 	switch p.Pop() {
-	case "register":
-		HandleUserRegister(p)
 	case "login":
 		HandleUserLogin(p)
+	case "register":
+		HandleUserRegister(p)
+	case "loans":
+		HandleUserLoans(p)
+	case "holds":
+		HandleUserHolds(p)
+	case "fines":
+		HandleUserFines(p)
+	case "saved":
+		HandleUserSaved(p)
+	case "dashboard":
+		HandleUserDashboard(p)
+	case "":
+		// /user exact -> account dashboard
+		HandleUserAccount(p)
 	default:
 		fail.Redirect(p)
 	}
@@ -126,4 +151,72 @@ func HandleUserRegisterPost(p *fail.RoutingParams) {
 	(fail.HTMX{
 		Redirect: "/",
 	}).Apply(p)
+}
+
+// Account (and subs) require a logged-in user.
+
+func HandleUserAccount(p *fail.RoutingParams) {
+	if p.User == nil {
+		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		return
+	}
+	if fail.Done(p) {
+		fail.Render(p, pages.AccountPage())
+		return
+	}
+	fail.Redirect(p)
+}
+
+func HandleUserDashboard(p *fail.RoutingParams) {
+	if fail.Auth(p, db.UserRolePublic) {
+		return
+	}
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.DashboardPage())
+}
+
+func HandleUserLoans(p *fail.RoutingParams) {
+	if p.User == nil {
+		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		return
+	}
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.LoansPage())
+}
+
+func HandleUserHolds(p *fail.RoutingParams) {
+	if p.User == nil {
+		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		return
+	}
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.HoldsPage())
+}
+
+func HandleUserFines(p *fail.RoutingParams) {
+	if p.User == nil {
+		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		return
+	}
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.FinesPage())
+}
+
+func HandleUserSaved(p *fail.RoutingParams) {
+	if p.User == nil {
+		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		return
+	}
+	if fail.Done(p) {
+		return
+	}
+	fail.Render(p, pages.SavedPage())
 }
