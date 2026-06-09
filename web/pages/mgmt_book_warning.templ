@@ -1,0 +1,55 @@
+package pages
+
+import (
+	"strings"
+
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+// MgmtBookNotInLibraryWarning is the full page shown when visiting /management/books/:id
+// for a Google Books volume that has not yet been added to the local library.
+templ MgmtBookNotInLibraryWarning(book db.BookWork, id string, p *fail.RoutingParams) {
+	@common.Head(book.Title + " — Not in Library", "Book not yet in local library")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-6">
+				<h1 class="mb-0">Add to Library</h1>
+				<a href="/management/books/add" class="btn btn-sm btn-subtle">← Search</a>
+			</div>
+			@common.WarningBanner("This book is not yet in your library.")
+			<div class="card card-flat">
+				<div class="flex gap-6 items-start">
+					if book.CoverImage != "" {
+						<img
+							src={ book.CoverImage }
+							alt={ "Cover of " + book.Title }
+							style="height:160px;width:auto;object-fit:cover;flex-shrink:0;border-radius:var(--radius);border:var(--border-w) solid var(--border);"
+						/>
+					}
+					<div class="flex-1">
+						<h2 class="mb-1">{ book.Title }</h2>
+						if len(book.Authors) > 0 {
+							<p class="text-sub mb-3">by { strings.Join(book.Authors, ", ") }</p>
+						}
+						if book.Description != "" {
+							<p class="text-sm mb-4" style="max-width:72ch;">{ book.Description }</p>
+						}
+						<button
+							hx-put={ "/management/books/" + id }
+							hx-target="closest .card"
+							hx-swap="outerHTML"
+							class="btn btn-primary"
+						>
+							<i class="material-icons" style="font-size:16px;vertical-align:-3px;">add</i>
+							Add to Library
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+	@common.Footer()
+}

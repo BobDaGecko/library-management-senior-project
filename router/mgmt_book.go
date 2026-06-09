@@ -53,7 +53,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 	switch p.Req.Method {
 	case http.MethodGet:
 		query := p.Req.URL.Query().Get("q")
-		fail.Render(p, pages.BookMgmtSearchFull(query, p))
+		fail.Render(p, pages.MgmtBookSearchFull(query, p))
 	case http.MethodPost:
 		if fail.Form(p) {
 			return
@@ -63,7 +63,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 			"hx-replace-url",
 			fmt.Sprintf("%s?q=%s", p.Req.URL.String(), url.QueryEscape(query)),
 		)
-		fail.Render(p, pages.BookMgmtSearchGrid(query))
+		fail.Render(p, pages.MgmtBookSearchGrid(query))
 	case http.MethodPut:
 		if fail.Form(p) {
 			return
@@ -84,7 +84,7 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 			return
 		}
 		p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(p.W, `<button disabled><i class="material-icons">check</i></button>`)
+		fmt.Fprintf(p.W, `<a href="/management/books/%s" class="btn btn-sm btn-subtle">In Library →</a>`, id)
 		return
 	default:
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
@@ -108,6 +108,8 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 		switch p.Pop() {
 		case "copies":
 			HandleManagementBookCopies(p, bookId)
+		case "edit":
+			HandleManagementBookEdit(p, bookId)
 		default:
 			fail.Done(p)
 		}
@@ -128,7 +130,7 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 			}
 			book = details.ToLocalStruct()
 
-			fail.Render(p, pages.BookMgmtNotInLibraryWarning(book, bookId))
+			fail.Render(p, pages.MgmtBookNotInLibraryWarning(book, bookId, p))
 			return
 		}
 
@@ -180,11 +182,27 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 			return
 		}
 
-		p.W.Header().Set("HX-Redirect", fmt.Sprintf("/books/%s", bookId))
+		p.W.Header().Set("HX-Redirect", fmt.Sprintf("/management/books/%s", bookId))
 
 	default:
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func HandleManagementBookEdit(p *fail.RoutingParams, bookId string) {
+	if fail.Done(p) {
+		return
+	}
+	if p.Req.Method != http.MethodGet {
+		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var book db.BookWork
+	if err := db.Db().Where("id = ?", bookId).First(&book).Error; err != nil {
+		http.Error(p.W, "Book not found", http.StatusNotFound)
+		return
+	}
+	fail.Render(p, pages.MgmtBookEdit(bookId, book, p))
 }
 
 func HandleManagementBookCopies(p *fail.RoutingParams, bookID string) {

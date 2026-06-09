@@ -271,13 +271,19 @@ templ MgmtBookDetail(p *fail.RoutingParams, book db.BookWork) {
 		<div class="container">
 			<div class="flex items-center justify-between mb-6">
 				<div class="flex items-center gap-3">
-					<a href="/management/books" class="btn btn-ghost btn-sm">← Catalog</a>
+					<a href="/management/books" class="btn btn-subtle btn-sm">← Catalog</a>
 					<h1 class="mb-0">{ book.Title }</h1>
 				</div>
-				<a href={ templ.SafeURL("/management/books/" + book.ID + "/copies") } class="btn btn-primary btn-sm">
-					<i class="material-icons" style="font-size:16px;vertical-align:-3px;">library_books</i>
-					Manage Copies
-				</a>
+				<div class="flex gap-2">
+					<a href={ templ.SafeURL("/management/books/" + book.ID + "/edit") } class="btn btn-sm btn-subtle">
+						<i class="material-icons" style="font-size:14px;vertical-align:-2px;">edit</i>
+						Edit Metadata
+					</a>
+					<a href={ templ.SafeURL("/management/books/" + book.ID + "/copies") } class="btn btn-primary btn-sm">
+						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">library_books</i>
+						Manage Copies
+					</a>
+				</div>
 			</div>
 			<div class="card card-flat mb-6">
 				<div class="flex gap-6 items-start">

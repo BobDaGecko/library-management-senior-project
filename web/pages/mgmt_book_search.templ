@@ -1,0 +1,91 @@
+package pages
+
+import (
+	"voxelprismatic/library-management-senior-project/db"
+	"voxelprismatic/library-management-senior-project/fetch"
+	"voxelprismatic/library-management-senior-project/router/fail"
+	"voxelprismatic/library-management-senior-project/web/book"
+	"voxelprismatic/library-management-senior-project/web/common"
+)
+
+func gbooksMustSearch(q string) db.BookVariants {
+	if q == "" {
+		return db.BookVariants{}
+	}
+	data, err := fetch.GBooksSearch(q)
+	if err != nil {
+		return db.BookVariants{}
+	}
+	ret := db.BookVariants{}
+	for _, o := range data.Items {
+		ret.Add(o.ToLocalStruct())
+	}
+	return ret
+}
+
+templ MgmtBookSearchFull(q string, p *fail.RoutingParams) {
+	@common.Head("Add Books — Management", "Add books to the library")
+	@common.MgmtNavHead(p.Req.URL.Path)
+	<main class="page-main">
+		<div class="container">
+			<div class="flex items-center justify-between mb-6">
+				<h1 class="mb-0">Add Books</h1>
+			</div>
+			<div class="card card-flat mb-6">
+				<form
+					id="search-form"
+					hx-post="/management/books/add"
+					hx-target="#search-grid"
+					hx-swap="outerHTML"
+				>
+					<div class="form-group mb-0">
+						<label class="form-label">Search Google Books</label>
+						<div class="flex gap-3 items-center">
+							<input
+								name="q"
+								class="form-input"
+								type="search"
+								value={ q }
+								style="max-width:420px;"
+								placeholder="Title, author, or ISBN…"
+								id="main-search-bar"
+							/>
+							<button type="submit" class="btn btn-primary btn-sm">
+								<i class="material-icons" style="font-size:16px;vertical-align:-3px;">search</i>
+								Search
+							</button>
+						</div>
+						<span class="form-hint">Results come from Google Books. Select a title to add it to the library.</span>
+					</div>
+				</form>
+			</div>
+			@MgmtBookSearchGrid(q)
+		</div>
+	</main>
+	@common.Footer()
+}
+
+templ MgmtBookSearchGrid(q string) {
+	<div id="search-grid">
+		if q == "" {
+			<div class="empty-state">
+				<div class="empty-state-icon"><i class="material-icons">search</i></div>
+				<div class="empty-state-text">Enter a title, author, or ISBN to search Google Books.</div>
+			</div>
+		} else {
+			{{ results := gbooksMustSearch(q) }}
+			if len(results) == 0 {
+				<div class="empty-state">
+					<div class="empty-state-icon"><i class="material-icons">menu_book</i></div>
+					<div class="empty-state-text">No results found for "{ q }".</div>
+				</div>
+			} else {
+				for _, variants := range results {
+					if len(variants) > 0 {
+						@book.BookTrunkAdmin(variants[0])
+					}
+				}
+			}
+		}
+	</div>
+}
