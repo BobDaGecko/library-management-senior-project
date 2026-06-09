@@ -8,6 +8,26 @@ import (
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
+// checkoutSteps renders the 3-step workflow indicator. step: 1=patron, 2=copy, 3=confirm.
+templ checkoutSteps(step int) {
+	<div class="workflow-steps">
+		<div class={ "workflow-step", templ.KV("done", step > 1), templ.KV("active", step == 1) }>
+			<span class="workflow-step-num">1</span>
+			<span class="workflow-step-label">Find Patron</span>
+		</div>
+		<div class="workflow-connector"></div>
+		<div class={ "workflow-step", templ.KV("done", step > 2), templ.KV("active", step == 2) }>
+			<span class="workflow-step-num">2</span>
+			<span class="workflow-step-label">Select Copy</span>
+		</div>
+		<div class="workflow-connector"></div>
+		<div class={ "workflow-step", templ.KV("active", step == 3) }>
+			<span class="workflow-step-num">3</span>
+			<span class="workflow-step-label">Confirm</span>
+		</div>
+	</div>
+}
+
 // MgmtCheckout is the full checkout page shell.
 templ MgmtCheckout(p *fail.RoutingParams) {
 	@common.Head("Checkout — Management", "Check out books to patrons")
@@ -26,6 +46,7 @@ templ MgmtCheckout(p *fail.RoutingParams) {
 
 // CheckoutPatronSearch renders the patron search input and empty results container.
 templ CheckoutPatronSearch(q string) {
+	@checkoutSteps(1)
 	<div class="card-flat mb-6">
 		<h2 class="mb-4">Find Patron</h2>
 		<input
@@ -33,13 +54,17 @@ templ CheckoutPatronSearch(q string) {
 			name="q"
 			value={ q }
 			placeholder="Search by name or email..."
-			class="form-input mb-4"
+			class="form-input mb-1"
 			hx-get="/management/checkout"
 			hx-trigger="input delay:300ms"
 			hx-vals='{"step":"patron"}'
 			hx-target="#patron-results"
 			hx-swap="innerHTML"
+			hx-indicator="#patron-indicator"
 		/>
+		<div id="patron-indicator" class="htmx-indicator progress progress-slim mb-3">
+			<div class="progress-bar indeterminate"></div>
+		</div>
 		<div id="patron-results"></div>
 	</div>
 }
@@ -47,37 +72,50 @@ templ CheckoutPatronSearch(q string) {
 // CheckoutPatronResults is returned by HTMX patron search; swaps into #patron-results.
 templ CheckoutPatronResults(users []db.User) {
 	if len(users) == 0 {
-		<p class="text-sub">No patrons found.</p>
+		<div class="empty-state">
+			<i class="material-icons empty-state-icon">person_search</i>
+			<p class="empty-state-text">No patrons found.</p>
+		</div>
 	} else {
-		<ul style="list-style:none;padding:0;margin:0;">
+		<div class="result-list">
 			for _, u := range users {
-				<li style="margin-bottom:var(--space-1);">
-					<button
-						type="button"
-						class="btn btn-subtle w-full"
-						style="text-align:left;"
-						hx-get="/management/checkout"
-						hx-vals={ fmt.Sprintf(`{"step":"patron_selected","user_id":"%s"}`, u.ID.String()) }
-						hx-target="#checkout-workflow"
-						hx-swap="innerHTML"
-					>
-						<strong>{ u.FirstName } { u.LastName }</strong> &mdash; { u.Email }
-					</button>
-				</li>
+				<button
+					type="button"
+					class="result-item"
+					hx-get="/management/checkout"
+					hx-vals={ fmt.Sprintf(`{"step":"patron_selected","user_id":"%s"}`, u.ID.String()) }
+					hx-target="#checkout-workflow"
+					hx-swap="innerHTML"
+				>
+					<span class="result-item-title">{ u.FirstName } { u.LastName }</span>
+					<span class="result-item-meta">{ u.Email }</span>
+				</button>
 			}
-		</ul>
+		</div>
 	}
 }
 
 // CheckoutPatronSelected replaces #checkout-workflow after a patron is chosen.
 templ CheckoutPatronSelected(user db.User, loanCount int) {
-	<div class="card-flat mb-6">
-		<div class="flex items-center gap-3 mb-3">
-			<h2 class="mb-0">{ user.FirstName } { user.LastName }</h2>
-			@checkoutStatusCtag(user.Status)
+	@checkoutSteps(2)
+	<div class="user-profile-card mb-6">
+		<div class="user-avatar">{ userInitials(user.FirstName, user.LastName) }</div>
+		<div class="user-profile-body">
+			<div class="user-profile-name">
+				<h2>{ user.FirstName } { user.LastName }</h2>
+				@checkoutStatusCtag(user.Status)
+			</div>
+			<div class="user-profile-meta">
+				<span class="user-profile-meta-item">
+					<i class="material-icons">email</i>
+					{ user.Email }
+				</span>
+				<span class="user-profile-meta-item">
+					<i class="material-icons">bookmark</i>
+					{ fmt.Sprintf("%d book(s) checked out", loanCount) }
+				</span>
+			</div>
 		</div>
-		<p class="text-sub mb-1">{ user.Email }</p>
-		<p class="text-sub">{ fmt.Sprintf("%d book(s) currently checked out", loanCount) }</p>
 	</div>
 	<div class="card-flat">
 		<h2 class="mb-4">Find Copy</h2>
@@ -85,13 +123,17 @@ templ CheckoutPatronSelected(user db.User, loanCount int) {
 			type="text"
 			name="q"
 			placeholder="Search by title or author..."
-			class="form-input mb-4"
+			class="form-input mb-1"
 			hx-get="/management/checkout"
 			hx-trigger="input delay:300ms"
 			hx-vals={ fmt.Sprintf(`{"step":"copy","user_id":"%s"}`, user.ID.String()) }
 			hx-target="#copy-results"
 			hx-swap="innerHTML"
+			hx-indicator="#copy-indicator"
 		/>
+		<div id="copy-indicator" class="htmx-indicator progress progress-slim mb-3">
+			<div class="progress-bar indeterminate"></div>
+		</div>
 		<div id="copy-results"></div>
 	</div>
 }
@@ -99,32 +141,35 @@ templ CheckoutPatronSelected(user db.User, loanCount int) {
 // CheckoutCopyResults swaps into #copy-results.
 templ CheckoutCopyResults(copies []db.BookCopy, userID string) {
 	if len(copies) == 0 {
-		<p class="text-sub">No available copies found.</p>
+		<div class="empty-state">
+			<i class="material-icons empty-state-icon">search_off</i>
+			<p class="empty-state-text">No available copies found.</p>
+		</div>
 	} else {
-		<ul style="list-style:none;padding:0;margin:0;">
+		<div class="result-list">
 			for _, c := range copies {
-				<li style="margin-bottom:var(--space-1);">
-					<button
-						type="button"
-						class="btn btn-subtle w-full"
-						style="text-align:left;"
-						hx-get="/management/checkout"
-						hx-vals={ fmt.Sprintf(`{"step":"copy_selected","user_id":"%s","copy_id":"%s"}`, userID, c.ID.String()) }
-						hx-target="#checkout-workflow"
-						hx-swap="innerHTML"
-					>
-						<strong>{ c.BookWork.Title }</strong>
-						<span class="ctag ctag-sky" style="margin-left:var(--space-2);">{ c.Format.DisplayName() }</span>
-						<span class="text-sub" style="margin-left:var(--space-2);">{ c.Condition.DisplayName() }</span>
-					</button>
-				</li>
+				<button
+					type="button"
+					class="result-item"
+					hx-get="/management/checkout"
+					hx-vals={ fmt.Sprintf(`{"step":"copy_selected","user_id":"%s","copy_id":"%s"}`, userID, c.ID.String()) }
+					hx-target="#checkout-workflow"
+					hx-swap="innerHTML"
+				>
+					<span class="result-item-title">{ c.BookWork.Title }</span>
+					<span class="result-item-meta">
+						<span class="ctag ctag-sky">{ c.Format.DisplayName() }</span>
+						<span class="text-sub">{ c.Condition.DisplayName() }</span>
+					</span>
+				</button>
 			}
-		</ul>
+		</div>
 	}
 }
 
-// CheckoutConfirmCard shows the confirmation before POST. ISS-02 wires the submit.
+// CheckoutConfirmCard shows the confirmation before POST.
 templ CheckoutConfirmCard(user db.User, copy db.BookCopy, userID string, copyID string) {
+	@checkoutSteps(3)
 	<div class="card-flat mb-6">
 		<h2 class="mb-4">Confirm Checkout</h2>
 		<table class="table mb-4" style="width:auto;">
@@ -151,33 +196,51 @@ templ CheckoutConfirmCard(user db.User, copy db.BookCopy, userID string, copyID 
 			<input type="hidden" name="action" value="checkout"/>
 			<input type="hidden" name="user_id" value={ userID }/>
 			<input type="hidden" name="copy_id" value={ copyID }/>
-			<button type="submit" class="btn btn-primary">Confirm Checkout</button>
-			<a href="/management/checkout" class="btn btn-ghost" style="margin-left:var(--space-3);">Cancel</a>
+			<div class="flex gap-3">
+				<button type="submit" class="btn btn-primary">Confirm Checkout</button>
+				<a href="/management/checkout" class="btn btn-ghost">Cancel</a>
+			</div>
 		</form>
 	</div>
 }
 
-// CheckoutSuccess resets the page to empty state with a green success banner.
+// CheckoutSuccess resets the page to empty state with a green success alert.
 templ CheckoutSuccess(userName string, bookTitle string, dueDate time.Time) {
-	<div class="card-flat mb-6" style="border-color:var(--green);">
-		<p style="color:var(--green);font-weight:600;">Checked out — due { dueDate.Format("2006-01-02") }</p>
-		<p class="text-sub">{ bookTitle } → { userName }</p>
+	<div class="alert alert-success mb-6">
+		<div class="alert-icon"><i class="material-icons" style="font-size:1.25rem;line-height:1;">check_circle</i></div>
+		<div class="alert-content">
+			<div class="alert-title">Checked out — due { dueDate.Format("Jan 2, 2006") }</div>
+			<p>{ bookTitle } → { userName }</p>
+		</div>
 	</div>
 	@CheckoutPatronSearch("")
 }
 
 // CheckoutErrorState shows inline error without clearing the patron selection.
 templ CheckoutErrorState(user db.User, loanCount int, errMsg string) {
-	<div class="card-flat mb-6">
-		<div class="flex items-center gap-3 mb-3">
-			<h2 class="mb-0">{ user.FirstName } { user.LastName }</h2>
-			@checkoutStatusCtag(user.Status)
+	@checkoutSteps(2)
+	<div class="user-profile-card mb-6">
+		<div class="user-avatar">{ userInitials(user.FirstName, user.LastName) }</div>
+		<div class="user-profile-body">
+			<div class="user-profile-name">
+				<h2>{ user.FirstName } { user.LastName }</h2>
+				@checkoutStatusCtag(user.Status)
+			</div>
+			<div class="user-profile-meta">
+				<span class="user-profile-meta-item">
+					<i class="material-icons">email</i>
+					{ user.Email }
+				</span>
+				<span class="user-profile-meta-item">
+					<i class="material-icons">bookmark</i>
+					{ fmt.Sprintf("%d book(s) checked out", loanCount) }
+				</span>
+			</div>
 		</div>
-		<p class="text-sub mb-1">{ user.Email }</p>
-		<p class="text-sub">{ fmt.Sprintf("%d book(s) currently checked out", loanCount) }</p>
 	</div>
-	<div class="card-flat mb-4" style="border-color:var(--red);">
-		<p style="color:var(--red);">{ errMsg }</p>
+	<div class="alert alert-error mb-4">
+		<div class="alert-icon"><i class="material-icons" style="font-size:1.25rem;line-height:1;">error</i></div>
+		<div class="alert-content">{ errMsg }</div>
 	</div>
 	<div class="card-flat">
 		<h2 class="mb-4">Find Copy</h2>
@@ -185,13 +248,17 @@ templ CheckoutErrorState(user db.User, loanCount int, errMsg string) {
 			type="text"
 			name="q"
 			placeholder="Search by title or author..."
-			class="form-input mb-4"
+			class="form-input mb-1"
 			hx-get="/management/checkout"
 			hx-trigger="input delay:300ms"
 			hx-vals={ fmt.Sprintf(`{"step":"copy","user_id":"%s"}`, user.ID.String()) }
 			hx-target="#copy-results"
 			hx-swap="innerHTML"
+			hx-indicator="#copy-indicator"
 		/>
+		<div id="copy-indicator" class="htmx-indicator progress progress-slim mb-3">
+			<div class="progress-bar indeterminate"></div>
+		</div>
 		<div id="copy-results"></div>
 	</div>
 }

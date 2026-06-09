@@ -3,6 +3,7 @@ package pages
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
@@ -10,6 +11,20 @@ import (
 )
 
 const usersPerPage = 50
+
+func userInitials(firstName, lastName string) string {
+	result := ""
+	if len(firstName) > 0 {
+		result += strings.ToUpper(firstName[:1])
+	}
+	if len(lastName) > 0 {
+		result += strings.ToUpper(lastName[:1])
+	}
+	if result == "" {
+		return "?"
+	}
+	return result
+}
 
 func getUsers(page int) []db.User {
 	if page < 1 {
@@ -66,11 +81,15 @@ templ MgmtUsersTable(page int) {
 			<tbody>
 				for _, u := range getUsers(page) {
 					<tr>
-						<td>{ u.FirstName } { u.LastName }</td>
+						<td>
+							<a href={ templ.SafeURL("/management/users/" + u.ID.String()) }>
+								{ u.FirstName } { u.LastName }
+							</a>
+						</td>
 						<td>{ u.Email }</td>
 						<td>@UserRoleSelect(u.ID.String(), u.Roles)
 </td>
-						<td>{ u.Status.String() }</td>
+						<td>@userDetailStatusCtag(u.Status)</td>
 					</tr>
 				}
 			</tbody>
@@ -82,17 +101,29 @@ templ MgmtUsersTable(page int) {
 // UserRoleSelect renders an auto-updating role dropdown. Used in table and re-rendered after HTMX update.
 templ UserRoleSelect(userID string, current db.UserRoleFlag) {
 	<select
+		class="form-select"
 		name="role"
 		hx-post="/management/users"
 		hx-target="this"
 		hx-swap="outerHTML"
 		hx-trigger="change"
 		hx-vals={ fmt.Sprintf(`{"user_id": "%s", "action": "update_role"}`, userID) }
-		value={ fmt.Sprintf("%d", current) }
 	>
-		<option value="1">Public</option>
-		<option value="2">Librarian</option>
-		<option value="4">Admin</option>
+		if current == db.UserRolePublic {
+			<option value="1" selected>Public</option>
+		} else {
+			<option value="1">Public</option>
+		}
+		if current == db.UserRoleLibrarian {
+			<option value="2" selected>Librarian</option>
+		} else {
+			<option value="2">Librarian</option>
+		}
+		if current == db.UserRoleAdmin {
+			<option value="4" selected>Admin</option>
+		} else {
+			<option value="4">Admin</option>
+		}
 	</select>
 }
 
@@ -124,7 +155,8 @@ func getUserDetailOpenHolds(userID string) []db.Hold {
 func getUserDetailFines(userID string) []db.Fine {
 	var fines []db.Fine
 	db.Db().
-		Where("user_id = ? AND amount_remaining > 0", userID).
+		Joins("JOIN loans ON loans.id = fines.loan_id AND loans.deleted_at IS NULL").
+		Where("loans.user_id = ? AND fines.amount_remaining > 0 AND fines.deleted_at IS NULL", userID).
 		Preload("Loan.BookCopy.BookWork").
 		Find(&fines)
 	return fines
@@ -149,31 +181,43 @@ templ UserDetail(p *fail.RoutingParams, userID string, tab string) {
 		<main class="page-main">
 			<div class="container">
 				<div class="flex items-center gap-3 mb-6">
-					<a href="/management/users" class="btn btn-ghost btn-sm">← Users</a>
+					<a href="/management/users" class="btn btn-sm btn-subtle">← Users</a>
 					<h1 class="mb-0">{ user.FirstName } { user.LastName }</h1>
 				</div>
-				<div class="card-flat mb-6">
-					<div class="flex items-center gap-3 mb-3">
-						@userRoleCtag(user.Roles)
-						@userDetailStatusCtag(user.Status)
+				<div class="user-profile-card mb-6">
+					<div class="user-avatar">{ userInitials(user.FirstName, user.LastName) }</div>
+					<div class="user-profile-body">
+						<div class="user-profile-name">
+							@userRoleCtag(user.Roles)
+							@userDetailStatusCtag(user.Status)
+						</div>
+						<div class="user-profile-meta">
+							<span class="user-profile-meta-item">
+								<i class="material-icons">email</i>
+								{ user.Email }
+							</span>
+							<span class="user-profile-meta-item">
+								<i class="material-icons">bookmark</i>
+								{ strconv.Itoa(len(loans)) } book(s) checked out
+							</span>
+						</div>
+						<div class="user-profile-uuid">{ userID }</div>
 					</div>
-					<p class="text-sub mb-1">{ user.Email }</p>
-					<p class="text-sub">{ strconv.Itoa(len(loans)) } book(s) currently checked out</p>
 				</div>
-				<div class="mb-6" style="display:flex;gap:var(--space-2);">
+				<nav class="tabs mb-6">
 					<a
 						href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=loans", userID)) }
-						class={ "btn btn-sm", templ.KV("btn-primary", tab == "loans"), templ.KV("btn-subtle", tab != "loans") }
+						class={ "tab", templ.KV("active", tab == "loans") }
 					>Loans</a>
 					<a
 						href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=holds", userID)) }
-						class={ "btn btn-sm", templ.KV("btn-primary", tab == "holds"), templ.KV("btn-subtle", tab != "holds") }
+						class={ "tab", templ.KV("active", tab == "holds") }
 					>Holds</a>
 					<a
 						href={ templ.SafeURL(fmt.Sprintf("/management/users/%s?tab=fines", userID)) }
-						class={ "btn btn-sm", templ.KV("btn-primary", tab == "fines"), templ.KV("btn-subtle", tab != "fines") }
+						class={ "tab", templ.KV("active", tab == "fines") }
 					>Fines</a>
-				</div>
+				</nav>
 				if tab == "holds" {
 					@userDetailHoldsTab(userID)
 				} else if tab == "fines" {
@@ -190,7 +234,12 @@ templ UserDetail(p *fail.RoutingParams, userID string, tab string) {
 templ userDetailLoansTab(userID string) {
 	{{ loans := getUserDetailLoans(userID) }}
 	if len(loans) == 0 {
-		<div class="card-flat"><p class="text-sub">No loan history.</p></div>
+		<div class="card-flat">
+			<div class="empty-state">
+				<i class="material-icons empty-state-icon">bookmark_border</i>
+				<p class="empty-state-text">No loan history.</p>
+			</div>
+		</div>
 	} else {
 		<table class="table">
 			<thead>
@@ -226,7 +275,12 @@ templ userDetailLoansTab(userID string) {
 templ userDetailHoldsTab(userID string) {
 	{{ holds := getUserDetailOpenHolds(userID) }}
 	if len(holds) == 0 {
-		<div class="card-flat"><p class="text-sub">No open holds.</p></div>
+		<div class="card-flat">
+			<div class="empty-state">
+				<i class="material-icons empty-state-icon">hourglass_empty</i>
+				<p class="empty-state-text">No open holds.</p>
+			</div>
+		</div>
 	} else {
 		<table class="table">
 			<thead>
@@ -255,7 +309,12 @@ templ userDetailHoldsTab(userID string) {
 templ userDetailFinesTab(userID string) {
 	{{ fines := getUserDetailFines(userID) }}
 	if len(fines) == 0 {
-		<div class="card-flat"><p class="text-sub">No outstanding fines.</p></div>
+		<div class="card-flat">
+			<div class="empty-state">
+				<i class="material-icons empty-state-icon">payments</i>
+				<p class="empty-state-text">No outstanding fines.</p>
+			</div>
+		</div>
 	} else {
 		<table class="table">
 			<thead>

@@ -78,16 +78,28 @@ func getRecentLoans(limit int) []db.Loan {
 	return loans
 }
 
-func getAttentionUsers(limit int) []db.User {
-	var users []db.User
+type attentionUser struct {
+	db.User
+	HasOverdue bool `gorm:"column:has_overdue"`
+	HasFines   bool `gorm:"column:has_fines"`
+}
+
+func getAttentionUsers(limit int) []attentionUser {
+	var results []attentionUser
 	db.Db().Raw(`
-		SELECT DISTINCT u.* FROM users u
+		SELECT u.*,
+			MAX(CASE WHEN l.id IS NOT NULL THEN 1 ELSE 0 END) as has_overdue,
+			MAX(CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END) as has_fines
+		FROM users u
 		LEFT JOIN loans l ON l.user_id = u.id AND l.date_returned = ? AND l.date_checkout < ?
-		LEFT JOIN fines f ON f.user_id = u.id AND f.amount_remaining > 0
-		WHERE u.deleted_at IS NULL AND u.status != ? AND (l.id IS NOT NULL OR f.id IS NOT NULL)
+		LEFT JOIN loans l2 ON l2.user_id = u.id AND l2.deleted_at IS NULL
+		LEFT JOIN fines f ON f.loan_id = l2.id AND f.amount_remaining > 0 AND f.deleted_at IS NULL
+		WHERE u.deleted_at IS NULL AND u.status != ?
+			AND (l.id IS NOT NULL OR f.id IS NOT NULL)
+		GROUP BY u.id
 		LIMIT ?
-	`, db.NilTime, time.Now().Add(-db.LOAN_DURATION), db.UserStatusDeleted, limit).Scan(&users)
-	return users
+	`, db.NilTime, time.Now().Add(-db.LOAN_DURATION), db.UserStatusDeleted, limit).Scan(&results)
+	return results
 }
 
 templ ManagementHome(p *fail.RoutingParams) {
@@ -150,11 +162,11 @@ templ ManagementHome(p *fail.RoutingParams) {
 						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">login</i>
 						Checkout Book
 					</a>
-					<a href="/management/return" class="btn btn-secondary">
+					<a href="/management/return" class="btn btn-subtle">
 						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">logout</i>
 						Process Return
 					</a>
-					<a href="/management/overdue" class="btn btn-ghost">
+					<a href="/management/overdue" class="btn btn-subtle">
 						<i class="material-icons" style="font-size:16px;vertical-align:-3px;">schedule</i>
 						View Overdue
 					</a>
@@ -165,8 +177,12 @@ templ ManagementHome(p *fail.RoutingParams) {
 				<!-- Recently returned -->
 				<div class="card-flat">
 					<h3 class="mb-4">Recently Returned</h3>
-					if len(getRecentLoans(5)) == 0 {
-						<p class="text-sub">No returns yet.</p>
+					{{ recentLoans := getRecentLoans(5) }}
+					if len(recentLoans) == 0 {
+						<div class="empty-state">
+							<i class="material-icons empty-state-icon">history</i>
+							<p class="empty-state-text">No returns yet.</p>
+						</div>
 					} else {
 						<table class="table">
 							<thead>
@@ -177,7 +193,7 @@ templ ManagementHome(p *fail.RoutingParams) {
 								</tr>
 							</thead>
 							<tbody>
-								for _, l := range getRecentLoans(5) {
+								for _, l := range recentLoans {
 									<tr>
 										<td>{ l.BookCopy.BookWork.Title }</td>
 										<td>
@@ -195,18 +211,23 @@ templ ManagementHome(p *fail.RoutingParams) {
 				<!-- Needs attention -->
 				<div class="card-flat">
 					<h3 class="mb-4">Needs Attention</h3>
-					if len(getAttentionUsers(5)) == 0 {
-						<p class="text-sub">No outstanding issues.</p>
+					{{ attention := getAttentionUsers(5) }}
+					if len(attention) == 0 {
+						<div class="empty-state">
+							<i class="material-icons empty-state-icon">check_circle</i>
+							<p class="empty-state-text">No outstanding issues.</p>
+						</div>
 					} else {
 						<table class="table">
 							<thead>
 								<tr>
 									<th>Patron</th>
 									<th>Email</th>
+									<th>Reason</th>
 								</tr>
 							</thead>
 							<tbody>
-								for _, u := range getAttentionUsers(5) {
+								for _, u := range attention {
 									<tr>
 										<td>
 											<a href={ templ.SafeURL("/management/users/" + u.ID.String()) }>
@@ -214,6 +235,14 @@ templ ManagementHome(p *fail.RoutingParams) {
 											</a>
 										</td>
 										<td class="text-sub">{ u.Email }</td>
+										<td>
+											if u.HasOverdue {
+												<span class="ctag ctag-peach">overdue</span>
+											}
+											if u.HasFines {
+												<span class="ctag ctag-red">fine</span>
+											}
+										</td>
 									</tr>
 								}
 							</tbody>

@@ -59,39 +59,56 @@ templ MgmtOverdue(p *fail.RoutingParams) {
 
 // MgmtOverdueTable renders the table of overdue loans and waive buttons.
 templ MgmtOverdueTable() {
-	<div id="overdue-table">
-		<table class="table">
-			<thead>
-				<tr>
-					<th>Book Title</th>
-					<th>User</th>
-					<th>Checked Out</th>
-					<th>Days Overdue</th>
-					<th>Loan ID</th>
-					<th>Action</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, l := range getOverdueLoans() {
-					@overdueRow(l)
-				}
-			</tbody>
-		</table>
-	</div>
+	{{ loans := getOverdueLoans() }}
+	if len(loans) == 0 {
+		<div id="overdue-table">
+			<div class="card-flat">
+				<div class="empty-state">
+					<i class="material-icons empty-state-icon">schedule</i>
+					<p class="empty-state-text">No overdue loans.</p>
+				</div>
+			</div>
+		</div>
+	} else {
+		<div id="overdue-table">
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Book Title</th>
+						<th>User</th>
+						<th>Checked Out</th>
+						<th>Days Overdue</th>
+						<th>Loan ID</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, l := range loans {
+						@overdueRow(l)
+					}
+				</tbody>
+			</table>
+		</div>
+	}
 }
 
 templ overdueRow(l db.Loan) {
 	<tr>
 		<td>{ l.BookCopy.BookWork.Title }</td>
-		<td>{ l.User.FirstName } { l.User.LastName }</td>
+		<td>
+			<a href={ templ.SafeURL("/management/users/" + l.User.ID.String()) }>
+				{ l.User.FirstName } { l.User.LastName }
+			</a>
+		</td>
 		<td>{ l.DateCheckout.Format("2006-01-02") }</td>
 		<td>{ int(time.Since(l.DateCheckout).Hours() / 24) - int(db.LOAN_DURATION.Hours()/24) }</td>
 		<td>{ l.ID.String() }</td>
 		<td>
 			if isFeeWaived(l.ID) {
-				<button disabled>Waived</button>
+				<button class="btn btn-sm btn-subtle" disabled>Waived</button>
 			} else {
 				<button
+					class="btn btn-sm btn-subtle"
 					hx-post="/management/overdue"
 					hx-vals={ fmt.Sprintf(`{"loan_id":"%s","action":"waive"}`, l.ID.String()) }
 					hx-confirm={ buildWaiveConfirm(l) }
@@ -105,5 +122,5 @@ templ overdueRow(l db.Loan) {
 
 // WaiveButtonDisabled is returned after successful waive to replace the active button.
 templ WaiveButtonDisabled() {
-	<button disabled>Waived</button>
+	<button class="btn btn-sm btn-subtle" disabled>Waived</button>
 }

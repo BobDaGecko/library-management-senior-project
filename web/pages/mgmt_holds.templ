@@ -38,7 +38,12 @@ templ MgmtHolds(p *fail.RoutingParams) {
 templ MgmtHoldsTable() {
 	{{ holds := getOpenHolds() }}
 	if len(holds) == 0 {
-		<div class="card-flat"><p class="text-sub">No open holds.</p></div>
+		<div class="card-flat">
+			<div class="empty-state">
+				<i class="material-icons empty-state-icon">hourglass_empty</i>
+				<p class="empty-state-text">No open holds.</p>
+			</div>
+		</div>
 	} else {
 		<table class="table">
 			<thead>

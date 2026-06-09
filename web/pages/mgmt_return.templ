@@ -7,6 +7,21 @@ import (
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
+// returnSteps renders the 2-step workflow indicator. step: 1=search, 2=confirm.
+templ returnSteps(step int) {
+	<div class="workflow-steps">
+		<div class={ "workflow-step", templ.KV("done", step > 1), templ.KV("active", step == 1) }>
+			<span class="workflow-step-num">1</span>
+			<span class="workflow-step-label">Find Loan</span>
+		</div>
+		<div class="workflow-connector"></div>
+		<div class={ "workflow-step", templ.KV("active", step == 2) }>
+			<span class="workflow-step-num">2</span>
+			<span class="workflow-step-label">Confirm Return</span>
+		</div>
+	</div>
+}
+
 // MgmtReturn is the full return page shell.
 templ MgmtReturn(p *fail.RoutingParams) {
 	@common.Head("Returns — Management", "Process book returns")
@@ -25,6 +40,7 @@ templ MgmtReturn(p *fail.RoutingParams) {
 
 // ReturnLoanSearch renders the loan search input and empty results container.
 templ ReturnLoanSearch(q string) {
+	@returnSteps(1)
 	<div class="card-flat">
 		<h2 class="mb-4">Find Active Loan</h2>
 		<input
@@ -32,13 +48,17 @@ templ ReturnLoanSearch(q string) {
 			name="q"
 			value={ q }
 			placeholder="Search by title or author..."
-			class="form-input mb-4"
+			class="form-input mb-1"
 			hx-get="/management/return"
 			hx-trigger="input delay:300ms"
 			hx-vals='{"step":"loan"}'
 			hx-target="#loan-results"
 			hx-swap="innerHTML"
+			hx-indicator="#loan-indicator"
 		/>
+		<div id="loan-indicator" class="htmx-indicator progress progress-slim mb-3">
+			<div class="progress-bar indeterminate"></div>
+		</div>
 		<div id="loan-results"></div>
 	</div>
 }
@@ -46,9 +66,12 @@ templ ReturnLoanSearch(q string) {
 // ReturnLoanResults swaps into #loan-results.
 templ ReturnLoanResults(loans []db.Loan) {
 	if len(loans) == 0 {
-		<p class="text-sub">No active loans found.</p>
+		<div class="empty-state">
+			<i class="material-icons empty-state-icon">search_off</i>
+			<p class="empty-state-text">No active loans found.</p>
+		</div>
 	} else {
-		<table class="table">
+		<table class="table mt-2">
 			<thead>
 				<tr>
 					<th>Book Title</th>
@@ -80,8 +103,9 @@ templ ReturnLoanResults(loans []db.Loan) {
 	}
 }
 
-// ReturnConfirmCard shows the return confirmation form. ISS-04 wires the submit.
+// ReturnConfirmCard shows the return confirmation form.
 templ ReturnConfirmCard(loan db.Loan, loanID string) {
+	@returnSteps(2)
 	<div class="card-flat">
 		<h2 class="mb-4">Confirm Return</h2>
 		<table class="table mb-4" style="width:auto;">
@@ -114,26 +138,34 @@ templ ReturnConfirmCard(loan db.Loan, loanID string) {
 					<option value="5">Lost</option>
 				</select>
 			</div>
-			<button type="submit" class="btn btn-primary">Confirm Return</button>
-			<a href="/management/return" class="btn btn-ghost" style="margin-left:var(--space-3);">Cancel</a>
+			<div class="flex gap-3">
+				<button type="submit" class="btn btn-primary">Confirm Return</button>
+				<a href="/management/return" class="btn btn-ghost">Cancel</a>
+			</div>
 		</form>
 	</div>
 }
 
-// ReturnSuccess resets to empty state with a green banner.
+// ReturnSuccess resets to empty state with a green alert.
 templ ReturnSuccess(userName string, bookTitle string) {
-	<div class="card-flat mb-6" style="border-color:var(--green);">
-		<p style="color:var(--green);font-weight:600;">Back in circulation</p>
-		<p class="text-sub">{ bookTitle } returned by { userName }</p>
+	<div class="alert alert-success mb-6">
+		<div class="alert-icon"><i class="material-icons" style="font-size:1.25rem;line-height:1;">check_circle</i></div>
+		<div class="alert-content">
+			<div class="alert-title">Back in circulation</div>
+			<p>{ bookTitle } returned by { userName }</p>
+		</div>
 	</div>
 	@ReturnLoanSearch("")
 }
 
-// ReturnSuccessFlagged resets to empty state with a peach banner.
+// ReturnSuccessFlagged resets to empty state with a warning alert.
 templ ReturnSuccessFlagged(userName string, bookTitle string) {
-	<div class="card-flat mb-6" style="border-color:var(--peach);">
-		<p style="color:var(--peach);font-weight:600;">Flagged for inspection — copy withdrawn</p>
-		<p class="text-sub">{ bookTitle } returned by { userName }</p>
+	<div class="alert alert-warning mb-6">
+		<div class="alert-icon"><i class="material-icons" style="font-size:1.25rem;line-height:1;">warning</i></div>
+		<div class="alert-content">
+			<div class="alert-title">Flagged for inspection — copy withdrawn</div>
+			<p>{ bookTitle } returned by { userName }</p>
+		</div>
 	</div>
 	@ReturnLoanSearch("")
 }

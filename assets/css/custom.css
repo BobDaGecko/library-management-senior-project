@@ -56,7 +56,7 @@ body {
 .mgmt-navbar-inner {
 	max-width: var(--container-xl);
 	margin: 0 auto;
-	padding: var(--space-5) var(--space-6);
+	padding: var(--space-4) var(--space-6);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -268,7 +268,7 @@ body {
 }
 
 /* ============================================
-   BOOK CARDS (catalog)
+   BOOK CARDS (patron catalog — BookTrunk)
    ============================================ */
 .book-container {
 	display: grid;
@@ -280,6 +280,171 @@ body {
 	width: 180px;
 	height: 240px;
 	object-fit: cover;
+}
+
+.book-description-clamp {
+	display: -webkit-box;
+	-webkit-line-clamp: 4;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	font-size: var(--fs-sm);
+	color: var(--text-sub);
+	line-height: 1.5;
+	margin-top: var(--space-2);
+}
+
+/* ============================================
+   GOOGLE BOOKS SEARCH RESULT CARDS
+   ============================================ */
+.search-result-card {
+	display: flex;
+	gap: var(--space-4);
+	background: var(--bg-surface);
+	border: var(--border-w) solid var(--border);
+	border-left: 3px solid var(--primary);
+	border-radius: var(--radius);
+	padding: var(--space-4);
+	margin-bottom: var(--space-3);
+	transition: box-shadow var(--trans-fast);
+}
+
+.search-result-card:hover {
+	box-shadow: 0 2px 10px color-mix(in oklch, var(--primary) 12%, transparent);
+}
+
+.search-result-cover {
+	width: 68px;
+	height: 96px;
+	object-fit: cover;
+	border-radius: var(--radius-sm);
+	flex-shrink: 0;
+	background: var(--bg-mantle);
+	display: block;
+}
+
+.search-result-cover-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-sub);
+	opacity: 0.4;
+}
+
+.search-result-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.search-result-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: var(--space-4);
+	margin-bottom: var(--space-2);
+}
+
+.search-result-titles {
+	min-width: 0;
+}
+
+.search-result-title {
+	font-size: var(--fs-base);
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--text);
+	margin-bottom: 2px;
+}
+
+.search-result-meta {
+	font-size: var(--fs-sm);
+	color: var(--text-sub);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-1);
+	row-gap: 2px;
+}
+
+.search-result-dot {
+	opacity: 0.35;
+}
+
+.search-result-action {
+	flex-shrink: 0;
+	padding-top: 2px;
+}
+
+.search-result-shields {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	margin-bottom: var(--space-2);
+}
+
+.search-result-description {
+	font-size: var(--fs-sm);
+	color: var(--text-sub);
+	line-height: 1.55;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	margin: 0;
+}
+
+/* ============================================
+   BOOK COVER CARDS (dashboard recently added)
+   ============================================ */
+.book-cover-card {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+	border-radius: var(--radius);
+	overflow: hidden;
+	transition: opacity var(--trans-fast);
+}
+
+.book-cover-card:hover {
+	opacity: 0.8;
+}
+
+.book-cover-card-img {
+	width: 100%;
+	aspect-ratio: 2 / 3;
+	object-fit: cover;
+	display: block;
+	background: var(--bg-mantle);
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.book-cover-card-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-sub);
+	opacity: 0.3;
+}
+
+.book-cover-card-info {
+	padding: var(--space-2) 0;
+}
+
+.book-cover-card-title {
+	font-size: var(--fs-sm);
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	line-height: 1.3;
+}
+
+.book-cover-card-author {
+	font-size: var(--fs-xs);
+	color: var(--text-sub);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin-top: 2px;
 }
 
 /* ============================================
@@ -409,4 +574,285 @@ body {
 	color: var(--text-secondary);
 	font-style: italic;
 	padding: var(--space-2) 0;
+}
+
+/* ============================================
+   HTMX LOADING INDICATOR
+   (HTMX 2.x no longer bundles this CSS)
+   ============================================ */
+.htmx-indicator {
+	opacity: 0;
+	transition: opacity 150ms ease-in;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+	opacity: 1;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: var(--space-12) var(--space-8);
+	text-align: center;
+}
+
+.empty-state-icon {
+	font-size: 2.5rem;
+	color: var(--text-sub);
+	opacity: 0.35;
+	margin-bottom: var(--space-3);
+}
+
+.empty-state-text {
+	font-size: var(--fs-sm);
+	color: var(--text-sub);
+}
+
+/* ============================================
+   SEARCH RESULT LIST
+   ============================================ */
+.result-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	margin-top: var(--space-2);
+}
+
+.result-item {
+	width: 100%;
+	text-align: left;
+	background: var(--bg-mantle);
+	border: var(--border-w) solid var(--border);
+	border-radius: var(--radius);
+	padding: var(--space-3) var(--space-4);
+	cursor: pointer;
+	transition: background var(--trans-fast), border-color var(--trans-fast);
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	font-size: var(--fs-sm);
+}
+
+.result-item:hover {
+	background: var(--bg-overlay);
+	border-color: color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+.result-item-title {
+	font-weight: 600;
+	color: var(--text);
+}
+
+.result-item-meta {
+	color: var(--text-sub);
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-shrink: 0;
+}
+
+/* ============================================
+   WORKFLOW STEP INDICATOR
+   ============================================ */
+.workflow-steps {
+	display: flex;
+	align-items: center;
+	margin-bottom: var(--space-6);
+	padding: var(--space-3) var(--space-6);
+	background: var(--bg-mantle);
+	border: var(--border-w) solid var(--border);
+	border-radius: var(--radius-lg);
+}
+
+.workflow-step {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--fs-sm);
+	color: var(--text-sub);
+	flex-shrink: 0;
+}
+
+.workflow-step-num {
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: var(--radius-full);
+	border: var(--border-w) solid var(--border);
+	background: var(--bg-base);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--fs-xs);
+	font-weight: 700;
+	flex-shrink: 0;
+	transition: background var(--trans-fast), border-color var(--trans-fast), color var(--trans-fast);
+}
+
+.workflow-step-label {
+	white-space: nowrap;
+	font-weight: 500;
+}
+
+.workflow-step.done .workflow-step-num {
+	background: color-mix(in oklch, var(--primary) 15%, transparent);
+	border-color: color-mix(in oklch, var(--primary) 45%, transparent);
+	color: var(--primary);
+}
+
+.workflow-step.done .workflow-step-label {
+	color: var(--primary);
+}
+
+.workflow-step.active .workflow-step-num {
+	background: var(--primary);
+	border-color: var(--primary);
+	color: var(--on-primary);
+}
+
+.workflow-step.active .workflow-step-label {
+	color: var(--text);
+	font-weight: 600;
+}
+
+.workflow-connector {
+	flex: 1;
+	height: 1px;
+	background: var(--border);
+	margin: 0 var(--space-4);
+	min-width: var(--space-8);
+}
+
+/* ============================================
+   TABLE ACTION BUTTONS
+   semtx sets `.table td button { all: unset }` which strips ALL button
+   styling. These rules restore .btn appearance for buttons inside table cells.
+   ============================================ */
+.table td .btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-1);
+	padding: var(--space-1) var(--space-3);
+	font-size: var(--fs-xs);
+	font-weight: 500;
+	border-radius: var(--radius);
+	border: var(--border-w) solid transparent;
+	cursor: pointer;
+	transition: background var(--trans-fast), color var(--trans-fast), border-color var(--trans-fast);
+	white-space: nowrap;
+	text-decoration: none;
+	min-height: 28px;
+	line-height: 1;
+	box-sizing: border-box;
+}
+
+.table td .btn-subtle {
+	background: var(--bg-mantle);
+	border-color: var(--border);
+	color: var(--text-sub);
+}
+
+.table td .btn-subtle:hover:not([disabled]) {
+	background: var(--bg-overlay);
+	color: var(--text);
+	border-color: color-mix(in oklch, var(--text-sub) 50%, transparent);
+}
+
+.table td .btn[disabled],
+.table td .btn.disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* ============================================
+   USER PROFILE CARD
+   Avatar + name/meta horizontal layout for patron and user summary cards
+   ============================================ */
+.user-profile-card {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	padding: var(--space-4) var(--space-6);
+	background: var(--bg-mantle);
+	border: var(--border-w) solid var(--border);
+	border-radius: var(--radius-lg);
+}
+
+.user-avatar {
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: var(--radius-full);
+	background: color-mix(in oklch, var(--primary) 15%, transparent);
+	border: var(--border-w) solid color-mix(in oklch, var(--primary) 30%, transparent);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--fs-base);
+	font-weight: 700;
+	color: var(--primary);
+	flex-shrink: 0;
+	user-select: none;
+}
+
+.user-profile-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.user-profile-name {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin-bottom: var(--space-2);
+	flex-wrap: wrap;
+}
+
+.user-profile-name h2 {
+	margin: 0;
+	line-height: 1.2;
+}
+
+.user-profile-meta {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	flex-wrap: wrap;
+}
+
+.user-profile-meta-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	font-size: var(--fs-sm);
+	color: var(--text-sub);
+	line-height: 1;
+}
+
+.user-profile-meta-item .material-icons {
+	font-size: 14px;
+	opacity: 0.6;
+	vertical-align: -2px;
+}
+
+.user-profile-uuid {
+	font-size: var(--fs-xs);
+	color: var(--text-sub);
+	opacity: 0.55;
+	font-family: ui-monospace, monospace;
+	margin-top: var(--space-2);
+	letter-spacing: 0.02em;
+}
+
+/* Constrain the role select in the users table */
+.table td .form-select {
+	font-size: var(--fs-sm);
+	padding: var(--space-1) var(--space-2);
+	min-height: 0;
 }

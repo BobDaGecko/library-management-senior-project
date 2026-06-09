@@ -38,7 +38,12 @@ templ MgmtFines(p *fail.RoutingParams) {
 templ MgmtFinesTable() {
 	{{ fines := getOutstandingFines() }}
 	if len(fines) == 0 {
-		<div class="card-flat"><p class="text-sub">No outstanding fines.</p></div>
+		<div class="card-flat">
+			<div class="empty-state">
+				<i class="material-icons empty-state-icon">payments</i>
+				<p class="empty-state-text">No outstanding fines.</p>
+			</div>
+		</div>
 	} else {
 		<table class="table">
 			<thead>
@@ -46,9 +51,9 @@ templ MgmtFinesTable() {
 					<th>Patron</th>
 					<th>Title</th>
 					<th>Reason</th>
-					<th>Issued</th>
+					<th>Amount</th>
 					<th>Remaining</th>
-					<th>Date</th>
+					<th>Issued</th>
 					<th>Action</th>
 				</tr>
 			</thead>
