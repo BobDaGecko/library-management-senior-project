@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -40,7 +39,6 @@ func (b *BookWork) Tags() []string {
 	set := map[string]bool{}
 	for _, category := range b.Categories {
 		for subcategory := range strings.SplitSeq(category, "/") {
-			fmt.Println(subcategory)
 			subcategory = strings.TrimSpace(subcategory)
 			set[subcategory] = true
 		}
@@ -85,48 +83,6 @@ func (v *BookVariants) Add(b BookWork) {
 	(*v)[id] = []BookWork{b}
 }
 
-// Gets all the editions matching this title and author
-func (b *BookWork) Editions() ([]BookWork, error) {
-	db := Db()
-	ret := []BookWork{}
-	status := db.Where(&BookWork{
-		Title:   b.Title,
-		Authors: b.Authors,
-	}).Find(&ret)
-	return ret, status.Error
-}
-
-// Lists all copies from all editions
-func (b *BookWork) AllCopies() (CopyList, error) {
-	db := Db()
-	ret := []BookCopy{}
-	status := db.Joins("book_copies").Where(&BookWork{
-		Title:    b.Title,
-		Subtitle: b.Subtitle,
-		Authors:  b.Authors,
-	}).Find(&ret)
-
-	return ret, status.Error
-}
-
-func (b BookWork) Exists() bool {
-	c := int64(0)
-	Db().Model(&b).Where(&BookWork{ID: b.ID}).Count(&c)
-	return c != 0
-}
-
-// Strictly matches against this particular edition
-func (b *BookWork) CopiesStrict() (CopyList, error) {
-	db := Db()
-	ret := []BookCopy{}
-	status := db.Where(&BookCopy{
-		BookWorkID: b.ID,
-	}).Find(&ret)
-	return ret, status.Error
-}
-
-// TO-DO: Fix available copies
-
 type CopyCount struct {
 	Total     int
 	Available int
@@ -135,6 +91,63 @@ type CopyCount struct {
 type copyCountInter struct {
 	Format BookFmtFlag
 	Count  int
+}
+
+// AvailableCountsBulk returns per-format total/available copy counts for many
+// works in a single grouped query. Use this instead of calling AvailableCopies
+// per book when rendering result lists — the per-book version costs three
+// queries each. Counts are strict (per work ID); editions are not merged.
+func AvailableCountsBulk(ids []string) (map[string]FormatsMap[CopyCount], error) {
+	ret := map[string]FormatsMap[CopyCount]{}
+	if len(ids) == 0 {
+		return ret, nil
+	}
+
+	var rows []struct {
+		BookWorkID string
+		Format     BookFmtFlag
+		Total      int
+		Available  int
+	}
+	err := Db().Raw(`
+		SELECT book_work_id, format,
+		       COUNT(*) AS total,
+		       SUM(CASE WHEN NOT EXISTS (
+		           SELECT 1 FROM loans l
+		           WHERE l.book_copy_id = book_copies.id AND l.date_returned = ?
+		       ) THEN 1 ELSE 0 END) AS available
+		FROM book_copies
+		WHERE status = ? AND book_work_id IN ? AND deleted_at IS NULL
+		GROUP BY book_work_id, format
+	`, NilTime, CopyStatusPublic, ids).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range rows {
+		m, ok := ret[r.BookWorkID]
+		if !ok {
+			m = FormatsMap[CopyCount]{}
+			ret[r.BookWorkID] = m
+		}
+		m[r.Format] = CopyCount{Total: r.Total, Available: r.Available}
+	}
+	return ret, nil
+}
+
+// ExistingBookIDs reports which of the given work IDs are already in the
+// local catalog, in one query (replaces per-card Exists() calls).
+func ExistingBookIDs(ids []string) map[string]bool {
+	ret := map[string]bool{}
+	if len(ids) == 0 {
+		return ret
+	}
+	var found []string
+	Db().Model(&BookWork{}).Where("id IN ?", ids).Pluck("id", &found)
+	for _, id := range found {
+		ret[id] = true
+	}
+	return ret
 }
 
 // Lists available copies
