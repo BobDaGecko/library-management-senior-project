@@ -48,8 +48,14 @@ func HandleManagementUsers(p *fail.RoutingParams) {
 	}
 
 	// Support for user detail subpage: /management/users/{id}
-	if p.SubPtr < len(p.FullPath) {
+	if fail.Remainder(p) {
 		userIDStr := p.Pop()
+		if userIDStr == "" {
+			// Trailing slash (/management/users/) → canonical redirect,
+			// not a detail page for an empty ID.
+			fail.Redirect(p)
+			return
+		}
 		HandleManagementUserDetail(p, userIDStr)
 		return
 	}
@@ -111,6 +117,9 @@ func HandleManagementUsers(p *fail.RoutingParams) {
 }
 
 func HandleManagementUserDetail(p *fail.RoutingParams, userID string) {
+	if fail.Done(p) {
+		return
+	}
 	tab := p.Param("tab")
 	if tab == "" {
 		tab = "loans"

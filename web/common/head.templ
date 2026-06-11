@@ -16,7 +16,6 @@ templ Head(title string, desc string) {
 		<meta name="description" content={ desc }/>
 		<title>{ title }</title>
 		<script type="text/javascript" src="/assets/js/htmx-2.0.8.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js" integrity="sha384-OT9bNmUa5rM34SmxFpRftn2F6GbgM/4xnTmn0z106OE5uvsigkdtUMOpdPKOigyO" crossorigin="anonymous"></script>
 		<link rel="stylesheet" type="text/css" href="/assets/css/semtx.css"/>
 		<link rel="stylesheet" type="text/css" href="/assets/css/custom.css"/>
 		<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
@@ -224,20 +223,6 @@ templ MgmtNavHead(active string) {
 			</div>
 		</div>
 	</nav>
-}
-
-templ NavAside(entries NavAsideEntryList, active string) {
-	<aside class="sidebar mt-8 one-col" style="position: fixed;">
-		<ul class="sidebar-nav">
-			for i, e := range entries {
-				if e.Name != "" {
-					<li class={ templ.KV("mt-6", entries.HasPrevBlank(i)), templ.KV("mb-6", entries.HasNextBlank(i)) }>
-						<a class={ templ.KV("active", e.Link == active) } href={ e.Link }>{ e.Name }</a>
-					</li>
-				}
-			}
-		</ul>
-	</aside>
 }
 
 templ Footer() {

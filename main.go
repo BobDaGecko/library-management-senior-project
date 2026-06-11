@@ -34,17 +34,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	/*
-		data, err := fetch.GBooksVolume("Bj6VEAAAQBAJ")
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(data)
-		book := data.ToLocalStruct()
-		db.Save(&book)
-	*/
 }
 
 func goRebuildUrself() {
@@ -54,7 +43,6 @@ func goRebuildUrself() {
 
 	args := []string{"run", "main.go", "-templ-done"}
 	args = append(args, os.Args[1:]...)
-	fmt.Println(args)
 	if code := goRunCommand("go", args...); code != 0 {
 		os.Exit(code)
 	}
@@ -67,9 +55,10 @@ func goRunCommand(bin string, args ...string) int {
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			return exitErr.ExitCode()
-		} else {
-			panic("unreachable")
 		}
+		// e.g. binary not on PATH — *exec.Error, not *exec.ExitError
+		fmt.Fprintf(os.Stderr, "%s: %v\n", bin, err)
+		return 1
 	}
 	return 0
 }

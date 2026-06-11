@@ -49,19 +49,8 @@ func BookRouter(p *fail.RoutingParams) {
 		var activeHold *pages.PatronHoldView
 		if p.User != nil {
 			if uid, err := db.ParseShort(p.User.ID); err == nil {
-				var hold pages.PatronHoldView
-				db.Db().Raw(`
-					SELECT h.id as hold_id, h.book_work_id as book_work_raw_id, h.format,
-					       h.requested_date, COALESCE(bw.title, '') as book_title
-					FROM holds h
-					LEFT JOIN book_works bw ON bw.id = h.book_work_id
-					WHERE h.book_work_id = ? AND h.user_id = ? AND h.fulfilled_date = ? AND h.cancelled_date = ?
-					  AND h.deleted_at IS NULL
-					ORDER BY h.requested_date ASC
-					LIMIT 1
-				`, id, uid, db.NilTime, db.NilTime).Scan(&hold)
-				if hold.HoldID != "" {
-					activeHold = &hold
+				if holds := patronHoldViews(uid, id, 1); len(holds) > 0 {
+					activeHold = &holds[0]
 				}
 			}
 		}
@@ -73,15 +62,8 @@ func BookRouter(p *fail.RoutingParams) {
 
 // HandleBookHold processes POST /book/:id/hold — places a hold for the logged-in patron.
 func HandleBookHold(p *fail.RoutingParams, bookID string) {
-	if p.User == nil {
-		p.W.Header().Set("HX-Redirect", "/user/login")
-		p.W.WriteHeader(http.StatusOK)
-		return
-	}
-
-	userUUID, err := db.ParseShort(p.User.ID)
-	if err != nil {
-		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
+	userUUID, ok := requirePatron(p)
+	if !ok {
 		return
 	}
 
@@ -144,18 +126,12 @@ func HandleBookHold(p *fail.RoutingParams, bookID string) {
 // HandleBookCancelHold processes POST /book/:id/hold/cancel — cancels the patron's active hold
 // and returns PlaceHoldFormFragment to restore the action area via HTMX swap.
 func HandleBookCancelHold(p *fail.RoutingParams, bookID string) {
-	if p.User == nil {
-		p.W.Header().Set("HX-Redirect", "/user/login")
-		p.W.WriteHeader(http.StatusOK)
-		return
-	}
 	if p.Req.Method != http.MethodPost {
 		http.Redirect(p.W, p.Req, "/book/"+bookID, http.StatusSeeOther)
 		return
 	}
-	userUUID, err := db.ParseShort(p.User.ID)
-	if err != nil {
-		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
+	userUUID, ok := requirePatron(p)
+	if !ok {
 		return
 	}
 	if fail.Form(p) {

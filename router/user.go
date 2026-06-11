@@ -195,18 +195,61 @@ func HandleUserRegisterPost(p *fail.RoutingParams) {
 
 // Account (and subs) require a logged-in user.
 
-func HandleUserAccount(p *fail.RoutingParams) {
+// requirePatron gates patron-only handlers: guests are redirected to login
+// (via HX-Redirect for HTMX requests), and the session's short user ID is
+// decoded to the SqlUUID form required for user_id queries. Returns ok=false
+// when a response has already been written.
+func requirePatron(p *fail.RoutingParams) (db.SqlUUID, bool) {
 	if p.User == nil {
-		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
-		return
+		if p.Req.Header.Get("HX-Request") == "true" {
+			p.W.Header().Set("HX-Redirect", "/user/login")
+			p.W.WriteHeader(http.StatusOK)
+		} else {
+			http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+		}
+		return db.SqlUUID{}, false
 	}
-	if fail.Done(p) {
-		return
-	}
-
 	uid, err := db.ParseShort(p.User.ID)
 	if err != nil {
 		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
+		return db.SqlUUID{}, false
+	}
+	return uid, true
+}
+
+// patronHoldViews loads a patron's open holds via raw SQL. Hold.BookWorkID
+// stores raw Google Books string IDs, which corrupt SqlUUID row scans — never
+// Preload("BookWork") or Find() holds directly (see CLAUDE.md). bookID
+// optionally filters to one work; limit <= 0 means unlimited.
+func patronHoldViews(uid db.SqlUUID, bookID string, limit int) []pages.PatronHoldView {
+	q := `
+		SELECT h.id as hold_id, h.book_work_id as book_work_raw_id, h.format,
+		       h.requested_date, COALESCE(bw.title, '') as book_title
+		FROM holds h
+		LEFT JOIN book_works bw ON bw.id = h.book_work_id
+		WHERE h.user_id = ? AND h.fulfilled_date = ? AND h.cancelled_date = ?
+		  AND h.deleted_at IS NULL`
+	args := []any{uid, db.NilTime, db.NilTime}
+	if bookID != "" {
+		q += " AND h.book_work_id = ?"
+		args = append(args, bookID)
+	}
+	q += " ORDER BY h.requested_date ASC"
+	if limit > 0 {
+		q += fmt.Sprintf(" LIMIT %d", limit)
+	}
+
+	var holds []pages.PatronHoldView
+	db.Db().Raw(q, args...).Scan(&holds)
+	return holds
+}
+
+func HandleUserAccount(p *fail.RoutingParams) {
+	uid, ok := requirePatron(p)
+	if !ok {
+		return
+	}
+	if fail.Done(p) {
 		return
 	}
 	var data pages.AccountData
@@ -228,16 +271,8 @@ func HandleUserAccount(p *fail.RoutingParams) {
 		Where("user_id = ? AND fulfilled_date = ? AND cancelled_date = ?", uid, db.NilTime, db.NilTime).
 		Count(&data.HoldCount)
 
-	// Active holds preview (up to 3) — raw SQL to avoid SqlUUID scan on Google Books IDs.
-	db.Db().Raw(`
-		SELECT h.id as hold_id, h.book_work_id as book_work_raw_id, h.format,
-		       h.requested_date, COALESCE(bw.title, '') as book_title
-		FROM holds h
-		LEFT JOIN book_works bw ON bw.id = h.book_work_id
-		WHERE h.user_id = ? AND h.fulfilled_date = ? AND h.cancelled_date = ?
-		  AND h.deleted_at IS NULL
-		ORDER BY h.requested_date ASC LIMIT 3
-	`, uid, db.NilTime, db.NilTime).Scan(&data.ActiveHolds)
+	// Active holds preview (up to 3)
+	data.ActiveHolds = patronHoldViews(uid, "", 3)
 
 	// Outstanding fines (join through loans — Fine.UserID is unreliable)
 	db.Db().Table("fines").
@@ -276,17 +311,11 @@ func HandleUserDashboard(p *fail.RoutingParams) {
 }
 
 func HandleUserLoans(p *fail.RoutingParams) {
-	if p.User == nil {
-		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+	uid, ok := requirePatron(p)
+	if !ok {
 		return
 	}
 	if fail.Done(p) {
-		return
-	}
-
-	uid, err := db.ParseShort(p.User.ID)
-	if err != nil {
-		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
 		return
 	}
 
@@ -300,37 +329,21 @@ func HandleUserLoans(p *fail.RoutingParams) {
 }
 
 func HandleUserHolds(p *fail.RoutingParams) {
-	if p.User == nil {
-		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+	uid, ok := requirePatron(p)
+	if !ok {
+		return
+	}
+	if fail.Done(p) {
 		return
 	}
 
 	// Handle POST (cancel action)
 	if p.Req.Method == http.MethodPost {
-		HandleCancelHold(p)
+		HandleCancelHold(p, uid)
 		return
 	}
 
-	if fail.Done(p) {
-		return
-	}
-
-	uid, err := db.ParseShort(p.User.ID)
-	if err != nil {
-		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
-		return
-	}
-
-	var holds []pages.PatronHoldView
-	db.Db().Raw(`
-		SELECT h.id as hold_id, h.book_work_id as book_work_raw_id, h.format,
-		       h.requested_date, COALESCE(bw.title, '') as book_title
-		FROM holds h
-		LEFT JOIN book_works bw ON bw.id = h.book_work_id
-		WHERE h.user_id = ? AND h.fulfilled_date = ? AND h.cancelled_date = ?
-		  AND h.deleted_at IS NULL
-		ORDER BY h.requested_date ASC
-	`, uid, db.NilTime, db.NilTime).Scan(&holds)
+	holds := patronHoldViews(uid, "", 0)
 
 	// Determine if all holds are postponed (overdue items or at loan limit).
 	isPostponed := false
@@ -345,18 +358,12 @@ func HandleUserHolds(p *fail.RoutingParams) {
 	fail.Render(p, pages.HoldsPage(p, holds, isPostponed))
 }
 
-func HandleCancelHold(p *fail.RoutingParams) {
+func HandleCancelHold(p *fail.RoutingParams, userUUID db.SqlUUID) {
 	if fail.Form(p) {
 		return
 	}
 	formData := p.Form()
 	holdID := formData["hold_id"]
-
-	userUUID, err := db.ParseShort(p.User.ID)
-	if err != nil {
-		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
-		return
-	}
 
 	// Targeted update with ownership check in WHERE — RowsAffected == 0 means not found or not owned.
 	result := db.Db().Model(&db.Hold{}).
@@ -376,17 +383,11 @@ func HandleCancelHold(p *fail.RoutingParams) {
 }
 
 func HandleUserFines(p *fail.RoutingParams) {
-	if p.User == nil {
-		http.Redirect(p.W, p.Req, "/user/login", http.StatusSeeOther)
+	uid, ok := requirePatron(p)
+	if !ok {
 		return
 	}
 	if fail.Done(p) {
-		return
-	}
-
-	uid, err := db.ParseShort(p.User.ID)
-	if err != nil {
-		http.Error(p.W, "Invalid session", http.StatusUnauthorized)
 		return
 	}
 
@@ -458,7 +459,10 @@ func HandleSettingsProfile(p *fail.RoutingParams) {
 		return
 	}
 
-	db.MustSave(&u)
+	if err := db.Db().Save(&u).Error; err != nil {
+		http.Error(p.W, "Failed to save profile", http.StatusInternalServerError)
+		return
+	}
 	fail.Render(p, pages.SettingsProfileForm(u, nil, true))
 }
 
@@ -490,6 +494,9 @@ func HandleSettingsPassword(p *fail.RoutingParams) {
 		return
 	}
 
-	db.MustSave(&u)
+	if err := db.Db().Save(&u).Error; err != nil {
+		http.Error(p.W, "Failed to save password", http.StatusInternalServerError)
+		return
+	}
 	fail.Render(p, pages.SettingsPasswordForm(nil, true))
 }

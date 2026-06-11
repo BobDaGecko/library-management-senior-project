@@ -84,7 +84,9 @@ func TestCancelHoldOwnershipCheck(t *testing.T) {
 	formVals := url.Values{"action": {"cancel"}, "hold_id": {hold.ID.String()}}
 	p, rec := makeTestParamsWithUser(t, http.MethodPost, "/user/holds", []string{"user", "holds"}, &partial2, formVals)
 
-	HandleCancelHold(p)
+	uid2, err := db.ParseShort(partial2.ID)
+	assert.NilError(t, err)
+	HandleCancelHold(p, uid2)
 
 	res := rec.Result()
 	assert.Equal(t, res.StatusCode, http.StatusForbidden)
@@ -108,7 +110,9 @@ func TestCancelHoldSuccess(t *testing.T) {
 	formVals := url.Values{"action": {"cancel"}, "hold_id": {hold.ID.String()}}
 	p, rec := makeTestParamsWithUser(t, http.MethodPost, "/user/holds", []string{"user", "holds"}, &partial, formVals)
 
-	HandleCancelHold(p)
+	uid, err := db.ParseShort(partial.ID)
+	assert.NilError(t, err)
+	HandleCancelHold(p, uid)
 
 	res := rec.Result()
 	assert.Equal(t, res.StatusCode, http.StatusOK)

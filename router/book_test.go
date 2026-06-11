@@ -45,6 +45,9 @@ func TestHandleBookHold_Unauthenticated(t *testing.T) {
 
 	p, rec := makeTestParamsWithUser(t, http.MethodPost, "/book/test-book-id/hold",
 		[]string{"book", "test-book-id", "hold"}, nil, nil)
+	// The hold form always posts via HTMX, which is what triggers the
+	// HX-Redirect (vs. plain 303) guest handling.
+	p.Req.Header.Set("HX-Request", "true")
 
 	HandleBookHold(p, "test-book-id")
 

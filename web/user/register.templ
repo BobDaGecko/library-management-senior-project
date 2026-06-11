@@ -1,7 +1,5 @@
 package user
 
-import "voxelprismatic/library-management-senior-project/web/common"
-
 templ (e FormEntry) TableRow(vals map[string]string, errs map[string]error) {
 	<tr id={ e.ID }>
 		<th style="text-align: right">
@@ -72,20 +70,4 @@ templ FormTable(entries []FormEntry, vals map[string]string, errs map[string]err
 			@entry.FieldGroup(vals, errs)
 		}
 	</div>
-}
-
-templ Register() {
-	@common.Head("register user", "register user")
-	<form hx-post="/user/register">
-		@FormTable(RegisterFormEntries, map[string]string{}, map[string]error{})
-		<button type="submit">Submit</button>
-	</form>
-}
-
-templ Login() {
-	@common.Head("returning user", "returning user")
-	<form hx-post="/user/login">
-		@FormTable(LoginFormEntries, map[string]string{}, map[string]error{})
-		<button type="submit">Submit</button>
-	</form>
 }

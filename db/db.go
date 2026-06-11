@@ -7,7 +7,6 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // Create and connect to the database.
@@ -22,7 +21,6 @@ func connect() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	db.Logger.LogMode(logger.Info)
 
 	return db
 }
@@ -49,13 +47,6 @@ func Db() *gorm.DB {
 		return _tx
 	}
 	return _db
-}
-
-func MustSave(obj any) {
-	state := _db.Save(obj)
-	if state.Error != nil {
-		panic(state.Error)
-	}
 }
 
 func TestDb() *gorm.DB {
