@@ -1,6 +1,7 @@
 package db
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -132,4 +133,38 @@ func TestUserNoOverdueBooks(t *testing.T) {
 	hasOverdue, err := user.HasOverdueBooks()
 	assert.NilError(t, err)
 	assert.Assert(t, !hasOverdue)
+}
+
+func TestSecretBcrypt(t *testing.T) {
+	u := User{Email: "bcrypt@example.com"}
+	err := u.SetSecret("Password1!", "Password1!")
+	assert.NilError(t, err)
+	assert.Assert(t, strings.HasPrefix(u.Secret, "$2"), "new hashes must be bcrypt")
+	assert.Assert(t, u.TestSecret("Password1!"))
+	assert.Assert(t, !u.TestSecret("WrongPass1!"))
+}
+
+func TestSecretLegacyUpgrade(t *testing.T) {
+	u := User{Email: "legacy@example.com"}
+	u.Secret = u.legacyHashSecret("Password1!")
+	assert.Assert(t, !strings.HasPrefix(u.Secret, "$2"))
+
+	// A wrong password must not match nor alter the stored hash.
+	assert.Assert(t, !u.TestSecret("WrongPass1!"))
+	assert.Assert(t, !strings.HasPrefix(u.Secret, "$2"))
+
+	// The correct password matches and upgrades the hash to bcrypt in memory.
+	assert.Assert(t, u.TestSecret("Password1!"))
+	assert.Assert(t, strings.HasPrefix(u.Secret, "$2"), "legacy verify must upgrade to bcrypt")
+	assert.Assert(t, u.TestSecret("Password1!"))
+}
+
+func TestSetSecretMismatchAndWeak(t *testing.T) {
+	u := User{Email: "weak@example.com"}
+	err := u.SetSecret("Password1!", "Different1!")
+	assert.ErrorContains(t, err, "passwords must match")
+
+	// Weak passwords must surface the real strength error, not "must match".
+	err = u.SetSecret("password1!", "password1!")
+	assert.ErrorContains(t, err, "an uppercase letter")
 }

@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"voxelprismatic/library-management-senior-project/db"
@@ -70,15 +71,18 @@ func HandleUserLoginPost(p *fail.RoutingParams) {
 
 	errs := map[string]error{}
 	formData := p.Form()
-	userObj := db.User{Email: formData["emailAddr"]}
-	if userObj.Email == "" {
-		errs["emailAddr"] = fmt.Errorf("Email cannot be blank")
-	} else if err := db.Db().Where(&userObj).First(&userObj).Error; err != nil {
-		errs["emailAddr"] = fmt.Errorf("Email not found")
-	}
+	email := strings.ToLower(strings.TrimSpace(formData["emailAddr"]))
 
-	if len(errs) == 0 && !userObj.TestSecret(formData["secret"]) {
-		errs["secret"] = fmt.Errorf("Incorrect password")
+	userObj := db.User{}
+	if email == "" {
+		errs["emailAddr"] = fmt.Errorf("Email cannot be blank")
+	} else if err := db.Db().Where("email = ?", email).First(&userObj).Error; err != nil {
+		// Same message as a wrong password — never reveal whether an email is registered.
+		errs["secret"] = fmt.Errorf("Invalid email or password")
+	} else if !userObj.TestSecret(formData["secret"]) {
+		errs["secret"] = fmt.Errorf("Invalid email or password")
+	} else if userObj.Status == db.UserStatusLocked || userObj.Status == db.UserStatusDeleted {
+		errs["secret"] = fmt.Errorf("This account is unavailable. Please contact the library")
 	}
 
 	if len(errs) > 0 {
@@ -90,11 +94,31 @@ func HandleUserLoginPost(p *fail.RoutingParams) {
 		return
 	}
 
-	jwt := userObj.IssueJWT()
-	p.W.Header().Set("Set-Cookie", fmt.Sprintf("tok=%s; path=/", jwt.Token))
+	// IssueJWT saves the user, which also persists any legacy-hash upgrade
+	// performed by TestSecret above.
+	jwt, err := userObj.IssueJWT()
+	if err != nil {
+		http.Error(p.W, "Failed to start session", http.StatusInternalServerError)
+		return
+	}
+	setAuthCookie(p, jwt.Token)
 	(fail.HTMX{
 		Redirect: "/",
 	}).Apply(p)
+}
+
+// setAuthCookie sets the session cookie with protective flags. Secure is not
+// set because the app serves plain HTTP in local deployments; add it if TLS
+// terminates in front of the server.
+func setAuthCookie(p *fail.RoutingParams, token string) {
+	http.SetCookie(p.W, &http.Cookie{
+		Name:     "tok",
+		Value:    token,
+		Path:     "/",
+		MaxAge:   int(db.JWT_LIFETIME),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
 
 func HandleUserRegister(p *fail.RoutingParams) {
@@ -141,6 +165,14 @@ func HandleUserRegisterPost(p *fail.RoutingParams) {
 		errs["secret_again"] = err
 	}
 
+	if len(errs) == 0 {
+		userObj.Roles = db.UserRolePublic
+		if err := db.Db().Create(&userObj).Error; err != nil {
+			// Most likely the unique-email constraint racing a concurrent signup.
+			errs["emailAddr"] = fmt.Errorf("Email already in use")
+		}
+	}
+
 	if len(errs) > 0 {
 		(fail.HTMX{
 			Retarget: "#formEntry",
@@ -150,8 +182,12 @@ func HandleUserRegisterPost(p *fail.RoutingParams) {
 		return
 	}
 
-	jwt := userObj.IssueJWT()
-	p.W.Header().Set("Set-Cookie", fmt.Sprintf("tok=%s; path=/", jwt.Token))
+	jwt, err := userObj.IssueJWT()
+	if err != nil {
+		http.Error(p.W, "Failed to start session", http.StatusInternalServerError)
+		return
+	}
+	setAuthCookie(p, jwt.Token)
 	(fail.HTMX{
 		Redirect: "/",
 	}).Apply(p)
@@ -217,7 +253,18 @@ func HandleUserLogout(p *fail.RoutingParams) {
 	if fail.Done(p) {
 		return
 	}
-	p.W.Header().Set("Set-Cookie", "tok=; Max-Age=0; path=/")
+	// Revoke server-side so the token is dead even if a copy was captured.
+	if cookie, err := p.Req.Cookie("tok"); err == nil {
+		_ = db.RevokeJWT(cookie.Value)
+	}
+	http.SetCookie(p.W, &http.Cookie{
+		Name:     "tok",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 	http.Redirect(p.W, p.Req, "/", http.StatusSeeOther)
 }
 

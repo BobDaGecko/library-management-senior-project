@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"voxelprismatic/library-management-senior-project/db"
@@ -11,11 +12,12 @@ import (
 )
 
 func Router(w http.ResponseWriter, r *http.Request) {
-	p := fail.MakeParams(w, r)
-	if p == nil {
-		panic("unreachable")
+	if !sameOriginOK(r) {
+		http.Error(w, "cross-origin request rejected", http.StatusForbidden)
+		return
 	}
-	fmt.Printf("\n\n\n\n%v\n\n\n\n", p)
+
+	p := fail.MakeParams(w, r)
 
 	switch p.Pop() {
 	case "assets":
@@ -38,7 +40,30 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	case "":
 		HandlePublicHome(p)
+
+	default:
+		http.NotFound(w, r)
 	}
+}
+
+// sameOriginOK rejects state-changing requests that provably come from another
+// origin (CSRF defense in addition to the SameSite cookie). Requests without
+// an Origin header (same-origin navigations, curl, tests) are allowed.
+func sameOriginOK(r *http.Request) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	}
+
+	origin := r.Header.Get("Origin")
+	if origin == "" || origin == "null" {
+		return true
+	}
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	return u.Host == r.Host
 }
 
 func HandleAsset(p *fail.RoutingParams) {

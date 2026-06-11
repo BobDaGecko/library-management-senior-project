@@ -1,5 +1,6 @@
 .env
-./*/*.db
+*.db
+.jwt-secret
 *_templ.go
 ./library-management-senior-project
 /library-management-senior-project

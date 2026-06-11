@@ -2,11 +2,14 @@ package db
 
 import (
 	"crypto"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
 	"unicode"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var _ = Migrate(User{})
@@ -70,9 +73,14 @@ func (p UserPartial) Fetch() (User, error) {
 	if err != nil {
 		return User{}, err
 	}
+	if id.IsEmpty() {
+		// A zero ID must never reach the query below: GORM drops zero-value
+		// struct conditions, which would turn this into an unfiltered First().
+		return User{}, fmt.Errorf("empty user id")
+	}
 
-	ret := User{BaseModel: BaseModel{ID: id}}
-	err = db.Where(&ret).First(&ret).Error
+	ret := User{}
+	err = db.Where("id = ?", id).First(&ret).Error
 	return ret, err
 }
 
@@ -187,24 +195,48 @@ func TestSecretStrength(secret string) error {
 	return nil
 }
 
+// TestSecret verifies a password against the stored hash. New hashes use
+// bcrypt; hashes created by the old iterated-SHA512 scheme are still accepted
+// and transparently upgraded in memory (persisted by the caller's next save,
+// e.g. IssueJWT during login).
 func (u *User) TestSecret(secret string) bool {
-	return u.HashSecret(secret) == u.Secret
+	if strings.HasPrefix(u.Secret, "$2") {
+		return bcrypt.CompareHashAndPassword([]byte(u.Secret), []byte(secret)) == nil
+	}
+
+	legacy := u.legacyHashSecret(secret)
+	if subtle.ConstantTimeCompare([]byte(legacy), []byte(u.Secret)) != 1 {
+		return false
+	}
+
+	if hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost); err == nil {
+		u.Secret = string(hash)
+	}
+	return true
 }
 
 func (u *User) SetSecret(secret, verify string) error {
-	if err := TestSecretStrength(secret); err != nil {
-		return fmt.Errorf("passwords must match")
-	}
-
 	if secret != verify {
 		return fmt.Errorf("passwords must match")
 	}
 
-	u.Secret = u.HashSecret(secret)
+	if err := TestSecretStrength(secret); err != nil {
+		return err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+	u.Secret = string(hash)
 	return nil
 }
 
-func (u *User) HashSecret(pass string) string {
+// legacyHashSecret implements the original homebrew hashing scheme. It is kept
+// only to verify pre-bcrypt hashes; never use it for new passwords. Note that
+// it salts with the user's email, so legacy hashes break if the email changes —
+// one more reason every successful legacy login is upgraded to bcrypt.
+func (u *User) legacyHashSecret(pass string) string {
 	cycle := uint16(len(u.Email))
 	for _, r := range pass {
 		cycle <<= 1

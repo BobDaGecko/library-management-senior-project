@@ -49,6 +49,10 @@ func (buuid *SqlUUID) Scan(value any) error {
 	if !ok {
 		return fmt.Errorf("unable to convert %v of %T to string", value, value)
 	}
+	if str == "" {
+		*buuid = SqlUUID{}
+		return nil
+	}
 
 	parsed, err := FromString(str)
 	if err != nil {
@@ -88,10 +92,12 @@ func (buuid SqlUUID) Short() string {
 // This is the "decompressor".
 //
 // It does NOT accept standard hex UUID strings (use uuid.Parse or FromString for those).
-// Invalid length or characters result in error.
+// Empty input, invalid length, or invalid characters result in error — a zero
+// UUID must never be silently produced, because zero-value conditions are
+// dropped by GORM struct queries and match the all-zeros UUID in raw ones.
 func ParseShort(s string) (SqlUUID, error) {
 	if s == "" {
-		return SqlUUID{}, nil
+		return SqlUUID{}, fmt.Errorf("empty short uuid")
 	}
 	b, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {

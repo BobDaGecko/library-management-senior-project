@@ -26,7 +26,7 @@ func (p *RoutingParams) Pop() string {
 }
 
 func MakeParams(writer http.ResponseWriter, request *http.Request) *RoutingParams {
-	u := db.CookieAuth(writer, request)
+	u := db.CookieAuth(request)
 	p := strings.Split(request.URL.Path[len("/"):], "/")
 	ret := RoutingParams{
 		W:        writer,

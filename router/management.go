@@ -72,7 +72,26 @@ func HandleManagementUsers(p *fail.RoutingParams) {
 				http.Error(p.W, "invalid role value", http.StatusBadRequest)
 				return
 			}
-			res := db.Db().Model(&db.User{}).Where("id = ?", userID).Update("roles", newRole)
+
+			var target db.User
+			if err := db.Db().Where("id = ?", userID).First(&target).Error; err != nil {
+				http.Error(p.W, "user not found", http.StatusNotFound)
+				return
+			}
+
+			// Librarians may not grant admin, touch an admin's account, or
+			// change their own role — those require a (different) admin.
+			isAdmin := p.User.Roles >= db.UserRoleAdmin
+			if (newRole == db.UserRoleAdmin || target.Roles >= db.UserRoleAdmin) && !isAdmin {
+				http.Error(p.W, "only an admin can assign or modify the admin role", http.StatusForbidden)
+				return
+			}
+			if target.ID.Short() == p.User.ID {
+				http.Error(p.W, "you cannot change your own role", http.StatusForbidden)
+				return
+			}
+
+			res := db.Db().Model(&db.User{}).Where("id = ?", target.ID).Update("roles", newRole)
 			if res.Error != nil {
 				http.Error(p.W, res.Error.Error(), http.StatusInternalServerError)
 				return

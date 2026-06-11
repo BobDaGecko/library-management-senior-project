@@ -15,15 +15,21 @@ func patronNavStatus(user *db.UserPartial) (overdueCount int64, fineBalance floa
 		return
 	}
 
+	// user.ID is the short base64 form; the user_id columns store hex.
+	uid, err := db.ParseShort(user.ID)
+	if err != nil {
+		return
+	}
+
 	db.Db().Model(&db.Loan{}).
-		Where("user_id = ?", user.ID).
+		Where("user_id = ?", uid).
 		Where("date_returned = ?", db.NilTime).
 		Where("date_checkout < ?", time.Now().Add(-db.LOAN_DURATION)).
 		Count(&overdueCount)
 
 	db.Db().Table("fines").
 		Joins("JOIN loans ON loans.id = fines.loan_id").
-		Where("loans.user_id = ?", user.ID).
+		Where("loans.user_id = ?", uid).
 		Where("fines.amount_remaining > 0").
 		Select("COALESCE(SUM(fines.amount_remaining), 0)").
 		Scan(&fineBalance)

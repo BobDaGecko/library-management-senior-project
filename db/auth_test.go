@@ -17,7 +17,7 @@ func TestSetFirstNameEmpty(t *testing.T) {
 	user := User{}
 	err := user.SetFirstName("")
 
-	assert.ErrorContains(t, err, "first name cannot be blank")
+	assert.ErrorContains(t, err, "First name cannot be blank")
 }
 
 func TestSetFirstNameTooLong(t *testing.T) {
@@ -25,7 +25,7 @@ func TestSetFirstNameTooLong(t *testing.T) {
 	long := string(make([]byte, MAX_NAME_LEN+1))
 	err := user.SetFirstName(long)
 
-	assert.ErrorContains(t, err, "first name cannot exceed")
+	assert.ErrorContains(t, err, "First name cannot exceed")
 }
 
 func TestSetLastNameValid(t *testing.T) {
@@ -39,7 +39,7 @@ func TestSetLastNameEmpty(t *testing.T) {
 	user := User{}
 	err := user.SetLastName("")
 
-	assert.ErrorContains(t, err, "last name cannot be blank")
+	assert.ErrorContains(t, err, "Last name cannot be blank")
 }
 
 func TestSetLastNameTooLong(t *testing.T) {
@@ -47,7 +47,7 @@ func TestSetLastNameTooLong(t *testing.T) {
 	long := string(make([]byte, MAX_NAME_LEN+1))
 	err := user.SetLastName(long)
 
-	assert.ErrorContains(t, err, "last name cannot exceed")
+	assert.ErrorContains(t, err, "Last name cannot exceed")
 }
 
 func TestSecretStrengthValid(t *testing.T) {
@@ -77,12 +77,12 @@ func TestSecretStrengthMissingSymbol(t *testing.T) {
 
 func TestSecretStrengthTooShort(t *testing.T) {
 	err := TestSecretStrength("Pass1!")
-	assert.ErrorContains(t, err, "secret too short")
+	assert.ErrorContains(t, err, "Password is too short")
 }
 
 func TestSecretStrengthTooLong(t *testing.T) {
 	err := TestSecretStrength("SomeReallyObscenelyLongPassword1!")
-	assert.ErrorContains(t, err, "secret cannot exceed")
+	assert.ErrorContains(t, err, "Password cannot exceed")
 }
 
 func TestValidateJWT(t *testing.T) {
@@ -96,7 +96,8 @@ func TestValidateJWT(t *testing.T) {
 	}
 	tx.Save(&user)
 
-	entry := user.IssueJWT()
+	entry, err := user.IssueJWT()
+	assert.NilError(t, err)
 
 	partial, _, err := ValidateJWT(entry.Token)
 	assert.NilError(t, err)
