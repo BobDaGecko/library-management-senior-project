@@ -31,14 +31,25 @@ func buildWaiveConfirm(l db.Loan) string {
 	return fmt.Sprintf("Waive fee for \"%s\" (Loan ID: %s) for %s? This cannot be undone.", title, loanID, userName)
 }
 
-// isFeeWaived checks if there is a fine for the loan and it has been waived.
-func isFeeWaived(loanID db.SqlUUID) bool {
-	var fine db.Fine
-	err := db.Db().Where("loan_id = ?", loanID).First(&fine).Error
-	if err != nil {
-		return false // no fine or error -> treat as not waived (or button can still attempt)
+// waivedLoanIDs returns the set of loans (from the given list) that already
+// have a waived fine — one query for the whole table instead of one per row.
+func waivedLoanIDs(loans []db.Loan) map[db.SqlUUID]bool {
+	ret := map[db.SqlUUID]bool{}
+	if len(loans) == 0 {
+		return ret
 	}
-	return fine.AmountWaived > 0 || fine.WaivedReason != ""
+	ids := make([]db.SqlUUID, len(loans))
+	for i, l := range loans {
+		ids[i] = l.ID
+	}
+	var fines []db.Fine
+	db.Db().Where("loan_id IN ?", ids).
+		Where("amount_waived > 0 OR waived_reason != ''").
+		Find(&fines)
+	for _, f := range fines {
+		ret[f.LoanID] = true
+	}
+	return ret
 }
 
 // MgmtOverdue full page
@@ -83,8 +94,9 @@ templ MgmtOverdueTable() {
 					</tr>
 				</thead>
 				<tbody>
+					{{ waived := waivedLoanIDs(loans) }}
 					for _, l := range loans {
-						@overdueRow(l)
+						@overdueRow(l, waived[l.ID])
 					}
 				</tbody>
 			</table>
@@ -92,7 +104,7 @@ templ MgmtOverdueTable() {
 	}
 }
 
-templ overdueRow(l db.Loan) {
+templ overdueRow(l db.Loan, waived bool) {
 	<tr>
 		<td>@BookTitle(l.BookCopy.BookWork.Title)</td>
 		<td>
@@ -104,7 +116,7 @@ templ overdueRow(l db.Loan) {
 		<td>{ int(time.Since(l.DateCheckout).Hours() / 24) - int(db.LOAN_DURATION.Hours()/24) }</td>
 		<td>{ l.ID.String() }</td>
 		<td>
-			if isFeeWaived(l.ID) {
+			if waived {
 				<button class="btn btn-sm btn-subtle" disabled>Waived</button>
 			} else {
 				<button

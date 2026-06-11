@@ -25,10 +25,9 @@ func staffPickTagColor(tag string) string {
 }
 
 // PublicHomePage renders the public-facing homepage.
-// staffPicks = up to 3 Blog records (or empty if none)
-// bookFallback = up to 3 BookWork records used when staffPicks is empty
+// staffPickBooks = up to 3 newest BookWork records shown as Staff Picks
 // recentBooks = up to 6 most-recently-added BookWork records
-templ PublicHomePage(p *fail.RoutingParams, staffPicks []db.Blog, bookFallback []db.BookWork, recentBooks []db.BookWork) {
+templ PublicHomePage(p *fail.RoutingParams, staffPickBooks []db.BookWork, recentBooks []db.BookWork) {
 	@common.Head("Town Library", "Discover books, audiobooks, and digital resources at your community library.")
 	@common.NavHead(p.User, p.Req.URL.Path, "")
 	<main class="page-main">
@@ -67,13 +66,13 @@ templ PublicHomePage(p *fail.RoutingParams, staffPicks []db.Blog, bookFallback [
 			</section>
 
 			<!-- ── Staff Picks ───────────────────────────────────── -->
-			if len(bookFallback) > 0 {
+			if len(staffPickBooks) > 0 {
 				<section class="home-section">
 					<div class="home-section-header">
 						<h2 class="home-section-title">Staff Picks</h2>
 					</div>
 					<div class="home-picks-grid">
-						for _, b := range bookFallback {
+						for _, b := range staffPickBooks {
 							<article class="home-pick-card home-pick-card-book">
 								<a href={ templ.SafeURL("/book/" + b.ID) } class="home-pick-cover-link">
 									if b.CoverThumb != "" {

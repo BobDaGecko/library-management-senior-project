@@ -22,7 +22,9 @@ func bookYear(b db.BookWork) string {
 }
 
 // BookTrunkAdmin renders a compact search result card for /management/books/add.
-templ BookTrunkAdmin(b db.BookWork) {
+// inLibrary and counts are precomputed in bulk by the caller — per-card DB
+// queries here turned a 40-result page into a 120-query render.
+templ BookTrunkAdmin(b db.BookWork, inLibrary bool, counts db.FormatsMap[db.CopyCount]) {
 	<div class="search-result-card" id={ "book-" + b.ID }>
 		if b.CoverThumb != "" {
 			<img src={ b.CoverThumb } alt={ b.Title + " cover" } class="search-result-cover"/>
@@ -50,7 +52,7 @@ templ BookTrunkAdmin(b db.BookWork) {
 					</div>
 				</div>
 				<div class="search-result-action">
-					if b.Exists() {
+					if inLibrary {
 						<a href={ templ.SafeURL("/management/books/" + b.ID) } class="btn btn-sm btn-subtle">
 							In Library →
 						</a>
@@ -62,7 +64,7 @@ templ BookTrunkAdmin(b db.BookWork) {
 					}
 				</div>
 			</div>
-			if counts, err := b.AvailableCopies(false); err == nil && len(counts) > 0 {
+			if len(counts) > 0 {
 				<div class="search-result-shields">
 					for f, count := range counts {
 						@common.ShieldFormat(f, count)
@@ -77,15 +79,16 @@ templ BookTrunkAdmin(b db.BookWork) {
 }
 
 // BookTrunk renders a full-width book card for patron-facing search results.
-templ BookTrunk(b db.BookWork) {
+// counts is precomputed in bulk by the caller (see db.AvailableCountsBulk).
+templ BookTrunk(b db.BookWork, counts db.FormatsMap[db.CopyCount]) {
 	<div class="card my-4">
 		<div class="book-container">
-			@bookTrunkContainer(b, false)
+			@bookTrunkContainer(b, counts)
 		</div>
 	</div>
 }
 
-templ bookTrunkContainer(b db.BookWork, admin bool) {
+templ bookTrunkContainer(b db.BookWork, counts db.FormatsMap[db.CopyCount]) {
 	if b.CoverThumb != "" {
 		<img src={ b.CoverThumb } alt={ b.Title + " cover" } class="book-cover"/>
 	} else {
@@ -94,15 +97,9 @@ templ bookTrunkContainer(b db.BookWork, admin bool) {
 		</div>
 	}
 	<div class="book-info flex flex-col gap-1">
-		if admin {
-			<h3 class="book-title mb-0">
-				<a href={ templ.SafeURL("/management/books/" + b.ID) }>{ b.Title }</a>
-			</h3>
-		} else {
-			<h3 class="book-title mb-0">
-				<a href={ templ.SafeURL("/book/" + b.ID) }>{ b.Title }</a>
-			</h3>
-		}
+		<h3 class="book-title mb-0">
+			<a href={ templ.SafeURL("/book/" + b.ID) }>{ b.Title }</a>
+		</h3>
 		if len(b.Authors) > 0 {
 			<span class="text-sub text-sm">
 				by { strings.Join([]string(b.Authors), ", ") }
@@ -123,10 +120,8 @@ templ bookTrunkContainer(b db.BookWork, admin bool) {
 			</div>
 		}
 		<div class="mt-1">
-			if counts, err := b.AvailableCopies(false); err == nil {
-				for f, count := range counts {
-					@common.ShieldFormat(f, count)
-				}
+			for f, count := range counts {
+				@common.ShieldFormat(f, count)
 			}
 		</div>
 		if desc := stripHTML(b.Description); desc != "" {

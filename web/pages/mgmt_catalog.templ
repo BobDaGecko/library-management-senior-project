@@ -378,7 +378,7 @@ templ MgmtBookDetail(p *fail.RoutingParams, book db.BookWork) {
 			if book.Description != "" {
 				<div class="card card-flat">
 					<h3 class="mb-2">Description</h3>
-					@templ.Raw("<div class=\"book-description\">" + book.Description + "</div>")
+					@templ.Raw("<div class=\"book-description\">" + common.SafeDescription(book.Description) + "</div>")
 				</div>
 			}
 			{{ df := deletionPreflight(book.ID) }}

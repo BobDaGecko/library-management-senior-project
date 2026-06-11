@@ -11,6 +11,21 @@ import (
 	"voxelprismatic/library-management-senior-project/web/common"
 )
 
+// adminSearchMeta bulk-loads "already in library" flags and availability
+// counts for a Google search result page — one query each, instead of three
+// queries per rendered card.
+func adminSearchMeta(results db.BookVariants) (map[string]bool, map[string]db.FormatsMap[db.CopyCount]) {
+	ids := make([]string, 0, len(results))
+	for _, variants := range results {
+		if len(variants) > 0 {
+			ids = append(ids, variants[0].ID)
+		}
+	}
+	inLibrary := db.ExistingBookIDs(ids)
+	counts, _ := db.AvailableCountsBulk(ids)
+	return inLibrary, counts
+}
+
 func gbooksMustSearch(q string) db.BookVariants {
 	if q == "" {
 		return db.BookVariants{}
@@ -120,7 +135,7 @@ templ MgmtBookPreview(b db.BookWork, googleID string, p *fail.RoutingParams) {
 			if b.Description != "" {
 				<div class="card card-flat mb-6">
 					<h3 class="mb-2">Description</h3>
-					@templ.Raw("<div class=\"book-description\">" + b.Description + "</div>")
+					@templ.Raw("<div class=\"book-description\">" + common.SafeDescription(b.Description) + "</div>")
 				</div>
 			}
 			<div class="flex gap-3 items-center">
@@ -152,9 +167,10 @@ templ MgmtBookSearchGrid(q string) {
 					<div class="empty-state-text">No results found for "{ q }".</div>
 				</div>
 			} else {
+				{{ inLibrary, counts := adminSearchMeta(results) }}
 				for _, variants := range results {
 					if len(variants) > 0 {
-						@book.BookTrunkAdmin(variants[0])
+						@book.BookTrunkAdmin(variants[0], inLibrary[variants[0].ID], counts[variants[0].ID])
 					}
 				}
 			}

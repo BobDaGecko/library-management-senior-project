@@ -104,7 +104,7 @@ templ BookDetailsPage(p *fail.RoutingParams, bookID string, book db.BookWork, co
 						}
 					</div>
 					if book.Description != "" {
-						@templ.Raw("<div class=\"book-description\">" + book.Description + "</div>")
+						@templ.Raw("<div class=\"book-description\">" + common.SafeDescription(book.Description) + "</div>")
 					}
 					<table class="table mt-6" style="width:auto">
 						if book.Isbn13 != "" || book.Isbn10 != "" {
@@ -146,14 +146,15 @@ templ BookDetailsPage(p *fail.RoutingParams, bookID string, book db.BookWork, co
 						for _, f := range bookDetailFormats {
 							if cl, ok := copies[f]; ok && len(cl) > 0 {
 								for i, c := range cl {
+									{{ status := copyLoanStatus(c) }}
 									<tr>
 										<td>{ f.DisplayName() }</td>
 										<td>Copy { fmt.Sprintf("%d", i+1) }</td>
 										<td>
-											if copyLoanStatus(c) == "ready" {
+											if status == "ready" {
 												<span class="ctag ctag-green">Ready</span>
 											} else {
-												<span class="ctag ctag-peach">{ copyLoanStatus(c) }</span>
+												<span class="ctag ctag-peach">{ status }</span>
 											}
 										</td>
 									</tr>

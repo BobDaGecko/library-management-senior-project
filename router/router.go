@@ -144,5 +144,5 @@ func HandlePublicHome(p *fail.RoutingParams) {
 	var recentBooks []db.BookWork
 	db.Db().Where("id != ''").Order("created_at DESC").Offset(3).Limit(6).Find(&recentBooks)
 
-	fail.Render(p, pages.PublicHomePage(p, nil, staffPickBooks, recentBooks))
+	fail.Render(p, pages.PublicHomePage(p, staffPickBooks, recentBooks))
 }

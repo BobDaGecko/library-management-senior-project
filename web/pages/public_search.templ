@@ -71,6 +71,17 @@ func SearchBooks(f SearchFilter) []db.BookWork {
 	return results
 }
 
+// searchResultCounts bulk-loads availability shields for a result page in one
+// query instead of three per card.
+func searchResultCounts(results []db.BookWork) map[string]db.FormatsMap[db.CopyCount] {
+	ids := make([]string, len(results))
+	for i, b := range results {
+		ids[i] = b.ID
+	}
+	counts, _ := db.AvailableCountsBulk(ids)
+	return counts
+}
+
 // SearchPage is the full page (initial load).
 templ SearchPage(p *fail.RoutingParams, f SearchFilter) {
 	@common.Head("Search · Town Library", "Search books, ebooks, and audiobooks in the Town Library catalog.")
@@ -183,8 +194,9 @@ templ SearchResults(f SearchFilter) {
 			}
 		</div>
 	} else {
+		{{ counts := searchResultCounts(results) }}
 		for _, b := range results {
-			@book.BookTrunk(b)
+			@book.BookTrunk(b, counts[b.ID])
 		}
 	}
 }
