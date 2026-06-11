@@ -6,9 +6,35 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 var token string
+
+// client bounds every Google Books call — the default http.Client has no
+// timeout and would hang a request goroutine on a stalled upstream.
+var client = &http.Client{Timeout: 15 * time.Second}
+
+func getJSON(uri string, dest any) error {
+	resp, err := client.Get(uri)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		// Don't decode error payloads into the result type — that silently
+		// turns a 403/429 into an empty "no results" response.
+		return fmt.Errorf("google books returned %s", resp.Status)
+	}
+
+	return json.Unmarshal(body, dest)
+}
 
 /*
 Search for books. Returns a "list" (google's search object is a list inside an object)
@@ -25,50 +51,30 @@ Special search tags:
 func GBooksSearch(search string) (*GBooksVolSearch, error) {
 	uri := "https://www.googleapis.com/books/v1/volumes?q=" + url.QueryEscape(search)
 	if token != "" {
-		uri += "&key=" + token
-	}
-	resp, err := http.Get(uri)
-	fmt.Println(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+		uri += "&key=" + url.QueryEscape(token)
 	}
 
 	ret := &GBooksVolSearch{}
-	err = json.Unmarshal(body, ret)
-	if err != nil {
-		fmt.Printf("\x1b[91;1m%s\x1b[0m\n", uri)
-		fmt.Println(string(body))
+	if err := getJSON(uri, ret); err != nil {
+		return nil, err
 	}
-	return ret, err
+	return ret, nil
 }
 
 // Google Books Volume ID
 func GBooksVolume(volume string) (*GBooksVolDetails, error) {
-	uri := "https://www.googleapis.com/books/v1/volumes/" + volume + "?projection=full"
+	uri := "https://www.googleapis.com/books/v1/volumes/" + url.PathEscape(volume) + "?projection=full"
 	if token != "" {
-		uri += "&key=" + token
-	}
-	resp, err := http.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+		uri += "&key=" + url.QueryEscape(token)
 	}
 
 	ret := &GBooksVolDetails{}
-	err = json.Unmarshal(body, ret)
-	return ret, err
+	if err := getJSON(uri, ret); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func SetAPIToken(newToken string) {
 	token = newToken
-	fmt.Println("set token")
 }

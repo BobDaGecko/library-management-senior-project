@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"gorm.io/gorm"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
@@ -104,19 +105,23 @@ func HandleBookHold(p *fail.RoutingParams, bookID string) {
 		return
 	}
 
-	// Create hold then patch book_work_id with the raw Google Books string (bypasses SqlUUID.Value).
+	// Create hold then patch book_work_id with the raw Google Books string
+	// (bypasses SqlUUID.Value) — atomically, so a failed patch can't leave an
+	// orphan hold with a zero book ID counted against the patron.
 	hold := db.Hold{
 		UserID:        userUUID,
 		Format:        format,
 		RequestedDate: time.Now(),
 	}
-	if err := db.Db().Create(&hold).Error; err != nil {
-		http.Error(p.W, "Failed to place hold", http.StatusInternalServerError)
-		return
-	}
-	if err := db.Db().Model(&db.Hold{}).
-		Where("id = ?", hold.ID).
-		Update("book_work_id", bookID).Error; err != nil {
+	err := db.Db().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&hold).Error; err != nil {
+			return err
+		}
+		return tx.Model(&db.Hold{}).
+			Where("id = ?", hold.ID).
+			Update("book_work_id", bookID).Error
+	})
+	if err != nil {
 		http.Error(p.W, "Failed to place hold", http.StatusInternalServerError)
 		return
 	}

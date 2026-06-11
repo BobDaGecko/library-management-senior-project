@@ -1,11 +1,12 @@
 package router
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
@@ -125,37 +126,60 @@ func HandleManagementOverdue(p *fail.RoutingParams) {
 	if p.Req.Method == http.MethodPost {
 		action := p.Req.FormValue("action")
 		if action == "waive" {
-			loanIDStr := p.Req.FormValue("loan_id")
-			if loanIDStr == "" {
-				http.Error(p.W, "missing loan_id", http.StatusBadRequest)
+			loanID, err := db.FromString(p.Req.FormValue("loan_id"))
+			if err != nil || loanID.IsEmpty() {
+				http.Error(p.W, "invalid loan_id", http.StatusBadRequest)
 				return
 			}
 
-			var fine db.Fine
-			db.Db().Where("loan_id = ?", loanIDStr).Order("created_at desc").First(&fine)
+			var loan db.Loan
+			if err := db.Db().Where("id = ?", loanID).First(&loan).Error; err != nil {
+				http.Error(p.W, "loan not found", http.StatusNotFound)
+				return
+			}
 
-			if fine.ID.IsEmpty() {
+			// p.User.ID is the 22-char Short() form — never uuid.Parse it.
+			waivedBy := db.SqlUUID{}
+			if u, err := db.ParseShort(p.User.ID); err == nil {
+				waivedBy = u
+			}
+			const waivedReason = "Waived by librarian via overdue page"
+
+			var fine db.Fine
+			err = db.Db().Where("loan_id = ?", loanID).Order("created_at desc").First(&fine).Error
+			switch {
+			case errors.Is(err, gorm.ErrRecordNotFound):
+				// No fine exists yet — record the waive as an audit entry
+				// with nothing owed, instead of minting a new debt.
 				fine = db.Fine{
+					UserID:          loan.UserID,
+					LoanID:          loanID,
 					IssueReason:     db.FineReasonLate,
 					IssueDate:       time.Now(),
 					AmountIssued:    5.0,
-					AmountRemaining: 5.0,
+					AmountRemaining: 0,
+					AmountWaived:    5.0,
+					WaivedReason:    waivedReason,
+					WaivedBy:        waivedBy,
 				}
-				if u, err := uuid.Parse(loanIDStr); err == nil {
-					fine.LoanID = db.SqlUUID{UUID: u}
+				if err := db.Db().Create(&fine).Error; err != nil {
+					http.Error(p.W, "failed to record waive", http.StatusInternalServerError)
+					return
 				}
-				db.Db().Create(&fine)
-			}
-
-			if fine.AmountWaived == 0 {
-				fine.AmountWaived = fine.AmountIssued
-				fine.WaivedReason = "Waived by librarian via overdue page"
-				if p.User != nil {
-					if u, err := uuid.Parse(p.User.ID); err == nil {
-						fine.WaivedBy = db.SqlUUID{UUID: u}
-					}
+			case err != nil:
+				http.Error(p.W, "failed to look up fine", http.StatusInternalServerError)
+				return
+			case fine.AmountRemaining > 0:
+				res := db.Db().Model(&db.Fine{}).Where("id = ?", fine.ID).Updates(map[string]any{
+					"amount_waived":    fine.AmountWaived + fine.AmountRemaining,
+					"amount_remaining": float32(0),
+					"waived_reason":    waivedReason,
+					"waived_by":        waivedBy,
+				})
+				if res.Error != nil {
+					http.Error(p.W, "failed to waive fine", http.StatusInternalServerError)
+					return
 				}
-				db.Db().Save(&fine)
 			}
 
 			fail.Render(p, pages.WaiveButtonDisabled())

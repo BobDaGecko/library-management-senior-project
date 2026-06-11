@@ -62,9 +62,11 @@ func ReturnCopyStatus(c ConditionFlag) CopyStatusFlag {
 	}
 }
 
-// Marks a book as returned
+// Marks a book as returned. Uses a targeted update — Save() on a loan with
+// preloaded associations would cascade stale BookCopy/BookWork/User writes.
 func (c *Loan) Return() error {
-	db := Db()
 	c.DateReturned = time.Now()
-	return db.Save(c).Error
+	return Db().Model(&Loan{}).
+		Where("id = ?", c.ID).
+		Update("date_returned", c.DateReturned).Error
 }

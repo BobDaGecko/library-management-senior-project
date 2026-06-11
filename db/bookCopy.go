@@ -58,21 +58,40 @@ func (c BookCopy) LoanHistory() ([]Loan, error) {
 	return ret, status.Error
 }
 
+// LoanStatus derives the circulation state of this copy. A copy that is
+// checked out (CopyStatusPendingReturn) reports Unavailable or Overdue based
+// on its active loan; only repair/discard states report Withdrawn.
 func (c BookCopy) LoanStatus() (CopyLoanFlag, error) {
-	if c.Status != CopyStatusPublic {
+	switch c.Status {
+	case CopyStatusPublic, CopyStatusPendingReturn:
+		// fall through to the loan check below
+	default:
 		return CopyLoanWithdrawn, nil
 	}
 
-	history, err := c.LoanHistory()
+	// Only the newest loan matters here — never load the whole history.
+	var active []Loan
+	err := Db().Model(&Loan{}).
+		Select("date_checkout", "date_returned").
+		Where("book_copy_id = ?", c.ID).
+		Where("date_returned = ?", NilTime).
+		Order("date_checkout DESC").
+		Limit(1).
+		Find(&active).Error
 	if err != nil {
 		return CopyLoanWithdrawn, err
 	}
 
-	if len(history) == 0 {
-		return CopyLoanAvailable, nil
+	if len(active) > 0 {
+		return active[0].Status().ToCopyStatus(), nil
 	}
 
-	return history[0].Status().ToCopyStatus(), nil
+	if c.Status == CopyStatusPendingReturn {
+		// Marked checked-out but no active loan (e.g. just returned and not
+		// yet reshelved) — not available for a new checkout.
+		return CopyLoanUnavailable, nil
+	}
+	return CopyLoanAvailable, nil
 }
 
 // HistoryEntry represents a unified "returned to library" event for a physical copy.

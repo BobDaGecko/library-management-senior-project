@@ -1,11 +1,13 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"gorm.io/gorm"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
@@ -46,6 +48,8 @@ func HandleManagementCheckout(p *fail.RoutingParams) {
 	}
 }
 
+var errCopyTaken = errors.New("copy no longer available")
+
 func handleCheckoutPost(p *fail.RoutingParams) {
 	if fail.Form(p) {
 		return
@@ -53,22 +57,6 @@ func handleCheckoutPost(p *fail.RoutingParams) {
 
 	userIDStr := p.Req.FormValue("user_id")
 	copyIDStr := p.Req.FormValue("copy_id")
-
-	var copy db.BookCopy
-	db.Db().Preload("BookWork").Where("id = ?", copyIDStr).First(&copy)
-	if copy.ID.IsEmpty() {
-		http.Error(p.W, "copy not found", http.StatusBadRequest)
-		return
-	}
-
-	loanStatus, err := copy.LoanStatus()
-	if err != nil || loanStatus != db.CopyLoanAvailable {
-		var user db.User
-		db.Db().Where("id = ?", userIDStr).First(&user)
-		loans, _ := user.CheckedOut()
-		fail.Render(p, pages.CheckoutErrorState(user, len(loans), "This copy is no longer available. Please select another."))
-		return
-	}
 
 	var user db.User
 	db.Db().Where("id = ?", userIDStr).First(&user)
@@ -83,26 +71,85 @@ func handleCheckoutPost(p *fail.RoutingParams) {
 		return
 	}
 
+	renderError := func(msg string) {
+		loans, _ := user.CheckedOut()
+		fail.Render(p, pages.CheckoutErrorState(user, len(loans), msg))
+	}
+
+	if user.Status == db.UserStatusLocked || user.Status == db.UserStatusDeleted {
+		renderError("This account is " + user.Status.DisplayName() + " and cannot check out books.")
+		return
+	}
+
+	var activeLoans int64
+	if err := db.Db().Model(&db.Loan{}).
+		Where("user_id = ? AND date_returned = ?", userUUID, db.NilTime).
+		Count(&activeLoans).Error; err != nil {
+		http.Error(p.W, "failed to check loan limit", http.StatusInternalServerError)
+		return
+	}
+	if activeLoans >= db.LOAN_LIMIT {
+		renderError(fmt.Sprintf("Patron has reached the loan limit (%d books).", db.LOAN_LIMIT))
+		return
+	}
+
+	var copy db.BookCopy
+	db.Db().Preload("BookWork").Where("id = ?", copyIDStr).First(&copy)
+	if copy.ID.IsEmpty() {
+		http.Error(p.W, "copy not found", http.StatusBadRequest)
+		return
+	}
+
+	loanStatus, err := copy.LoanStatus()
+	if err != nil || loanStatus != db.CopyLoanAvailable {
+		renderError("This copy is no longer available. Please select another.")
+		return
+	}
+
 	loan := db.Loan{
 		BookCopyID:        copy.ID,
 		UserID:            userUUID,
 		DateCheckout:      time.Now(),
 		OutgoingCondition: copy.Condition,
 	}
-	if res := db.Db().Create(&loan); res.Error != nil {
-		http.Error(p.W, res.Error.Error(), http.StatusInternalServerError)
+
+	// One atomic unit: claim the copy, create the loan, fulfill the oldest
+	// matching hold. The conditional status update doubles as the race guard —
+	// a concurrent checkout of the same copy affects zero rows and aborts.
+	err = db.Db().Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&db.BookCopy{}).
+			Where("id = ? AND status = ?", copy.ID, db.CopyStatusPublic).
+			Update("status", db.CopyStatusPendingReturn)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return errCopyTaken
+		}
+
+		if err := tx.Create(&loan).Error; err != nil {
+			return err
+		}
+
+		// Fulfill only the oldest open hold for this patron + work, not all of them.
+		return tx.Exec(`
+			UPDATE holds SET fulfilled_date = ? WHERE id IN (
+				SELECT id FROM holds
+				WHERE book_work_id = ? AND user_id = ?
+				  AND fulfilled_date = ? AND cancelled_date = ? AND deleted_at IS NULL
+				ORDER BY requested_date ASC LIMIT 1
+			)`, time.Now(), copy.BookWorkID, userUUID, db.NilTime, db.NilTime).Error
+	})
+	if errors.Is(err, errCopyTaken) {
+		renderError("This copy is no longer available. Please select another.")
+		return
+	}
+	if err != nil {
+		http.Error(p.W, "checkout failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	db.Db().Model(&db.BookCopy{}).Where("id = ?", copy.ID).Update("status", db.CopyStatusPendingReturn)
-
-	// Fulfill open hold if one exists for this patron + book work
-	db.Db().Model(&db.Hold{}).
-		Where("book_work_id = ? AND user_id = ? AND fulfilled_date = ? AND cancelled_date = ?",
-			copy.BookWorkID, userUUID, db.NilTime, db.NilTime).
-		Update("fulfilled_date", time.Now())
-
-	dueDate := time.Now().Add(db.LOAN_DURATION)
+	dueDate := loan.DateCheckout.Add(db.LOAN_DURATION)
 	fail.Render(p, pages.CheckoutSuccess(
 		fmt.Sprintf("%s %s", user.FirstName, user.LastName),
 		copy.BookWork.Title,
@@ -135,6 +182,7 @@ func searchAvailableCopies(q string) []db.BookCopy {
 		Where("book_copies.status = ?", db.CopyStatusPublic).
 		Where("book_works.title LIKE ? OR book_works.authors LIKE ?", like, like).
 		Preload("BookWork").
+		Limit(50).
 		Find(&copies)
 
 	var available []db.BookCopy
@@ -185,19 +233,42 @@ func handleReturnPost(p *fail.RoutingParams) {
 		http.Error(p.W, "loan not found", http.StatusBadRequest)
 		return
 	}
-
-	condition := db.ConditionGood
-	if v, err := strconv.Atoi(conditionStr); err == nil {
-		condition = db.ConditionFlag(v)
+	if !loan.DateReturned.IsZero() {
+		// Replay guard: a double-submit must not re-stamp the return date or
+		// reset a copy that has since moved to repair/discard.
+		http.Error(p.W, "loan already returned", http.StatusConflict)
+		return
 	}
 
-	db.Db().Model(&db.Loan{}).Where("id = ?", loan.ID).Updates(map[string]interface{}{
-		"date_returned":      time.Now(),
-		"incoming_condition": condition,
-	})
+	v, err := strconv.Atoi(conditionStr)
+	if err != nil || v < int(db.ConditionMint) || v > int(db.ConditionLost) {
+		http.Error(p.W, "invalid condition", http.StatusBadRequest)
+		return
+	}
+	condition := db.ConditionFlag(v)
 
 	newStatus := db.ReturnCopyStatus(condition)
-	db.Db().Model(&db.BookCopy{}).Where("id = ?", loan.BookCopyID).Update("status", newStatus)
+	err = db.Db().Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&db.Loan{}).
+			Where("id = ? AND date_returned = ?", loan.ID, db.NilTime).
+			Updates(map[string]any{
+				"date_returned":      time.Now(),
+				"incoming_condition": condition,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return errors.New("loan already returned")
+		}
+		return tx.Model(&db.BookCopy{}).
+			Where("id = ?", loan.BookCopyID).
+			Update("status", newStatus).Error
+	})
+	if err != nil {
+		http.Error(p.W, "return failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	userName := fmt.Sprintf("%s %s", loan.User.FirstName, loan.User.LastName)
 	bookTitle := loan.BookCopy.BookWork.Title
@@ -222,6 +293,7 @@ func searchActiveLoans(q string) []db.Loan {
 		Where("book_works.title LIKE ? OR book_works.authors LIKE ?", like, like).
 		Preload("BookCopy.BookWork").
 		Preload("User").
+		Limit(50).
 		Find(&loans)
 	return loans
 }
@@ -239,7 +311,17 @@ func HandleManagementHolds(p *fail.RoutingParams) {
 		}
 		if p.Req.FormValue("action") == "cancel" {
 			holdIDStr := p.Req.FormValue("hold_id")
-			db.Db().Model(&db.Hold{}).Where("id = ?", holdIDStr).Update("cancelled_date", time.Now())
+			res := db.Db().Model(&db.Hold{}).
+				Where("id = ? AND fulfilled_date = ? AND cancelled_date = ?", holdIDStr, db.NilTime, db.NilTime).
+				Update("cancelled_date", time.Now())
+			if res.Error != nil {
+				http.Error(p.W, "failed to cancel hold", http.StatusInternalServerError)
+				return
+			}
+			if res.RowsAffected == 0 {
+				http.Error(p.W, "hold not found or already resolved", http.StatusConflict)
+				return
+			}
 			fail.Render(p, pages.HoldCancelledBadge())
 			return
 		}
@@ -268,14 +350,38 @@ func HandleManagementFines(p *fail.RoutingParams) {
 				http.Error(p.W, "fine not found", http.StatusBadRequest)
 				return
 			}
+			if fine.AmountRemaining <= 0 {
+				// Already settled (double-submit) — idempotent success.
+				fail.Render(p, pages.FinePaidBadge())
+				return
+			}
+
+			// Fine.UserID is not reliably populated — derive the payer
+			// through the loan, falling back to whatever the fine has.
+			payerID := fine.UserID
+			var loan db.Loan
+			if err := db.Db().Where("id = ?", fine.LoanID).First(&loan).Error; err == nil {
+				payerID = loan.UserID
+			}
 
 			txn := db.Transaction{
-				UserID:     fine.UserID,
+				UserID:     payerID,
 				AmountPaid: fine.AmountRemaining,
 				Date:       time.Now(),
 			}
-			db.Db().Create(&txn)
-			db.Db().Model(&db.Fine{}).Where("id = ?", fine.ID).Update("amount_remaining", float32(0))
+			err := db.Db().Transaction(func(tx *gorm.DB) error {
+				if err := tx.Create(&txn).Error; err != nil {
+					return err
+				}
+				return tx.Model(&db.Fine{}).Where("id = ?", fine.ID).Updates(map[string]any{
+					"amount_remaining": float32(0),
+					"user_id":          payerID,
+				}).Error
+			})
+			if err != nil {
+				http.Error(p.W, "failed to record payment: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 			fail.Render(p, pages.FinePaidBadge())
 			return
 		}

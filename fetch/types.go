@@ -105,9 +105,21 @@ type GBooksVolSearch struct {
 	Items      []GBooksVolDetails `json:"items"`
 }
 
+// parsePublishedDate handles the partial dates Google Books commonly returns
+// ("2005", "2005-07") in addition to full dates; unknown formats yield the
+// zero time rather than an error.
+func parsePublishedDate(s string) time.Time {
+	for _, layout := range []string{"2006-01-02", "2006-01", "2006"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
 func (b GBooksVolDetails) ToLocalStruct() db.BookWork {
 	v := b.VolumeInfo
-	pubDate, _ := time.Parse("2006-01-02", v.PublishedDate)
+	pubDate := parsePublishedDate(v.PublishedDate)
 
 	var isbn10, isbn13 string
 	for _, id := range v.IndustryIdentifiers {

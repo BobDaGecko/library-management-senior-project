@@ -56,7 +56,7 @@ func Done(p *RoutingParams) bool {
 		return true
 	}
 
-	_, _ = p.W.Write([]byte("404: too far"))
+	http.Error(p.W, "404: not found", http.StatusNotFound)
 	return true
 }
 

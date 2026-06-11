@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -9,11 +10,26 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
 	"voxelprismatic/library-management-senior-project/db"
 	"voxelprismatic/library-management-senior-project/fetch"
 	"voxelprismatic/library-management-senior-project/router/fail"
 	"voxelprismatic/library-management-senior-project/web/pages"
 )
+
+// fetchAndSaveBook pulls a volume from Google Books and upserts it as a local
+// BookWork. Shared by the add-search PUT, add-confirm, and book-detail PUT flows.
+func fetchAndSaveBook(googleId string) (db.BookWork, error) {
+	details, err := fetch.GBooksVolume(googleId)
+	if err != nil {
+		return db.BookWork{}, fmt.Errorf("failed to fetch book from Google Books: %w", err)
+	}
+	book := details.ToLocalStruct()
+	if err := db.Db().Save(&book).Error; err != nil {
+		return db.BookWork{}, err
+	}
+	return book, nil
+}
 
 func ManagementBooksRouter(p *fail.RoutingParams) {
 	if fail.Auth(p, db.UserRoleLibrarian) {
@@ -82,18 +98,14 @@ func HandleManagementBooksAdd(p *fail.RoutingParams) {
 			http.Error(p.W, "missing id", http.StatusBadRequest)
 			return
 		}
-		details, err := fetch.GBooksVolume(id)
-		if err != nil {
-			http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
-			return
-		}
-		book := details.ToLocalStruct()
-		if err := db.Db().Save(&book).Error; err != nil {
-			http.Error(p.W, err.Error(), http.StatusInternalServerError)
+		if _, err := fetchAndSaveBook(id); err != nil {
+			http.Error(p.W, err.Error(), http.StatusBadGateway)
 			return
 		}
 		p.W.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(p.W, `<a href="/management/books/%s" class="btn btn-sm btn-subtle">In Library →</a>`, id)
+		// id is form-supplied — escape it before reflecting into the attribute.
+		fmt.Fprintf(p.W, `<a href="/management/books/%s" class="btn btn-sm btn-subtle">In Library →</a>`,
+			html.EscapeString(url.PathEscape(id)))
 		return
 	default:
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
@@ -124,17 +136,11 @@ func HandleManagementBookAddConfirm(p *fail.RoutingParams, googleId string) {
 		http.Error(p.W, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	details, err := fetch.GBooksVolume(googleId)
-	if err != nil {
-		http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
+	if _, err := fetchAndSaveBook(googleId); err != nil {
+		http.Error(p.W, err.Error(), http.StatusBadGateway)
 		return
 	}
-	book := details.ToLocalStruct()
-	if err := db.Db().Save(&book).Error; err != nil {
-		http.Error(p.W, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(p.W, p.Req, "/management/books/"+googleId, http.StatusSeeOther)
+	http.Redirect(p.W, p.Req, "/management/books/"+url.PathEscape(googleId), http.StatusSeeOther)
 }
 
 // HandleManagementBook handles GET (edit page), PUT (fetch from Google & overwrite), PATCH (form update with reflect)
@@ -186,14 +192,8 @@ func HandleManagementBook(p *fail.RoutingParams, bookId string) {
 
 	case http.MethodPut:
 		// Fetch all details from Google Books and overwrite in DB
-		details, err := fetch.GBooksVolume(bookId)
-		if err != nil {
-			http.Error(p.W, "Failed to fetch book from Google Books: "+err.Error(), http.StatusBadGateway)
-			return
-		}
-		book := details.ToLocalStruct()
-		if err := db.Db().Save(&book).Error; err != nil {
-			http.Error(p.W, err.Error(), http.StatusInternalServerError)
+		if _, err := fetchAndSaveBook(bookId); err != nil {
+			http.Error(p.W, err.Error(), http.StatusBadGateway)
 			return
 		}
 
@@ -275,16 +275,25 @@ func HandleManagementBookDelete(p *fail.RoutingParams, bookId string) {
 		return
 	}
 
-	// Cancel all open holds
-	db.Db().Model(&db.Hold{}).
-		Where("book_work_id = ?", bookId).
-		Where("fulfilled_date = ?", db.NilTime).
-		Where("cancelled_date = ?", db.NilTime).
-		Update("cancelled_date", time.Now())
-
-	// Soft-delete all copies, then the book work
-	db.Db().Where("book_work_id = ?", bookId).Delete(&db.BookCopy{})
-	db.Db().Where("id = ?", bookId).Delete(&db.BookWork{})
+	// Cancel open holds, soft-delete copies, then the book work — atomically,
+	// so a failure partway can't leave a half-deleted book behind.
+	err := db.Db().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&db.Hold{}).
+			Where("book_work_id = ?", bookId).
+			Where("fulfilled_date = ?", db.NilTime).
+			Where("cancelled_date = ?", db.NilTime).
+			Update("cancelled_date", time.Now()).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("book_work_id = ?", bookId).Delete(&db.BookCopy{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id = ?", bookId).Delete(&db.BookWork{}).Error
+	})
+	if err != nil {
+		http.Error(p.W, "failed to delete book: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	p.W.Header().Set("HX-Redirect", "/management/books")
 	p.W.WriteHeader(http.StatusOK)
@@ -379,16 +388,21 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 				http.Error(p.W, "Cannot delete a copy that has checkout or repair history", http.StatusConflict)
 				return
 			}
-			tx := db.Db().Begin()
-			tx.Where("book_copy_id = ?", copy.ID).Delete(&db.Loan{})
-			tx.Where("book_copy_id = ?", copy.ID).Delete(&db.RepairLog{})
-			tx.Unscoped().Delete(&copy)
-			if tx.Error != nil {
-				tx.Rollback()
-				http.Error(p.W, "Failed to delete copy: "+tx.Error.Error(), http.StatusInternalServerError)
+			// Each chained GORM call returns its own *gorm.DB, so errors must
+			// be checked per statement — the parent tx.Error never gets set.
+			err := db.Db().Transaction(func(tx *gorm.DB) error {
+				if err := tx.Where("book_copy_id = ?", copy.ID).Delete(&db.Loan{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("book_copy_id = ?", copy.ID).Delete(&db.RepairLog{}).Error; err != nil {
+					return err
+				}
+				return tx.Unscoped().Delete(&copy).Error
+			})
+			if err != nil {
+				http.Error(p.W, "Failed to delete copy: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
-			tx.Commit()
 			p.W.Header().Set("HX-Redirect", fmt.Sprintf("/management/books/%s/copies", bookID))
 			return
 
@@ -403,7 +417,13 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 
 		case "complete_repair":
 			technician := p.Req.FormValue("technician")
-			condInt, _ := strconv.Atoi(p.Req.FormValue("condition"))
+			condInt, err := strconv.Atoi(p.Req.FormValue("condition"))
+			if err != nil || condInt < int(db.ConditionMint) || condInt > int(db.ConditionLost) {
+				// Never default silently — a parse failure would record the
+				// repaired copy as factory-mint (ConditionFlag zero value).
+				http.Error(p.W, "invalid condition", http.StatusBadRequest)
+				return
+			}
 			repairLog := db.RepairLog{
 				BookCopyID:     copy.ID,
 				Date:           time.Now(),
@@ -411,21 +431,25 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 				OutgoingStatus: db.CopyStatusPublic,
 				TechnicianName: technician,
 			}
-			db.Db().Create(&repairLog)
-			db.Db().Model(&db.BookCopy{}).Where("id = ?", copy.ID).Updates(map[string]interface{}{
-				"status":    db.CopyStatusPublic,
-				"condition": db.ConditionFlag(condInt),
+			err = db.Db().Transaction(func(tx *gorm.DB) error {
+				if err := tx.Create(&repairLog).Error; err != nil {
+					return err
+				}
+				return tx.Model(&db.BookCopy{}).Where("id = ?", copy.ID).Updates(map[string]any{
+					"status":    db.CopyStatusPublic,
+					"condition": db.ConditionFlag(condInt),
+				}).Error
 			})
+			if err != nil {
+				http.Error(p.W, "failed to complete repair: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 			copy.Status = db.CopyStatusPublic
 			copy.Condition = db.ConditionFlag(condInt)
 
 			const perPage = 25
 			entries, histTotal, _ := copy.History(1, perPage)
-			totalPgs := 1
-			if histTotal > perPage {
-				totalPgs = int((histTotal + perPage - 1) / perPage)
-			}
-			fail.Render(p, pages.CopyManagementWithHistoryOOB(bookID, copy, entries, 1, totalPgs, histTotal))
+			fail.Render(p, pages.CopyManagementWithHistoryOOB(bookID, copy, entries, 1, totalPages(histTotal, perPage), histTotal))
 			return
 
 		case "discard":
@@ -459,19 +483,23 @@ func HandleManagementBookCopyDetail(p *fail.RoutingParams, bookID, copyID string
 		http.Error(p.W, "Failed to load copy history: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	totalPages := 1
-	if total > 0 {
-		totalPages = int((total + int64(perPage) - 1) / int64(perPage))
-	}
+	pageCount := totalPages(total, perPage)
 
 	// HTMX pagination requests (the common.Pagination component does hx-post) -> render only the history table fragment
 	if p.Req.Header.Get("HX-Request") == "true" {
-		fail.Render(p, pages.MgmtBookCopyHistoryTable(bookID, copy, entries, page, totalPages, total))
+		fail.Render(p, pages.MgmtBookCopyHistoryTable(bookID, copy, entries, page, pageCount, total))
 		return
 	}
 
-	fail.Render(p, pages.MgmtBookCopyDetail(bookID, copy, entries, page, totalPages, total, p))
+	fail.Render(p, pages.MgmtBookCopyDetail(bookID, copy, entries, page, pageCount, total, p))
+}
+
+// totalPages returns the 1-based page count for a paginated table.
+func totalPages(total int64, perPage int) int {
+	if total <= 0 {
+		return 1
+	}
+	return int((total + int64(perPage) - 1) / int64(perPage))
 }
 
 // GetBookAndCopies loads the BookWork and its copies grouped by Format using the existing MapFormats helper.
@@ -490,12 +518,22 @@ func GetBookAndCopies(bookID string) (db.BookWork, db.FormatsMap[db.CopyList], e
 	return book, db.CopyList(copies).MapFormats(), nil
 }
 
-// updateBookFromForm ...
+// bookEditableFields is the allow-list for the metadata PATCH form. Without
+// it, any BookWork field — including the primary key — could be overwritten
+// by an extra form key (mass assignment).
+var bookEditableFields = map[string]bool{
+	"title": true, "subtitle": true, "authors": true, "publisher": true,
+	"publisheddate": true, "version": true, "isbn13": true, "isbn10": true,
+	"description": true, "pagecount": true, "ismature": true,
+	"categories": true, "coverthumb": true, "coverimage": true,
+}
+
+// updateBookFromForm copies allow-listed form values onto the BookWork via reflection.
 func updateBookFromForm(target interface{}, form map[string][]string) {
 	v := reflect.ValueOf(target).Elem()
 	t := v.Type()
 	for key, vals := range form {
-		if len(vals) == 0 {
+		if len(vals) == 0 || !bookEditableFields[strings.ToLower(key)] {
 			continue
 		}
 		valStr := vals[0]
