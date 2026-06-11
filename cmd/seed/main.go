@@ -42,10 +42,7 @@ func main() {
 	// 4. Circulation: loans, holds, fines, transactions.
 	seedCirculation(cast, books, copiesByBook, zeroAvailable)
 
-	// 5. Blog posts (home page Staff Picks).
-	seedBlog(cast)
-
-	// 6. Print the credential sheet for the demo.
+	// 5. Print the credential sheet for the demo.
 	printCredentials(cast)
 
 	fmt.Println("\n\x1b[32;1m✓ Seed complete.\x1b[0m Run `make run` and log in.")
